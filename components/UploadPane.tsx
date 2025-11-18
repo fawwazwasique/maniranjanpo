@@ -184,7 +184,7 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
 
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 gap-8">
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg space-y-4">
                     <h2 className="text-2xl font-semibold mb-2 flex items-center gap-3">
                         <DocumentPlusIcon className="w-7 h-7 text-red-500" />
