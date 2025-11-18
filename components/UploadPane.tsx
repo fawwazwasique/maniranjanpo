@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback } from 'react';
 import { ArrowUpTrayIcon, DocumentPlusIcon, PlusIcon, XMarkIcon, ArrowDownTrayIcon } from './icons';
 import { MAIN_BRANCHES, BRANCH_STRUCTURE } from '../constants';
@@ -116,12 +117,14 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
             const gstAmount = netTaxable * (gst / 100);
             const total = netTaxable + gstAmount;
             
+            acc.grossValue += unitExt;
+            acc.totalDiscount += discount;
             acc.netTaxableValue += netTaxable;
             acc.gst += gstAmount;
             acc.totalAmount += total;
             
             return acc;
-        }, { netTaxableValue: 0, gst: 0, totalAmount: 0 });
+        }, { grossValue: 0, totalDiscount: 0, netTaxableValue: 0, gst: 0, totalAmount: 0 });
     }, [order.items]);
 
 
@@ -254,9 +257,11 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                         </div>
                         
                          <div className="space-y-1 p-4 bg-slate-100 dark:bg-slate-900/50 rounded-lg text-right">
+                           <p className="text-lg">Subtotal: <span className="font-semibold text-slate-800 dark:text-slate-100">{totals.grossValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span></p>
+                           <p className="text-lg text-amber-600 dark:text-amber-400">Discount: <span className="font-semibold">{totals.totalDiscount > 0 ? '- ' : ''}{totals.totalDiscount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span></p>
                            <p className="text-lg">Net Taxable Value: <span className="font-semibold text-slate-800 dark:text-slate-100">{totals.netTaxableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span></p>
-                           <p className="text-lg">GST: <span className="font-semibold text-slate-800 dark:text-slate-100">{totals.gst.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span></p>
-                           <p className="text-2xl font-bold">Total Amount: <span className="text-red-600 dark:text-red-400">{totals.totalAmount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span></p>
+                           <p className="text-lg">GST: <span className="font-semibold text-slate-800 dark:text-slate-100">+ {totals.gst.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span></p>
+                           <p className="text-2xl font-bold pt-2 mt-2 border-t border-slate-300 dark:border-slate-700">Total Amount: <span className="text-red-600 dark:text-red-400">{totals.totalAmount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span></p>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
