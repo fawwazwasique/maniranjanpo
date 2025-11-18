@@ -1,0 +1,120 @@
+
+export enum POItemStatus {
+  Available = 'Available',
+  PartiallyAvailable = 'Partially Available',
+  NotAvailable = 'Not Available',
+  Dispatched = 'Dispatched',
+}
+
+export enum OverallPOStatus {
+    Open = 'Open',
+    PartiallyDispatched = 'Partially Dispatched',
+    Fulfilled = 'Fulfilled',
+    Cancelled = 'Cancelled'
+}
+
+export enum OrderStatus {
+  Draft = 'Draft',
+  Released = 'Released',
+  Invoiced = 'Invoiced',
+  Shipped = 'Shipped',
+}
+
+// New status based on Excel screenshot
+export enum FulfillmentStatus {
+  New = 'New',
+  Partial = 'Partial',
+  Fulfillment = 'Fulfillment',
+  Release = 'Release',
+  Invoiced = 'Invoiced',
+  Shipped = 'Shipped',
+}
+
+export interface POItem {
+  partNumber: string;
+  quantity: number;
+  rate: number;
+  status: POItemStatus;
+  itemDesc?: string;
+  discount?: number;
+  gst?: number;
+  // New fields from Excel
+  stockAvailable?: number;
+  stockInHand?: number;
+
+  allocatedQuantity?: number;
+  deliveryQuantity?: number;
+  invoicedQuantity?: number;
+  // New fields from user request
+  stockStatus?: 'Available' | 'Unavailable';
+  oaDate?: string;
+  oaNo?: string;
+}
+
+export interface PurchaseOrder {
+  id: string;
+  poNumber: string;
+  customerName: string;
+  poDate: string;
+  items: POItem[];
+  status: OverallPOStatus;
+  createdAt: string;
+  saleType: 'Cash' | 'Credit';
+  paymentStatus: 'Received' | 'Pending' | null; // null for credit
+  paymentNotes: string;
+  creditTerms: number; // in days, 0 for cash
+  mainBranch?: string;
+  subBranch?: string;
+  salesOrderNumber?: string;
+  systemRemarks?: string;
+  orderStatus?: OrderStatus;
+  // New status field
+  fulfillmentStatus?: FulfillmentStatus;
+  // New fields from user request
+  soDate?: string;
+  invoiceDate?: string;
+  pfAvailable?: boolean;
+  checklist?: {
+    bCheck: boolean;
+    cCheck: boolean;
+    dCheck: boolean;
+    others: boolean;
+  };
+  checklistRemarks?: string;
+}
+
+// Fix: Add missing QuotationItem and Quotation interfaces
+export interface QuotationItem {
+  partNumber: string;
+  quantity: number;
+  rate: number;
+}
+
+export interface Quotation {
+  id: string;
+  customerName: string;
+  validity: string;
+  items: QuotationItem[];
+  createdAt: string;
+}
+
+export interface Notification {
+  id: string;
+  message: string;
+  poId: string;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface LogEntry {
+  id:string;
+  timestamp: string;
+  action: string;
+  poId: string;
+}
+
+export interface ProcurementSuggestion {
+    supplier_types: string[];
+    negotiation_tactics: string[];
+    lead_time_considerations: string[];
+}
