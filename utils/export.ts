@@ -1,3 +1,4 @@
+
 import { PurchaseOrder } from '../types';
 
 const convertToCSV = (data: PurchaseOrder[]): string => {
@@ -47,39 +48,67 @@ export const exportToCSV = (data: PurchaseOrder[], filename: string = 'purchase_
 
 export const downloadTemplate = (): void => {
     const headers = [
-        'po_no', 'po_date', 'so_no', 'so_date', 'invoice_date', // Document Details
-        'account_name', 'main_branch', 'sub_branch', // Customer & Branch
-        'sale_type', 'credit_terms', 'order_status', 'fulfillment_status', // Payment & Status
-        'pf_available', 'checklist_b', 'checklist_c', 'checklist_d', 'checklist_others', 'checklist_remarks', // Additional Details
-        'part_number', 'item_description', 'quantity', 'rate', 'discount', 'gst_percentage', // Item Details
-        'stock_status', 'oa_no', 'oa_date' // Item Stock Details
-    ];
-    const exampleRow1 = [
-        'PO-12345', '2024-08-15', 'SO-54321', '2024-08-16', '',
-        'Innovate Inc.', 'Bengaluru', 'Peenya',
-        'Credit', '30', 'Pending', 'Fully Available',
-        'TRUE', 'TRUE', 'FALSE', 'FALSE', 'FALSE', '',
-        'PART-XYZ-001', 'Description for item XYZ', '50', '250.75', '100', '18',
-        'Available', '', ''
-    ];
-    // Example for a second item in the same PO (note PO details are duplicated)
-    const exampleRow2 = [
-        'PO-12345', '2024-08-15', 'SO-54321', '2024-08-16', '',
-        'Innovate Inc.', 'Bengaluru', 'Peenya',
-        'Credit', '30', 'Pending', 'Fully Available',
-        'TRUE', 'TRUE', 'FALSE', 'FALSE', 'FALSE', '',
-        'PART-ABC-002', 'Description for item ABC', '20', '500.00', '0', '18',
-        'Unavailable', 'OA-987', '2024-08-20'
+        'Branch',
+        'Sale Order Number',
+        'Dates',
+        'Account Name',
+        'Customer PO Reference No',
+        'Item: Item Type',
+        'Item: Item Name',
+        'Item: Item Description',
+        'Quantity',
+        'Stock Available',
+        'Stock In Hand',
+        'Unit Price',
+        'Base Amount',
+        'Discount Amount',
+        'Tax Amount',
+        'Gross Amount',
+        'Remarks',
+        'Billing Address',
+        'Bill To GSTIN',
+        'Shipping Address',
+        'Ship To GSTIN',
+        'Quote Number',
+        'Status',
+        'Order Status'
     ];
     
+    // Example data row matching the headers requested by the user
+    const exampleRow = [
+        'Bengaluru', // Branch
+        'SO-2024-001', // Sale Order Number
+        '2024-03-15', // Dates (PO Date)
+        'Innovate Inc.', // Account Name
+        'PO-REF-001', // Customer PO Reference No
+        'Hardware', // Item: Item Type
+        'HAMMER-01', // Item: Item Name
+        'Heavy Duty Hammer', // Item: Item Description
+        '10', // Quantity
+        '50', // Stock Available
+        '50', // Stock In Hand
+        '100.00', // Unit Price
+        '1000.00', // Base Amount
+        '0.00', // Discount Amount
+        '180.00', // Tax Amount
+        '1180.00', // Gross Amount
+        'Urgent Delivery', // Remarks
+        '123 Industrial Area, Bengaluru', // Billing Address
+        '29ABCDE1234F1Z5', // Bill To GSTIN
+        '456 Warehouse Rd, Bengaluru', // Shipping Address
+        '29ABCDE1234F1Z5', // Ship To GSTIN
+        'QT-2024-100', // Quote Number
+        'Open', // Status
+        'Draft' // Order Status
+    ];
+
     const csvContent = [
         headers.join(','), 
-        exampleRow1.join(','),
-        exampleRow2.join(',')
+        exampleRow.join(',')
     ].join('\n');
+    
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    // Fix: Corrected the call to create an object URL. It should be `URL.createObjectURL`.
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
     link.setAttribute('download', 'bulk_upload_template.csv');

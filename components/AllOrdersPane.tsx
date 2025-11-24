@@ -1,3 +1,5 @@
+
+
 import React, { useState, useMemo } from 'react';
 import type { PurchaseOrder } from '../types';
 import { MagnifyingGlassIcon, ArrowDownTrayIcon, TrashIcon } from './icons';
@@ -9,7 +11,7 @@ interface AllOrdersPaneProps {
   onDeletePO: (poId: string) => void;
 }
 
-type SortKeys = 'poNumber' | 'customerName' | 'poDate' | 'totalValue' | 'status' | 'fulfillmentStatus';
+type SortKeys = 'poNumber' | 'customerName' | 'poDate' | 'totalValue' | 'status' | 'fulfillmentStatus' | 'orderStatus';
 
 const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectPO, onDeletePO }) => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -94,7 +96,8 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                             <th scope="col" className="p-4">Branch</th>
                             <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('poDate')}>Date {getSortIndicator('poDate')}</th>
                             <th scope="col" className="p-4 cursor-pointer text-right" onClick={() => requestSort('totalValue')}>Value {getSortIndicator('totalValue')}</th>
-                            <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('status')}>Status {getSortIndicator('status')}</th>
+                            <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('orderStatus')}>Order Status {getSortIndicator('orderStatus')}</th>
+                            <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('status')}>PO Status {getSortIndicator('status')}</th>
                              <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('fulfillmentStatus')}>Fulfillment {getSortIndicator('fulfillmentStatus')}</th>
                             <th scope="col" className="p-4 text-center">Actions</th>
                         </tr>
@@ -107,6 +110,7 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                                 <td className="p-4">{po.mainBranch}{po.subBranch && ` / ${po.subBranch}`}</td>
                                 <td className="p-4">{new Date(po.poDate).toLocaleDateString()}</td>
                                 <td className="p-4 text-right font-semibold">{po.totalValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</td>
+                                <td className="p-4 font-medium">{po.orderStatus}</td>
                                 <td className="p-4">{po.status}</td>
                                 <td className="p-4">{po.fulfillmentStatus}</td>
                                 <td className="p-4 text-center">

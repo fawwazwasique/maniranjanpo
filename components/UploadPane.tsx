@@ -1,5 +1,4 @@
 
-
 import React, { useState, useCallback } from 'react';
 import { ArrowUpTrayIcon, DocumentPlusIcon, PlusIcon, XMarkIcon, ArrowDownTrayIcon } from './icons';
 import { MAIN_BRANCHES, BRANCH_STRUCTURE } from '../constants';
@@ -25,6 +24,7 @@ const initialItemState = {
     stockStatus: 'Available' as 'Available' | 'Unavailable',
     oaDate: '',
     oaNo: '',
+    itemType: '',
 };
 
 const initialOrderState = {
@@ -35,7 +35,7 @@ const initialOrderState = {
     poDate: new Date().toISOString().split('T')[0],
     soNo: '',
     soDate: new Date().toISOString().split('T')[0],
-    invoiceDate: '',
+    // invoiceDate removed
     items: [initialItemState],
     orderStatus: 'Pending',
     fulfillmentStatus: 'Fully Available',
@@ -49,6 +49,11 @@ const initialOrderState = {
         others: false,
     },
     checklistRemarks: '',
+    billingAddress: '',
+    billToGSTIN: '',
+    shippingAddress: '',
+    shipToGSTIN: '',
+    quoteNumber: '',
 };
 
 const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload }) => {
@@ -61,7 +66,11 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
         const checkedValue = (e.target as HTMLInputElement).checked;
 
         if (name === 'mainBranch') {
-            setOrder(prev => ({ ...prev, mainBranch: value, subBranch: '' }));
+            if (value === '') {
+                 setOrder(prev => ({ ...prev, mainBranch: '', subBranch: '' }));
+            } else {
+                 setOrder(prev => ({ ...prev, mainBranch: value, subBranch: '' }));
+            }
         } else {
             setOrder(prev => ({ ...prev, [name]: isCheckbox ? checkedValue : value }));
         }
@@ -86,9 +95,15 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
 
     const handleItemChange = (index: number, e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        const newItems = [...order.items];
-        (newItems[index] as any)[name] = value;
-        setOrder(prev => ({ ...prev, items: newItems }));
+        setOrder(prev => {
+            const newItems = prev.items.map((item, i) => {
+                if (i === index) {
+                    return { ...item, [name]: value };
+                }
+                return item;
+            });
+            return { ...prev, items: newItems };
+        });
     };
     
     const addItem = () => {
@@ -200,7 +215,7 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                             {renderField("PO Date", "poDate", "date", [], true)}
                             {renderField("SO No.", "soNo", "text", [], true)}
                             {renderField("SO Date", "soDate", "date", [], true)}
-                            {renderField("Invoice Date", "invoiceDate", "date")}
+                            {renderField("Quote Number", "quoteNumber", "text", [], false)}
                             
                             <h3 className="md:col-span-2 text-lg font-medium text-slate-800 dark:text-white pt-4 mt-2 border-t dark:border-slate-700 -mb-2">Customer & Branch</h3>
                             <div className="md:col-span-2">
@@ -220,6 +235,12 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                                     {order.mainBranch && BRANCH_STRUCTURE[order.mainBranch]?.map(sb => <option key={sb} value={sb}>{sb}</option>)}
                                 </select>
                             </div>
+                            
+                            <h3 className="md:col-span-2 text-lg font-medium text-slate-800 dark:text-white pt-4 mt-2 border-t dark:border-slate-700 -mb-2">Addresses</h3>
+                            {renderField("Billing Address", "billingAddress", "text", [], false)}
+                            {renderField("Bill To GSTIN", "billToGSTIN", "text", [], false)}
+                            {renderField("Shipping Address", "shippingAddress", "text", [], false)}
+                            {renderField("Ship To GSTIN", "shipToGSTIN", "text", [], false)}
                         </div>
 
                         <div className="space-y-4 pt-4 border-t dark:border-slate-700">
@@ -230,6 +251,10 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                                      <div className="w-full">
                                         <label htmlFor={`partNumber-${index}`} className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Item Name</label>
                                         <input type="text" id={`partNumber-${index}`} name="partNumber" value={item.partNumber} onChange={(e) => handleItemChange(index, e)} required className="w-full text-base font-semibold px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                                     </div>
+                                     <div className="w-full">
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Item Type</label>
+                                        <input type="text" name="itemType" value={item.itemType} onChange={(e) => handleItemChange(index, e)} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
                                      </div>
                                      {order.items.length > 1 && <button type="button" onClick={() => removeItem(index)} className="flex-shrink-0 text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50 mb-1"><XMarkIcon className="w-5 h-5"/></button>}
                                  </div>
@@ -279,7 +304,9 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                                 </div>
                                 <div>
                                     <label htmlFor="fulfillmentStatus" className="block text-sm font-medium">Fulfillment Status</label>
-                                    <select id="fulfillmentStatus" name="fulfillmentStatus" value={order.fulfillmentStatus} onChange={handleOrderChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white">{['Fully Available', 'Partially Available'].map(s => <option key={s} value={s}>{s}</option>)}</select>
+                                    <select id="fulfillmentStatus" name="fulfillmentStatus" value={order.fulfillmentStatus} onChange={handleOrderChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white">
+                                        {['Fully Available', 'Partially Available', 'Not Available'].map(s => <option key={s} value={s}>{s}</option>)}
+                                    </select>
                                 </div>
                            </div>
                            <div className="md:col-span-2 pt-4 mt-2 border-t dark:border-slate-700 space-y-2">

@@ -25,6 +25,7 @@ export enum FulfillmentStatus {
   New = 'New',
   Partial = 'Partial',
   Fulfillment = 'Fulfillment',
+  NotAvailable = 'Not Available',
   Release = 'Release',
   Invoiced = 'Invoiced',
   Shipped = 'Shipped',
@@ -49,6 +50,7 @@ export interface POItem {
   stockStatus?: 'Available' | 'Unavailable';
   oaDate?: string;
   oaNo?: string;
+  itemType?: string; // Added item type
 }
 
 export interface PurchaseOrder {
@@ -73,6 +75,7 @@ export interface PurchaseOrder {
   // New fields from user request
   soDate?: string;
   invoiceDate?: string;
+  invoiceNumber?: string;
   pfAvailable?: boolean;
   checklist?: {
     bCheck: boolean;
@@ -81,6 +84,13 @@ export interface PurchaseOrder {
     others: boolean;
   };
   checklistRemarks?: string;
+  
+  // New fields for bulk upload template
+  billingAddress?: string;
+  billToGSTIN?: string;
+  shippingAddress?: string;
+  shipToGSTIN?: string;
+  quoteNumber?: string;
 }
 
 // Fix: Add missing QuotationItem and Quotation interfaces

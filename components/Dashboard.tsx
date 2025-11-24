@@ -1,7 +1,8 @@
+
 import React, { useMemo } from 'react';
 import type { PurchaseOrder } from '../types';
 import { OverallPOStatus, FulfillmentStatus } from '../types';
-import { CheckCircleIcon, ClockIcon, MagnifyingGlassIcon, TruckIcon, UserGroupIcon, XMarkIcon, ChartPieIcon, CalendarDaysIcon, CurrencyRupeeIcon } from './icons';
+import { CheckCircleIcon, ClockIcon, MagnifyingGlassIcon, TruckIcon, UserGroupIcon, XMarkIcon, ChartPieIcon, CalendarDaysIcon, CurrencyRupeeIcon, NoSymbolIcon, ArrowUpIcon, ArrowDownIcon } from './icons';
 import { MAIN_BRANCHES, BRANCH_STRUCTURE } from '../constants';
 
 interface DashboardProps {
@@ -23,14 +24,42 @@ interface DashboardProps {
   customers: string[];
 }
 
-const DashboardStatCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode }> = ({ title, value, icon }) => (
-    <div className="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-md flex items-center space-x-4">
+interface TrendData {
+    value: number;
+    percent: number;
+    text: string;
+    isPositiveGood: boolean;
+}
+
+const DashboardStatCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode; indicatorColor?: string; trend?: TrendData | null }> = ({ title, value, icon, indicatorColor, trend }) => (
+    <div className="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-md flex items-center space-x-4 relative overflow-hidden">
+        {indicatorColor && (
+            <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${indicatorColor}`}></div>
+        )}
         <div className="bg-red-100 dark:bg-red-900/50 p-3 rounded-full">
             {icon}
         </div>
-        <div>
-            <p className="text-base text-slate-500 dark:text-slate-400 font-medium">{title}</p>
+        <div className="flex-1">
+            <p className="text-base text-slate-500 dark:text-slate-400 font-medium flex items-center gap-2">
+                {title}
+                {indicatorColor && <span className={`w-2 h-2 rounded-full ${indicatorColor}`}></span>}
+            </p>
             <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{value}</p>
+            {trend && trend.percent !== 0 && (
+                 <div className={`flex items-center gap-1 text-sm font-semibold mt-1 ${
+                     trend.value > 0 
+                        ? (trend.isPositiveGood ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')
+                        : (trend.isPositiveGood ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400')
+                 }`}>
+                     {trend.value > 0 ? <ArrowUpIcon className="w-4 h-4" /> : <ArrowDownIcon className="w-4 h-4" />}
+                     <span>{Math.abs(trend.percent).toFixed(1)}% MOM</span>
+                 </div>
+            )}
+             {trend && trend.percent === 0 && (
+                <div className="text-sm text-slate-400 mt-1 font-medium">
+                     No change MOM
+                </div>
+            )}
         </div>
     </div>
 );
@@ -144,15 +173,83 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             .filter(po => filters.subBranch ? po.subBranch === filters.subBranch : true);
     }, [purchaseOrders, filters]);
 
+    const getTrend = (
+        allPOs: PurchaseOrder[], 
+        currentFilters: typeof filters, 
+        filterFn: (po: PurchaseOrder) => boolean,
+        valueFn: (pos: PurchaseOrder[]) => number,
+        isPositiveGood: boolean = true
+    ): TrendData | null => {
+        // Filter context: Apply Customer and Branch filters, but IGNORE Date filter to get valid Month-Over-Month context
+        const contextPOs = allPOs.filter(po => {
+            if (currentFilters.customer && !po.customerName.toLowerCase().includes(currentFilters.customer.toLowerCase())) return false;
+            if (currentFilters.mainBranch && po.mainBranch !== currentFilters.mainBranch) return false;
+            if (currentFilters.subBranch && po.subBranch !== currentFilters.subBranch) return false;
+            return true;
+        });
+
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        
+        const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastMonth = lastMonthDate.getMonth();
+        const lastMonthYear = lastMonthDate.getFullYear();
+
+        const thisMonthPOs = contextPOs.filter(po => {
+            const d = new Date(po.poDate);
+            return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+        });
+
+        const lastMonthPOs = contextPOs.filter(po => {
+            const d = new Date(po.poDate);
+            return d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear;
+        });
+
+        const thisMonthMetricPOs = thisMonthPOs.filter(filterFn);
+        const lastMonthMetricPOs = lastMonthPOs.filter(filterFn);
+
+        const thisVal = valueFn(thisMonthMetricPOs);
+        const lastVal = valueFn(lastMonthMetricPOs);
+
+        if (lastVal === 0) {
+            return thisVal === 0 ? { value: 0, percent: 0, text: '0% MOM', isPositiveGood } : { value: 100, percent: 100, text: '100% MOM', isPositiveGood };
+        }
+        
+        const percent = ((thisVal - lastVal) / lastVal) * 100;
+        return { value: percent, percent, text: `${Math.abs(percent).toFixed(1)}% MOM`, isPositiveGood };
+    };
+
+    const getAvgDays = (pos: PurchaseOrder[], startField: keyof PurchaseOrder, endField: keyof PurchaseOrder): number => {
+        const validPOs = pos.filter(p => p[startField] && p[endField]);
+        if (validPOs.length === 0) return 0;
+        const totalDays = validPOs.reduce((acc, p) => {
+            const startDate = new Date(p[startField] as string);
+            const endDate = new Date(p[endField] as string);
+            if(isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return acc;
+            const diff = Math.abs(endDate.getTime() - startDate.getTime());
+            return acc + Math.ceil(diff / (1000 * 3600 * 24));
+        }, 0);
+        return totalDays / validPOs.length;
+    };
+
 
     const dashboardData = useMemo(() => {
         const openPOs = filteredPOs.filter(po => po.status === OverallPOStatus.Open || po.status === OverallPOStatus.PartiallyDispatched);
         const totalOpenPOs = openPOs.length;
-        // Fix: Explicitly cast quantity and rate to Number to prevent type errors from Firestore data.
         const openPOValue = openPOs.reduce((acc, po) => acc + po.items.reduce((itemAcc, item) => itemAcc + (Number(item.quantity) * Number(item.rate)), 0), 0);
+        
         const fullyAvailablePOs = filteredPOs.filter(po => po.fulfillmentStatus === FulfillmentStatus.Fulfillment).length;
         const partiallyAvailablePOs = filteredPOs.filter(po => po.fulfillmentStatus === FulfillmentStatus.Partial).length;
-        
+        const notAvailablePOs = filteredPOs.filter(po => po.fulfillmentStatus === FulfillmentStatus.NotAvailable).length;
+
+        // Trends
+        const openTrend = getTrend(purchaseOrders, filters, p => p.status === OverallPOStatus.Open || p.status === OverallPOStatus.PartiallyDispatched, p => p.length, true);
+        const valueTrend = getTrend(purchaseOrders, filters, p => p.status === OverallPOStatus.Open || p.status === OverallPOStatus.PartiallyDispatched, p => p.reduce((acc, po) => acc + po.items.reduce((itemAcc, item) => itemAcc + (Number(item.quantity) * Number(item.rate)), 0), 0), true);
+        const fullyTrend = getTrend(purchaseOrders, filters, p => p.fulfillmentStatus === FulfillmentStatus.Fulfillment, p => p.length, true);
+        const partialTrend = getTrend(purchaseOrders, filters, p => p.fulfillmentStatus === FulfillmentStatus.Partial, p => p.length, true);
+        const notAvailableTrend = getTrend(purchaseOrders, filters, p => p.fulfillmentStatus === FulfillmentStatus.NotAvailable, p => p.length, false); // Increase is bad
+
         const checklistDataRaw = {
             'B-Check': filteredPOs.filter(po => po.checklist?.bCheck).length,
             'C-Check': filteredPOs.filter(po => po.checklist?.cCheck).length,
@@ -164,12 +261,19 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
         const valueByFulfillment = filteredPOs.reduce((acc, po) => {
             const status = po.fulfillmentStatus || 'N/A';
-            // Fix: Explicitly cast quantity and rate to Number to prevent type errors from Firestore data.
             const value = po.items.reduce((iAcc, i) => iAcc + (Number(i.quantity) * Number(i.rate)), 0);
             acc[status] = (acc[status] || 0) + value;
             return acc;
         }, {} as Record<string, number>);
-        const fulfillmentColors: Record<string, string> = { [FulfillmentStatus.New]: '#6b7280', [FulfillmentStatus.Partial]: '#f59e0b', [FulfillmentStatus.Fulfillment]: '#22c55e', [FulfillmentStatus.Release]: '#3b82f6', [FulfillmentStatus.Invoiced]: '#ef4444', [FulfillmentStatus.Shipped]: '#14b8a6' };
+        const fulfillmentColors: Record<string, string> = { 
+            [FulfillmentStatus.New]: '#6b7280', 
+            [FulfillmentStatus.Partial]: '#f59e0b', 
+            [FulfillmentStatus.Fulfillment]: '#22c55e', 
+            [FulfillmentStatus.NotAvailable]: '#ef4444',
+            [FulfillmentStatus.Release]: '#3b82f6', 
+            [FulfillmentStatus.Invoiced]: '#ef4444', 
+            [FulfillmentStatus.Shipped]: '#14b8a6' 
+        };
         const fulfillmentChartData = Object.entries(valueByFulfillment).map(([label, value]) => ({ label, value, color: fulfillmentColors[label] || '#9ca3af' }));
 
         const customerValue = filteredPOs.reduce((acc, po) => {
@@ -177,7 +281,6 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             acc[po.customerName] = (acc[po.customerName] || 0) + value;
             return acc;
         }, {} as { [key: string]: number });
-        // Fix: Explicitly cast values to Number in the sort function to prevent type errors.
         const topCustomers = Object.entries(customerValue).map(([label, value]) => ({ label, value })).sort((a,b) => Number(b.value) - Number(a.value)).slice(0, 5);
 
         const valueByPayment = filteredPOs.reduce((acc, po) => {
@@ -208,27 +311,30 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             acc[branch] = (acc[branch] || 0) + value;
             return acc;
         }, {} as Record<string, number>);
-        // Fix: Explicitly cast values to Number in the sort function to prevent type errors.
         const branchPerformanceChartData = Object.entries(valueByBranch).map(([label, value]) => ({ label, value })).sort((a,b) => Number(b.value) - Number(a.value));
 
-        const calculateAvgDays = (pos: PurchaseOrder[], startField: keyof PurchaseOrder, endField: keyof PurchaseOrder) => {
-            const validPOs = pos.filter(p => p[startField] && p[endField]);
-            if (validPOs.length === 0) return 'N/A';
-            const totalDays = validPOs.reduce((acc, p) => {
-                const startDate = new Date(p[startField] as string);
-                const endDate = new Date(p[endField] as string);
-                if(isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return acc;
-                const diff = Math.abs(endDate.getTime() - startDate.getTime());
-                return acc + Math.ceil(diff / (1000 * 3600 * 24));
-            }, 0);
-            return `${Math.round(totalDays / validPOs.length)} days`;
-        };
-        const avgPOtoSO = calculateAvgDays(filteredPOs, 'poDate', 'soDate');
-        const avgSOtoInvoice = calculateAvgDays(filteredPOs, 'soDate', 'invoiceDate');
-        const avgPOtoInvoice = calculateAvgDays(filteredPOs, 'poDate', 'invoiceDate');
+        const avgPOtoSOVal = getAvgDays(filteredPOs, 'poDate', 'soDate');
+        const avgSOtoInvoiceVal = getAvgDays(filteredPOs, 'soDate', 'invoiceDate');
+        const avgPOtoInvoiceVal = getAvgDays(filteredPOs, 'poDate', 'invoiceDate');
 
-        return { totalOpenPOs, openPOValue, fullyAvailablePOs, partiallyAvailablePOs, checklistChartData, fulfillmentChartData, topCustomers, paymentTermsChartData, poAgeingChartData, branchPerformanceChartData, avgPOtoSO, avgSOtoInvoice, avgPOtoInvoice };
-    }, [filteredPOs]);
+        const avgPOtoSO = avgPOtoSOVal ? `${Math.round(avgPOtoSOVal)} days` : 'N/A';
+        const avgSOtoInvoice = avgSOtoInvoiceVal ? `${Math.round(avgSOtoInvoiceVal)} days` : 'N/A';
+        const avgPOtoInvoice = avgPOtoInvoiceVal ? `${Math.round(avgPOtoInvoiceVal)} days` : 'N/A';
+
+        // Average Trends (Increase in days is Bad, so isPositiveGood = false)
+        const avgPOtoSOTrend = getTrend(purchaseOrders, filters, () => true, (pos) => getAvgDays(pos, 'poDate', 'soDate'), false);
+        const avgSOtoInvoiceTrend = getTrend(purchaseOrders, filters, () => true, (pos) => getAvgDays(pos, 'soDate', 'invoiceDate'), false);
+        const avgPOtoInvoiceTrend = getTrend(purchaseOrders, filters, () => true, (pos) => getAvgDays(pos, 'poDate', 'invoiceDate'), false);
+
+        return { 
+            totalOpenPOs, openPOValue, fullyAvailablePOs, partiallyAvailablePOs, notAvailablePOs, 
+            checklistChartData, fulfillmentChartData, topCustomers, paymentTermsChartData, 
+            poAgeingChartData, branchPerformanceChartData, 
+            avgPOtoSO, avgSOtoInvoice, avgPOtoInvoice,
+            openTrend, valueTrend, fullyTrend, partialTrend, notAvailableTrend,
+            avgPOtoSOTrend, avgSOtoInvoiceTrend, avgPOtoInvoiceTrend
+        };
+    }, [filteredPOs, purchaseOrders, filters]);
 
     return (
         <div className="p-4 sm:p-6 lg:p-8">
@@ -275,17 +381,63 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                <DashboardStatCard title="Total Open POs" value={dashboardData.totalOpenPOs} icon={<ClockIcon className="w-6 h-6 text-amber-500" />} />
-                <DashboardStatCard title="Open PO Value" value={dashboardData.openPOValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' })} icon={<CurrencyRupeeIcon className="w-6 h-6 text-red-500" />} />
-                <DashboardStatCard title="Fully Available POs" value={dashboardData.fullyAvailablePOs} icon={<CheckCircleIcon className="w-6 h-6 text-green-500" />} />
-                <DashboardStatCard title="Partially Available POs" value={dashboardData.partiallyAvailablePOs} icon={<TruckIcon className="w-6 h-6 text-blue-500" />} />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-6">
+                <DashboardStatCard 
+                    title="Total Open POs" 
+                    value={dashboardData.totalOpenPOs} 
+                    icon={<ClockIcon className="w-6 h-6 text-amber-500" />} 
+                    indicatorColor="bg-amber-500"
+                    trend={dashboardData.openTrend}
+                />
+                <DashboardStatCard 
+                    title="Open PO Value" 
+                    value={dashboardData.openPOValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' })} 
+                    icon={<CurrencyRupeeIcon className="w-6 h-6 text-red-500" />} 
+                    indicatorColor="bg-red-500"
+                    trend={dashboardData.valueTrend}
+                />
+                <DashboardStatCard 
+                    title="Fully Available" 
+                    value={dashboardData.fullyAvailablePOs} 
+                    icon={<CheckCircleIcon className="w-6 h-6 text-green-500" />} 
+                    indicatorColor="bg-green-500"
+                    trend={dashboardData.fullyTrend}
+                />
+                <DashboardStatCard 
+                    title="Partially Available" 
+                    value={dashboardData.partiallyAvailablePOs} 
+                    icon={<TruckIcon className="w-6 h-6 text-blue-500" />} 
+                    indicatorColor="bg-blue-500"
+                    trend={dashboardData.partialTrend}
+                />
+                <DashboardStatCard 
+                    title="Not Available" 
+                    value={dashboardData.notAvailablePOs} 
+                    icon={<NoSymbolIcon className="w-6 h-6 text-red-500" />} 
+                    indicatorColor="bg-red-600"
+                    trend={dashboardData.notAvailableTrend}
+                />
             </div>
 
             <div className="flex flex-col md:flex-row justify-center gap-6 mb-6">
-                 <DashboardStatCard title="Avg. PO → SO" value={dashboardData.avgPOtoSO} icon={<CalendarDaysIcon className="w-6 h-6 text-indigo-500" />} />
-                 <DashboardStatCard title="Avg. SO → Invoice" value={dashboardData.avgSOtoInvoice} icon={<CalendarDaysIcon className="w-6 h-6 text-indigo-500" />} />
-                 <DashboardStatCard title="Avg. PO → Invoice" value={dashboardData.avgPOtoInvoice} icon={<CalendarDaysIcon className="w-6 h-6 text-indigo-500" />} />
+                 <DashboardStatCard 
+                    title="Avg. PO → SO" 
+                    value={dashboardData.avgPOtoSO} 
+                    icon={<CalendarDaysIcon className="w-6 h-6 text-indigo-500" />} 
+                    trend={dashboardData.avgPOtoSOTrend}
+                 />
+                 <DashboardStatCard 
+                    title="Avg. SO → Invoice" 
+                    value={dashboardData.avgSOtoInvoice} 
+                    icon={<CalendarDaysIcon className="w-6 h-6 text-indigo-500" />} 
+                    trend={dashboardData.avgSOtoInvoiceTrend}
+                 />
+                 <DashboardStatCard 
+                    title="Avg. PO → Invoice" 
+                    value={dashboardData.avgPOtoInvoice} 
+                    icon={<CalendarDaysIcon className="w-6 h-6 text-indigo-500" />} 
+                    trend={dashboardData.avgPOtoInvoiceTrend}
+                 />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import type { PurchaseOrder, POItem, LogEntry } from '../types';
 import { POItemStatus, OrderStatus, FulfillmentStatus } from '../types';
@@ -28,6 +29,7 @@ const initialItemState: POItem = {
     allocatedQuantity: 0,
     deliveryQuantity: 0,
     invoicedQuantity: 0,
+    itemType: '',
 };
 
 const initialPOState: Omit<PurchaseOrder, 'id' | 'createdAt' | 'status'> = {
@@ -45,6 +47,13 @@ const initialPOState: Omit<PurchaseOrder, 'id' | 'createdAt' | 'status'> = {
     systemRemarks: '',
     orderStatus: OrderStatus.Draft,
     fulfillmentStatus: FulfillmentStatus.New,
+    invoiceNumber: '',
+    invoiceDate: '',
+    billingAddress: '',
+    billToGSTIN: '',
+    shippingAddress: '',
+    shipToGSTIN: '',
+    quoteNumber: '',
 };
 
 
@@ -81,10 +90,15 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
   };
 
   const handleItemChange = (index: number, field: keyof POItem, value: string | number) => {
-    const newItems = [...formData.items];
-    const item = newItems[index];
-    (item[field] as any) = value;
-    setFormData(prev => ({ ...prev, items: newItems }));
+    setFormData(prev => {
+        const newItems = prev.items.map((item, i) => {
+            if (i === index) {
+                return { ...item, [field]: value };
+            }
+            return item;
+        });
+        return { ...prev, items: newItems };
+    });
   };
 
   const addItem = () => {
@@ -114,6 +128,8 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
     };
     return colors[status];
   }
+
+  const showInvoiceFields = formData.orderStatus === OrderStatus.Invoiced || formData.orderStatus === OrderStatus.Shipped;
 
   if (!isOpen) return null;
 
@@ -170,6 +186,20 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                                 </select>
                             </div>
                         </div>
+                        
+                        {showInvoiceFields && (
+                            <div className="grid grid-cols-2 gap-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-700/50">
+                                <div>
+                                    <label htmlFor="invoiceNumber" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Invoice Number</label>
+                                    <input type="text" id="invoiceNumber" name="invoiceNumber" value={formData.invoiceNumber || ''} onChange={handleInputChange} required className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-yellow-500 focus:border-yellow-500"/>
+                                </div>
+                                <div>
+                                    <label htmlFor="invoiceDate" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Invoice Date</label>
+                                    <input type="date" id="invoiceDate" name="invoiceDate" value={formData.invoiceDate || ''} onChange={handleInputChange} required className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-yellow-500 focus:border-yellow-500"/>
+                                </div>
+                            </div>
+                        )}
+
                          <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label htmlFor="salesOrderNumber" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Sales Order No.</label>
@@ -182,6 +212,13 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                                 </select>
                             </div>
                         </div>
+
+                         <div className="grid grid-cols-1 gap-4">
+                             <div>
+                                <label htmlFor="quoteNumber" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Quote Number</label>
+                                <input type="text" id="quoteNumber" name="quoteNumber" value={formData.quoteNumber || ''} onChange={handleInputChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                             </div>
+                         </div>
                     </div>
                     <div className="space-y-4 pt-6 border-t dark:border-slate-700">
                         <h3 className="text-lg font-medium text-slate-800 dark:text-white">Items</h3>
@@ -191,7 +228,10 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                                <input type="text" placeholder="Item Name / Part Number" value={item.partNumber} onChange={e => handleItemChange(index, 'partNumber', e.target.value)} required className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
                                {formData.items.length > 1 && (<button type="button" onClick={() => removeItem(index)} className="ml-2 text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50"><XMarkIcon className="w-5 h-5"/></button>)}
                             </div>
-                            <textarea placeholder="Item Description" value={item.itemDesc} onChange={e => handleItemChange(index, 'itemDesc', e.target.value)} rows={2} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500" />
+                            <div className="grid grid-cols-2 gap-2">
+                                <input type="text" placeholder="Item Type" value={item.itemType || ''} onChange={e => handleItemChange(index, 'itemType', e.target.value)} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                                <textarea placeholder="Item Description" value={item.itemDesc} onChange={e => handleItemChange(index, 'itemDesc', e.target.value)} rows={1} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500" />
+                            </div>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                 <input type="number" placeholder="Qty" min="1" value={item.quantity} onChange={e => handleItemChange(index, 'quantity', parseInt(e.target.value, 10))} required className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
                                 <input type="number" placeholder="Rate" min="0.01" step="0.01" value={item.rate} onChange={e => handleItemChange(index, 'rate', parseFloat(e.target.value))} required className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
@@ -227,6 +267,28 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                             </div>
                         )}
                          <div><label htmlFor="systemRemarks" className="block text-sm font-medium">System Remarks / Notes</label><textarea id="systemRemarks" name="systemRemarks" value={formData.systemRemarks} onChange={handleInputChange} rows={2} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"></textarea></div>
+                    </div>
+                    
+                    <div className="space-y-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <h3 className="text-lg font-medium text-slate-800 dark:text-white">Addresses & GSTIN</h3>
+                        <div className="space-y-4">
+                             <div>
+                                <label htmlFor="billingAddress" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Billing Address</label>
+                                <textarea id="billingAddress" name="billingAddress" value={formData.billingAddress || ''} onChange={handleInputChange} rows={2} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"></textarea>
+                            </div>
+                            <div>
+                                <label htmlFor="billToGSTIN" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Bill To GSTIN</label>
+                                <input type="text" id="billToGSTIN" name="billToGSTIN" value={formData.billToGSTIN || ''} onChange={handleInputChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                            </div>
+                            <div>
+                                <label htmlFor="shippingAddress" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Shipping Address</label>
+                                <textarea id="shippingAddress" name="shippingAddress" value={formData.shippingAddress || ''} onChange={handleInputChange} rows={2} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"></textarea>
+                            </div>
+                            <div>
+                                <label htmlFor="shipToGSTIN" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Ship To GSTIN</label>
+                                <input type="text" id="shipToGSTIN" name="shipToGSTIN" value={formData.shipToGSTIN || ''} onChange={handleInputChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                            </div>
+                        </div>
                     </div>
 
                     {!isCreateMode && (
