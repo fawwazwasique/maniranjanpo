@@ -495,31 +495,51 @@ function App() {
                     if(char === '"') {
                         inQuote = !inQuote;
                     } else if(char === ',' && !inQuote) {
-                        result.push(current.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
+                        // Strip outer quotes and unescape double quotes
+                        let val = current.trim();
+                        if (val.startsWith('"') && val.endsWith('"')) {
+                            val = val.slice(1, -1);
+                        }
+                        val = val.replace(/""/g, '"');
+                        result.push(val);
                         current = '';
                     } else {
                         current += char;
                     }
                 }
-                result.push(current.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
+                // Push last col
+                let val = current.trim();
+                if (val.startsWith('"') && val.endsWith('"')) {
+                    val = val.slice(1, -1);
+                }
+                val = val.replace(/""/g, '"');
+                result.push(val);
                 return result;
             };
 
-            const dataLines = lines.slice(1).filter(l => l.trim().length > 0);
+            const dataLines = lines.slice(1); // Skip header, keep lines to check content
             
             // Group rows by PO Number (index 3 based on new template)
             const groupedByOrder: Record<string, string[]> = {};
 
             dataLines.forEach(line => {
+                if (!line.trim()) return; // Skip completely empty lines
+                
                 const cols = parseLine(line);
-                if (cols.length < 5) return;
-                // Index 3 is PO Number
-                const key = cols[3] || `UNK-${Date.now()}-${Math.random()}`;
+                // Flexible check: if row is practically empty (just commas), skip
+                if (cols.every(c => !c || c.trim() === '')) return;
+
+                // Index 3 is PO Number.
+                // If PO number is present, use it to group.
+                // If NOT present, generate a unique ID so it creates a distinct draft PO.
+                const poNum = cols[3]?.trim();
+                const key = poNum ? poNum : `DRAFT-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+                
                 if (!groupedByOrder[key]) groupedByOrder[key] = [];
                 groupedByOrder[key].push(line);
             });
 
-            const batch = writeBatch(db);
+            let batch = writeBatch(db);
             let opCount = 0;
 
             for (const key in groupedByOrder) {
@@ -527,22 +547,28 @@ function App() {
                 if (groupLines.length === 0) continue;
 
                 const firstRowCols = parseLine(groupLines[0]);
-                const getCol = (idx: number) => firstRowCols[idx] || '';
-                const getBool = (idx: number) => (firstRowCols[idx] || '').toUpperCase() === 'TRUE';
+                const getCol = (idx: number) => firstRowCols[idx] ? firstRowCols[idx].trim() : '';
+                
+                // Flexible boolean parser: accepts TRUE, YES, 1, Y (case insensitive)
+                const getBool = (idx: number) => {
+                    const val = (firstRowCols[idx] || '').trim().toUpperCase();
+                    return val === 'TRUE' || val === 'YES' || val === '1' || val === 'Y';
+                };
 
                 const items: POItem[] = groupLines.map(line => {
                     const c = parseLine(line);
+                    const getC = (idx: number) => c[idx] ? c[idx].trim() : '';
                     return {
-                        partNumber: c[12] || 'Unknown Item', // Item Name
-                        itemType: c[13] || '',
-                        itemDesc: c[14] || '',
-                        quantity: parseFloat(c[15]) || 0,
-                        rate: parseFloat(c[16]) || 0,
-                        discount: parseFloat(c[17]) || 0,
-                        gst: parseFloat(c[18]) || 0,
-                        stockStatus: (c[19] as 'Available' | 'Unavailable') || 'Unavailable',
-                        oaNo: c[20] || '',
-                        oaDate: c[21] || '',
+                        partNumber: getC(12) || '', // Allow empty part number, user can update later
+                        itemType: getC(13) || '',
+                        itemDesc: getC(14) || '',
+                        quantity: parseFloat(getC(15)) || 0,
+                        rate: parseFloat(getC(16)) || 0,
+                        discount: parseFloat(getC(17)) || 0,
+                        gst: parseFloat(getC(18)) || 0,
+                        stockStatus: (getC(19) as 'Available' | 'Unavailable') || 'Unavailable',
+                        oaNo: getC(20) || '',
+                        oaDate: getC(21) || '',
                         
                         // Defaults for derived/internal logic
                         stockAvailable: 0,
@@ -559,9 +585,9 @@ function App() {
                     id: poRef.id,
                     mainBranch: getCol(0),
                     subBranch: getCol(1),
-                    customerName: getCol(2),
-                    poNumber: getCol(3) || `PO-${Date.now()}`,
-                    poDate: getCol(4) || new Date().toISOString().split('T')[0],
+                    customerName: getCol(2) || 'Unknown Customer', // Default
+                    poNumber: getCol(3) || key, // Use the draft key if PO Num is missing
+                    poDate: getCol(4) || new Date().toISOString().split('T')[0], // Default to today
                     salesOrderNumber: getCol(5),
                     soDate: getCol(6) || new Date().toISOString().split('T')[0],
                     quoteNumber: getCol(7),
@@ -611,6 +637,7 @@ function App() {
 
                 if (opCount >= 150) {
                      await batch.commit();
+                     batch = writeBatch(db); // Re-initialize batch after commit
                      opCount = 0;
                 }
             }
@@ -627,7 +654,7 @@ function App() {
     }
     
     if (totalProcessed > 0) {
-        alert(`${totalProcessed} file(s) processed successfully.`);
+        alert(`${totalProcessed} file(s) processed successfully. Incomplete records saved as drafts.`);
         setActivePane('dashboard');
     }
   }, []);
