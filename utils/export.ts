@@ -48,58 +48,73 @@ export const exportToCSV = (data: PurchaseOrder[], filename: string = 'purchase_
 
 export const downloadTemplate = (): void => {
     const headers = [
-        'Branch',
-        'Sale Order Number',
-        'Dates',
-        'Account Name',
-        'Customer PO Reference No',
-        'Item: Item Type',
-        'Item: Item Name',
-        'Item: Item Description',
-        'Quantity',
-        'Stock Available',
-        'Stock In Hand',
-        'Unit Price',
-        'Base Amount',
-        'Discount Amount',
-        'Tax Amount',
-        'Gross Amount',
-        'Remarks',
+        'Main Branch',
+        'Sub Branch',
+        'Customer Name',
+        'PO Number',
+        'PO Date (YYYY-MM-DD)',
+        'SO Number',
+        'SO Date (YYYY-MM-DD)',
+        'Quote Number',
         'Billing Address',
         'Bill To GSTIN',
         'Shipping Address',
         'Ship To GSTIN',
-        'Quote Number',
-        'Status',
-        'Order Status'
+        'Item Name',
+        'Item Type',
+        'Item Description',
+        'Quantity',
+        'Unit Price',
+        'Discount Amount',
+        'GST Percentage',
+        'Stock Status (Available/Unavailable)',
+        'OA Number',
+        'OA Date (YYYY-MM-DD)',
+        'Sale Type (Cash/Credit)',
+        'Credit Terms (Days)',
+        'Order Status',
+        'Fulfillment Status',
+        'P & F Available (TRUE/FALSE)',
+        'Checklist B (TRUE/FALSE)',
+        'Checklist C (TRUE/FALSE)',
+        'Checklist D (TRUE/FALSE)',
+        'Checklist Others (TRUE/FALSE)',
+        'Checklist Remarks'
     ];
     
-    // Example data row matching the headers requested by the user
     const exampleRow = [
-        'Bengaluru', // Branch
-        'SO-2024-001', // Sale Order Number
-        '2024-03-15', // Dates (PO Date)
-        'Innovate Inc.', // Account Name
-        'PO-REF-001', // Customer PO Reference No
-        'Hardware', // Item: Item Type
-        'HAMMER-01', // Item: Item Name
-        'Heavy Duty Hammer', // Item: Item Description
-        '10', // Quantity
-        '50', // Stock Available
-        '50', // Stock In Hand
-        '100.00', // Unit Price
-        '1000.00', // Base Amount
-        '0.00', // Discount Amount
-        '180.00', // Tax Amount
-        '1180.00', // Gross Amount
-        'Urgent Delivery', // Remarks
-        '123 Industrial Area, Bengaluru', // Billing Address
-        '29ABCDE1234F1Z5', // Bill To GSTIN
-        '456 Warehouse Rd, Bengaluru', // Shipping Address
-        '29ABCDE1234F1Z5', // Ship To GSTIN
+        'Bengaluru', // Main Branch
+        'Peenya', // Sub Branch
+        'Innovate Inc.', // Customer Name
+        'PO-2024-001', // PO Number
+        '2024-03-15', // PO Date
+        'SO-2024-001', // SO Number
+        '2024-03-16', // SO Date
         'QT-2024-100', // Quote Number
-        'Open', // Status
-        'Draft' // Order Status
+        '123 Industrial Area', // Billing Address
+        '29ABCDE1234F1Z5', // Bill To GSTIN
+        '456 Warehouse Rd', // Shipping Address
+        '29ABCDE1234F1Z5', // Ship To GSTIN
+        'HAMMER-01', // Item Name
+        'Hardware', // Item Type
+        'Heavy Duty Hammer', // Item Description
+        '10', // Quantity
+        '100.00', // Unit Price
+        '0.00', // Discount Amount
+        '18', // GST Percentage
+        'Available', // Stock Status
+        '', // OA Number
+        '', // OA Date
+        'Credit', // Sale Type
+        '30', // Credit Terms
+        'Draft', // Order Status
+        'New', // Fulfillment Status
+        'FALSE', // P & F Available
+        'FALSE', // B
+        'FALSE', // C
+        'FALSE', // D
+        'FALSE', // Others
+        '' // Remarks
     ];
 
     const csvContent = [

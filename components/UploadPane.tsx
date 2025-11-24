@@ -258,6 +258,10 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                                      </div>
                                      {order.items.length > 1 && <button type="button" onClick={() => removeItem(index)} className="flex-shrink-0 text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50 mb-1"><XMarkIcon className="w-5 h-5"/></button>}
                                  </div>
+                                 <div className="w-full">
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Item Description</label>
+                                    <input type="text" name="itemDesc" value={item.itemDesc} onChange={(e) => handleItemChange(index, e)} placeholder="Description" className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                                 </div>
                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                      <div><label className="text-sm">Qty</label><input type="number" name="quantity" value={item.quantity} onChange={(e) => handleItemChange(index, e)} required className="w-full text-base px-3 py-2 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"/></div>
                                      <div><label className="text-sm">Unit Price</label><input type="number" name="rate" step="0.01" value={item.rate} onChange={(e) => handleItemChange(index, e)} required className="w-full text-base px-3 py-2 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"/></div>

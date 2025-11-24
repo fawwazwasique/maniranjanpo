@@ -484,10 +484,8 @@ function App() {
         const file = files[i];
         try {
             const text = await file.text();
-            // Split by newline
             const lines = text.split(/\r?\n/);
             
-            // CSV Parser helper to handle quoted commas
             const parseLine = (line: string) => {
                 const result = [];
                 let current = '';
@@ -507,16 +505,16 @@ function App() {
                 return result;
             };
 
-            const dataLines = lines.slice(1).filter(l => l.trim().length > 0); // Skip header and empty lines
+            const dataLines = lines.slice(1).filter(l => l.trim().length > 0);
             
-            // Group rows by Sale Order Number (index 1) or PO Number (index 4) if SO is missing
+            // Group rows by PO Number (index 3 based on new template)
             const groupedByOrder: Record<string, string[]> = {};
 
             dataLines.forEach(line => {
                 const cols = parseLine(line);
-                if (cols.length < 5) return; // Skip invalid lines
-                // Use Sale Order Number as primary key, or PO Ref, or fallback
-                const key = cols[1] || cols[4] || `UNK-${Date.now()}-${Math.random()}`;
+                if (cols.length < 5) return;
+                // Index 3 is PO Number
+                const key = cols[3] || `UNK-${Date.now()}-${Math.random()}`;
                 if (!groupedByOrder[key]) groupedByOrder[key] = [];
                 groupedByOrder[key].push(line);
             });
@@ -528,34 +526,27 @@ function App() {
                 const groupLines = groupedByOrder[key];
                 if (groupLines.length === 0) continue;
 
-                // Use the first row for header-level details
                 const firstRowCols = parseLine(groupLines[0]);
                 const getCol = (idx: number) => firstRowCols[idx] || '';
+                const getBool = (idx: number) => (firstRowCols[idx] || '').toUpperCase() === 'TRUE';
 
                 const items: POItem[] = groupLines.map(line => {
                     const c = parseLine(line);
-                    const qty = parseFloat(c[8]) || 0;
-                    const rate = parseFloat(c[11]) || 0;
-                    const discountAmt = parseFloat(c[13]) || 0;
-                    const taxAmt = parseFloat(c[14]) || 0;
-                    
-                    // Estimate GST % from amounts if possible
-                    let gstPercent = 0;
-                    const base = (qty * rate) - discountAmt;
-                    if (base > 0 && taxAmt > 0) {
-                        gstPercent = (taxAmt / base) * 100;
-                    }
-
                     return {
-                        partNumber: c[6] || 'Unknown Item',
-                        itemType: c[5] || '',
-                        itemDesc: c[7] || '',
-                        quantity: qty,
-                        rate: rate,
-                        discount: discountAmt, 
-                        gst: gstPercent,
-                        stockAvailable: parseFloat(c[9]) || 0,
-                        stockInHand: parseFloat(c[10]) || 0,
+                        partNumber: c[12] || 'Unknown Item', // Item Name
+                        itemType: c[13] || '',
+                        itemDesc: c[14] || '',
+                        quantity: parseFloat(c[15]) || 0,
+                        rate: parseFloat(c[16]) || 0,
+                        discount: parseFloat(c[17]) || 0,
+                        gst: parseFloat(c[18]) || 0,
+                        stockStatus: (c[19] as 'Available' | 'Unavailable') || 'Unavailable',
+                        oaNo: c[20] || '',
+                        oaDate: c[21] || '',
+                        
+                        // Defaults for derived/internal logic
+                        stockAvailable: 0,
+                        stockInHand: 0,
                         status: POItemStatus.NotAvailable,
                         allocatedQuantity: 0,
                         deliveryQuantity: 0,
@@ -566,43 +557,43 @@ function App() {
                 const poRef = doc(collection(db, "purchaseOrders"));
                 const poData = {
                     id: poRef.id,
-                    mainBranch: getCol(0), // Branch
-                    subBranch: '', 
-                    salesOrderNumber: getCol(1),
-                    poDate: getCol(2) || new Date().toISOString().split('T')[0],
-                    customerName: getCol(3),
-                    poNumber: getCol(4) || `PO-${Date.now()}`,
-                    items: items,
-                    systemRemarks: getCol(16),
-                    billingAddress: getCol(17),
-                    billToGSTIN: getCol(18),
-                    shippingAddress: getCol(19),
-                    shipToGSTIN: getCol(20),
-                    quoteNumber: getCol(21),
-                    status: (getCol(22) as OverallPOStatus) || OverallPOStatus.Open,
-                    orderStatus: (getCol(23) as OrderStatus) || "Draft",
+                    mainBranch: getCol(0),
+                    subBranch: getCol(1),
+                    customerName: getCol(2),
+                    poNumber: getCol(3) || `PO-${Date.now()}`,
+                    poDate: getCol(4) || new Date().toISOString().split('T')[0],
+                    salesOrderNumber: getCol(5),
+                    soDate: getCol(6) || new Date().toISOString().split('T')[0],
+                    quoteNumber: getCol(7),
+                    billingAddress: getCol(8),
+                    billToGSTIN: getCol(9),
+                    shippingAddress: getCol(10),
+                    shipToGSTIN: getCol(11),
                     
-                    // Defaults for fields not in CSV
-                    saleType: 'Credit',
-                    creditTerms: 30,
+                    saleType: (getCol(22) as 'Cash' | 'Credit') || 'Credit',
+                    creditTerms: parseInt(getCol(23)) || 30,
+                    orderStatus: (getCol(24) as OrderStatus) || "Draft",
+                    fulfillmentStatus: (getCol(25) as FulfillmentStatus) || "New",
+                    
+                    pfAvailable: getBool(26),
+                    checklist: {
+                        bCheck: getBool(27),
+                        cCheck: getBool(28),
+                        dCheck: getBool(29),
+                        others: getBool(30)
+                    },
+                    checklistRemarks: getCol(31),
+
+                    status: OverallPOStatus.Open,
                     paymentStatus: null,
                     paymentNotes: 'Imported via Bulk Upload',
-                    fulfillmentStatus: 'New',
+                    systemRemarks: '',
                     createdAt: serverTimestamp(),
-                    pfAvailable: false,
-                    checklist: {
-                        bCheck: false,
-                        cCheck: false,
-                        dCheck: false,
-                        others: false
-                    },
-                    checklistRemarks: ''
                 };
 
                 batch.set(poRef, poData);
                 opCount++;
                 
-                // Add initial Log and Notification
                 const logRef = doc(collection(db, "logs"));
                 batch.set(logRef, {
                     poId: poRef.id,
@@ -618,21 +609,9 @@ function App() {
                     createdAt: serverTimestamp(),
                 });
 
-                // Batch limit safety (max 500 writes). 
-                // 1 PO + 1 Log + 1 Notif = 3 writes per PO.
-                // 150 POs * 3 = 450 writes.
                 if (opCount >= 150) {
                      await batch.commit();
                      opCount = 0;
-                     // Note: We can't reuse the same batch object after commit in standard SDK, 
-                     // but in this loop structure we are actually continuing. 
-                     // Ideally we should create a new batch instance here, but for simplicity in this React component 
-                     // and typical file sizes, we will just commit whatever is pending at the end.
-                     // A strict implementation would do `batch = writeBatch(db)` here, but `batch` is const.
-                     // Given the "demo" nature and expected file size, usually it fits in one batch.
-                     // To be safer for larger files without refactoring too much:
-                     // We will assume the file is reasonably sized (< 150 orders). 
-                     // If purely larger, we'd need to restructure to create new batch objects.
                 }
             }
 
