@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import type { PurchaseOrder } from '../types';
-import { OverallPOStatus, FulfillmentStatus } from '../types';
+import { OverallPOStatus, FulfillmentStatus, OrderStatus } from '../types';
 import { CheckCircleIcon, ClockIcon, MagnifyingGlassIcon, TruckIcon, UserGroupIcon, XMarkIcon, ChartPieIcon, CalendarDaysIcon, CurrencyRupeeIcon, NoSymbolIcon, ArrowUpIcon, ArrowDownIcon } from './icons';
 import { MAIN_BRANCHES, BRANCH_STRUCTURE } from '../constants';
 
@@ -254,9 +254,22 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             'B-Check': filteredPOs.filter(po => po.checklist?.bCheck).length,
             'C-Check': filteredPOs.filter(po => po.checklist?.cCheck).length,
             'D-Check': filteredPOs.filter(po => po.checklist?.dCheck).length,
+            'Battery': filteredPOs.filter(po => po.checklist?.battery).length,
+            'Spares': filteredPOs.filter(po => po.checklist?.spares).length,
+            'BD': filteredPOs.filter(po => po.checklist?.bd).length,
+            'Radiator': filteredPOs.filter(po => po.checklist?.radiatorDescaling).length,
             'Others': filteredPOs.filter(po => po.checklist?.others).length,
         };
-        const checklistColors = { 'B-Check': '#34d399', 'C-Check': '#f59e0b', 'D-Check': '#ef4444', 'Others': '#6366f1' };
+        const checklistColors = { 
+            'B-Check': '#34d399', 
+            'C-Check': '#f59e0b', 
+            'D-Check': '#ef4444', 
+            'Battery': '#6366f1',
+            'Spares': '#8b5cf6',
+            'BD': '#ec4899',
+            'Radiator': '#14b8a6',
+            'Others': '#9ca3af' 
+        };
         const checklistChartData = Object.entries(checklistDataRaw).map(([label, value]) => ({ label, value, color: checklistColors[label as keyof typeof checklistColors] || '#9ca3af' }));
 
         const valueByFulfillment = filteredPOs.reduce((acc, po) => {
@@ -294,16 +307,33 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
         const today = new Date();
         const ageing: Record<string, number> = { '0-30 Days': 0, '31-60 Days': 0, '61-90 Days': 0, '>90 Days': 0 };
+        const ageingValue: Record<string, number> = { '0-30 Days': 0, '31-60 Days': 0, '61-90 Days': 0, '>90 Days': 0 };
+
         openPOs.forEach(po => {
             const poDate = new Date(po.poDate);
             if (isNaN(poDate.getTime())) return;
             const diffDays = Math.floor((today.getTime() - poDate.getTime()) / (1000 * 3600 * 24));
-            if (diffDays <= 30) ageing['0-30 Days']++;
-            else if (diffDays <= 60) ageing['31-60 Days']++;
-            else if (diffDays <= 90) ageing['61-90 Days']++;
-            else ageing['>90 Days']++;
+            const poValue = po.items.reduce((iAcc, i) => iAcc + (Number(i.quantity) * Number(i.rate)), 0);
+
+            if (diffDays <= 30) {
+                ageing['0-30 Days']++;
+                ageingValue['0-30 Days'] += poValue;
+            }
+            else if (diffDays <= 60) {
+                ageing['31-60 Days']++;
+                ageingValue['31-60 Days'] += poValue;
+            }
+            else if (diffDays <= 90) {
+                ageing['61-90 Days']++;
+                ageingValue['61-90 Days'] += poValue;
+            }
+            else {
+                ageing['>90 Days']++;
+                ageingValue['>90 Days'] += poValue;
+            }
         });
         const poAgeingChartData = Object.entries(ageing).map(([label, value]) => ({ label, value }));
+        const poAgeingValueChartData = Object.entries(ageingValue).map(([label, value]) => ({ label, value }));
 
         const valueByBranch = filteredPOs.reduce((acc, po) => {
             const branch = po.mainBranch || 'Unassigned';
@@ -329,7 +359,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         return { 
             totalOpenPOs, openPOValue, fullyAvailablePOs, partiallyAvailablePOs, notAvailablePOs, 
             checklistChartData, fulfillmentChartData, topCustomers, paymentTermsChartData, 
-            poAgeingChartData, branchPerformanceChartData, 
+            poAgeingChartData, poAgeingValueChartData, branchPerformanceChartData, 
             avgPOtoSO, avgSOtoInvoice, avgPOtoInvoice,
             openTrend, valueTrend, fullyTrend, partialTrend, notAvailableTrend,
             avgPOtoSOTrend, avgSOtoInvoiceTrend, avgPOtoInvoiceTrend
@@ -452,9 +482,12 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                  </ChartContainer>
             </div>
             
-             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                  <ChartContainer title="Open PO Ageing (by PO Count)">
                     <HorizontalBarChart data={dashboardData.poAgeingChartData} />
+                 </ChartContainer>
+                 <ChartContainer title="Open PO Ageing (by Value)">
+                    <HorizontalBarChart data={dashboardData.poAgeingValueChartData} isCurrency />
                  </ChartContainer>
                  <ChartContainer title="Branch Performance (by Value)">
                     <HorizontalBarChart data={dashboardData.branchPerformanceChartData} isCurrency />

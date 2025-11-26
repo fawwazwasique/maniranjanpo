@@ -45,7 +45,7 @@ const initialPOState: Omit<PurchaseOrder, 'id' | 'createdAt' | 'status'> = {
     subBranch: '',
     salesOrderNumber: '',
     systemRemarks: '',
-    orderStatus: OrderStatus.Draft,
+    orderStatus: OrderStatus.OpenOrders,
     fulfillmentStatus: FulfillmentStatus.New,
     invoiceNumber: '',
     invoiceDate: '',
@@ -54,6 +54,18 @@ const initialPOState: Omit<PurchaseOrder, 'id' | 'createdAt' | 'status'> = {
     shippingAddress: '',
     shipToGSTIN: '',
     quoteNumber: '',
+    pfAvailable: false,
+    checklist: {
+        bCheck: false,
+        cCheck: false,
+        dCheck: false,
+        battery: false,
+        spares: false,
+        bd: false,
+        radiatorDescaling: false,
+        others: false,
+    },
+    checklistRemarks: '',
 };
 
 
@@ -64,19 +76,45 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
 
   useEffect(() => {
     if (isOpen && existingPO) {
-        setFormData({ ...existingPO });
+        setFormData({ 
+            ...existingPO,
+            // Ensure nested objects are initialized even if missing in old data
+            checklist: {
+                bCheck: existingPO.checklist?.bCheck || false,
+                cCheck: existingPO.checklist?.cCheck || false,
+                dCheck: existingPO.checklist?.dCheck || false,
+                battery: existingPO.checklist?.battery || false,
+                spares: existingPO.checklist?.spares || false,
+                bd: existingPO.checklist?.bd || false,
+                radiatorDescaling: existingPO.checklist?.radiatorDescaling || false,
+                others: existingPO.checklist?.others || false,
+            }
+        });
     } else if (isOpen && !existingPO) {
         setFormData(initialPOState);
     }
   }, [isOpen, existingPO]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
+    const isCheckbox = type === 'checkbox';
+    const checkedValue = (e.target as HTMLInputElement).checked;
+
     if (name === 'mainBranch') {
         setFormData(prev => ({ ...prev, mainBranch: value, subBranch: '' }));
+    } else if (name === 'pfAvailable') {
+        setFormData(prev => ({ ...prev, pfAvailable: checkedValue }));
     } else {
         setFormData(prev => ({ ...prev, [name]: value }));
     }
+  };
+  
+  const handleChecklistChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setFormData(prev => ({
+        ...prev,
+        checklist: { ...prev.checklist!, [name]: checked }
+    }));
   };
   
   const handleSaleTypeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,7 +167,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
     return colors[status];
   }
 
-  const showInvoiceFields = formData.orderStatus === OrderStatus.Invoiced || formData.orderStatus === OrderStatus.Shipped;
+  const showInvoiceFields = formData.orderStatus === OrderStatus.Invoiced || formData.orderStatus === OrderStatus.PartiallyInvoiced || formData.orderStatus === OrderStatus.ShippedInSystemDC;
 
   if (!isOpen) return null;
 
@@ -288,6 +326,38 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                                 <label htmlFor="shipToGSTIN" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Ship To GSTIN</label>
                                 <input type="text" id="shipToGSTIN" name="shipToGSTIN" value={formData.shipToGSTIN || ''} onChange={handleInputChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
                             </div>
+                        </div>
+                    </div>
+                    
+                    <div className="space-y-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <h3 className="text-lg font-medium text-slate-800 dark:text-white">Additional Details</h3>
+                        <div className="flex items-center gap-4"><label className="flex items-center gap-2 font-medium"><input type="checkbox" name="pfAvailable" checked={formData.pfAvailable || false} onChange={handleInputChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> P & F Available</label></div>
+                        <div>
+                            <label className="block text-sm font-medium">Checklist</label>
+                            <div className="flex flex-wrap gap-x-4 gap-y-2 mt-1">
+                                <label className="flex items-center gap-2"><input type="checkbox" name="bCheck" checked={formData.checklist?.bCheck || false} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> B-Check</label>
+                                <label className="flex items-center gap-2"><input type="checkbox" name="cCheck" checked={formData.checklist?.cCheck || false} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> C-Check</label>
+                                <label className="flex items-center gap-2"><input type="checkbox" name="dCheck" checked={formData.checklist?.dCheck || false} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> D-Check</label>
+                                <label className="flex items-center gap-2"><input type="checkbox" name="battery" checked={formData.checklist?.battery || false} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> Battery</label>
+                                <label className="flex items-center gap-2"><input type="checkbox" name="spares" checked={formData.checklist?.spares || false} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> Spares</label>
+                                <label className="flex items-center gap-2"><input type="checkbox" name="bd" checked={formData.checklist?.bd || false} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> BD</label>
+                                <label className="flex items-center gap-2"><input type="checkbox" name="radiatorDescaling" checked={formData.checklist?.radiatorDescaling || false} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> Radiator Descaling</label>
+                                <label className="flex items-center gap-2"><input type="checkbox" name="others" checked={formData.checklist?.others || false} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> Others</label>
+                            </div>
+                            {formData.checklist?.others && (
+                                <div className="mt-3">
+                                    <label htmlFor="checklistRemarks" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Remarks for "Others"</label>
+                                    <input
+                                        type="text"
+                                        id="checklistRemarks"
+                                        name="checklistRemarks"
+                                        value={formData.checklistRemarks || ''}
+                                        onChange={handleInputChange}
+                                        placeholder="Enter remarks..."
+                                        className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500"
+                                    />
+                                </div>
+                            )}
                         </div>
                     </div>
 

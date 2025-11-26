@@ -14,10 +14,11 @@ export enum OverallPOStatus {
 }
 
 export enum OrderStatus {
-  Draft = 'Draft',
-  Released = 'Released',
+  OpenOrders = 'Open Orders',
+  PartiallyInvoiced = 'Partially Invoiced',
   Invoiced = 'Invoiced',
-  Shipped = 'Shipped',
+  ShippedInSystemDC = 'Shipped in System DC',
+  Cancelled = 'Cancelled'
 }
 
 // New status based on Excel screenshot
@@ -81,6 +82,10 @@ export interface PurchaseOrder {
     bCheck: boolean;
     cCheck: boolean;
     dCheck: boolean;
+    battery: boolean;
+    spares: boolean;
+    bd: boolean;
+    radiatorDescaling: boolean;
     others: boolean;
   };
   checklistRemarks?: string;

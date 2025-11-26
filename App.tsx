@@ -17,8 +17,8 @@ import { collection, onSnapshot, addDoc, doc, updateDoc, writeBatch, query, wher
 
 import { getProcurementSuggestion } from './services/geminiService';
 
-import type { PurchaseOrder, Notification, LogEntry, POItem, ProcurementSuggestion, OrderStatus, FulfillmentStatus } from './types';
-import { POItemStatus, OverallPOStatus } from './types';
+import type { PurchaseOrder, Notification, LogEntry, POItem, ProcurementSuggestion } from './types';
+import { POItemStatus, OverallPOStatus, OrderStatus, FulfillmentStatus } from './types';
 
 type ModalType = 'none' | 'poDetail' | 'suggestion';
 type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement';
@@ -220,14 +220,17 @@ function App() {
   };
 
   const handleSaveSingleOrder = useCallback(async (orderData: any) => {
-      const { FulfillmentStatus, OrderStatus } = await import('./types');
-      
+      // Map user selection to enum
       let orderStatusValue: OrderStatus;
       switch (orderData.orderStatus) {
-          case 'Pending': orderStatusValue = OrderStatus.Draft; break;
+          case 'Open Orders': orderStatusValue = OrderStatus.OpenOrders; break;
+          case 'Partially Invoiced': orderStatusValue = OrderStatus.PartiallyInvoiced; break;
           case 'Invoiced': orderStatusValue = OrderStatus.Invoiced; break;
-          case 'Shipped': orderStatusValue = OrderStatus.Shipped; break;
-          default: orderStatusValue = OrderStatus.Draft;
+          case 'Shipped in System DC': orderStatusValue = OrderStatus.ShippedInSystemDC; break;
+          case 'Cancelled': orderStatusValue = OrderStatus.Cancelled; break;
+          // Fallback map old values if present in state
+          case 'Pending': orderStatusValue = OrderStatus.OpenOrders; break; 
+          default: orderStatusValue = OrderStatus.OpenOrders;
       }
 
       let fulfillmentStatusValue: FulfillmentStatus;
@@ -476,8 +479,7 @@ function App() {
     setSuggestionItem(null);
   };
   
-  const handleBulkUpload = useCallback(async (files: FileList) => {
-    console.log("Uploading files:", files);
+  const handleBulkUpload = useCallback(async (files: File[]) => {
     let totalProcessed = 0;
 
     for (let i = 0; i < files.length; i++) {
@@ -539,8 +541,9 @@ function App() {
                 groupedByOrder[key].push(line);
             });
 
-            let batch = writeBatch(db);
-            let opCount = 0;
+            // 1. PREPARE ALL OPERATIONS
+            // We collect all write operations into a single array first to avoid loop state issues
+            const allOperations: { ref: any, data: any }[] = [];
 
             for (const key in groupedByOrder) {
                 const groupLines = groupedByOrder[key];
@@ -581,6 +584,16 @@ function App() {
                 });
                 
                 const poRef = doc(collection(db, "purchaseOrders"));
+                
+                // Map Order Status from string to Enum
+                let orderStatusVal: OrderStatus = OrderStatus.OpenOrders;
+                const csvOrderStatus = getCol(24);
+                if (csvOrderStatus === 'Invoiced') orderStatusVal = OrderStatus.Invoiced;
+                else if (csvOrderStatus === 'Partially Invoiced') orderStatusVal = OrderStatus.PartiallyInvoiced;
+                else if (csvOrderStatus === 'Cancelled') orderStatusVal = OrderStatus.Cancelled;
+                else if (csvOrderStatus === 'Shipped in System DC') orderStatusVal = OrderStatus.ShippedInSystemDC;
+                else if (csvOrderStatus === 'Open Orders') orderStatusVal = OrderStatus.OpenOrders;
+
                 const poData = {
                     id: poRef.id,
                     mainBranch: getCol(0),
@@ -595,10 +608,11 @@ function App() {
                     billToGSTIN: getCol(9),
                     shippingAddress: getCol(10),
                     shipToGSTIN: getCol(11),
+                    items: items, // Add the parsed items array
                     
                     saleType: (getCol(22) as 'Cash' | 'Credit') || 'Credit',
                     creditTerms: parseInt(getCol(23)) || 30,
-                    orderStatus: (getCol(24) as OrderStatus) || "Draft",
+                    orderStatus: orderStatusVal,
                     fulfillmentStatus: (getCol(25) as FulfillmentStatus) || "New",
                     
                     pfAvailable: getBool(26),
@@ -606,9 +620,13 @@ function App() {
                         bCheck: getBool(27),
                         cCheck: getBool(28),
                         dCheck: getBool(29),
-                        others: getBool(30)
+                        battery: getBool(30),
+                        spares: getBool(31),
+                        bd: getBool(32),
+                        radiatorDescaling: getBool(33),
+                        others: getBool(34)
                     },
-                    checklistRemarks: getCol(31),
+                    checklistRemarks: getCol(35),
 
                     status: OverallPOStatus.Open,
                     paymentStatus: null,
@@ -617,34 +635,50 @@ function App() {
                     createdAt: serverTimestamp(),
                 };
 
-                batch.set(poRef, poData);
-                opCount++;
+                // Add PO Write Operation
+                allOperations.push({ ref: poRef, data: poData });
                 
+                // Add Log Write Operation
                 const logRef = doc(collection(db, "logs"));
-                batch.set(logRef, {
-                    poId: poRef.id,
-                    action: `PO #${poData.poNumber} created from bulk upload (${file.name}).`,
-                    timestamp: serverTimestamp(),
+                allOperations.push({ 
+                    ref: logRef, 
+                    data: {
+                        poId: poRef.id,
+                        action: `PO #${poData.poNumber} created from bulk upload (${file.name}).`,
+                        timestamp: serverTimestamp(),
+                    } 
                 });
                 
+                // Add Notification Write Operation
                 const notifRef = doc(collection(db, "notifications"));
-                batch.set(notifRef, {
-                    poId: poRef.id,
-                    message: `New PO ${poData.poNumber} created via bulk upload.`,
-                    read: false,
-                    createdAt: serverTimestamp(),
+                allOperations.push({ 
+                    ref: notifRef, 
+                    data: {
+                        poId: poRef.id,
+                        message: `New PO ${poData.poNumber} created via bulk upload.`,
+                        read: false,
+                        createdAt: serverTimestamp(),
+                    }
                 });
-
-                if (opCount >= 150) {
-                     await batch.commit();
-                     batch = writeBatch(db); // Re-initialize batch after commit
-                     opCount = 0;
-                }
             }
 
-            if (opCount > 0) {
+            // 2. EXECUTE BATCHES
+            // Firestore limit is 500 writes per batch. 
+            // We are adding 3 writes per PO. 
+            // 450 writes = 150 POs per batch. This is safe.
+            const BATCH_SIZE = 450; 
+
+            for (let k = 0; k < allOperations.length; k += BATCH_SIZE) {
+                const batch = writeBatch(db);
+                const chunk = allOperations.slice(k, k + BATCH_SIZE);
+                
+                chunk.forEach(op => {
+                    batch.set(op.ref, op.data);
+                });
+                
                 await batch.commit();
             }
+
             totalProcessed++;
 
         } catch (err) {

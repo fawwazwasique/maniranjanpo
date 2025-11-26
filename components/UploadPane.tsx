@@ -3,10 +3,11 @@ import React, { useState, useCallback } from 'react';
 import { ArrowUpTrayIcon, DocumentPlusIcon, PlusIcon, XMarkIcon, ArrowDownTrayIcon } from './icons';
 import { MAIN_BRANCHES, BRANCH_STRUCTURE } from '../constants';
 import { downloadTemplate } from '../utils/export';
+import { OrderStatus } from '../types';
 
 interface UploadPaneProps {
     onSaveSingleOrder: (order: any) => void;
-    onBulkUpload: (files: FileList) => void;
+    onBulkUpload: (files: File[]) => void;
 }
 
 const initialItemState = { 
@@ -37,7 +38,7 @@ const initialOrderState = {
     soDate: new Date().toISOString().split('T')[0],
     // invoiceDate removed
     items: [initialItemState],
-    orderStatus: 'Pending',
+    orderStatus: OrderStatus.OpenOrders,
     fulfillmentStatus: 'Fully Available',
     saleType: 'Credit' as 'Cash' | 'Credit',
     creditTerms: 30,
@@ -46,6 +47,10 @@ const initialOrderState = {
         bCheck: false,
         cCheck: false,
         dCheck: false,
+        battery: false,
+        spares: false,
+        bd: false,
+        radiatorDescaling: false,
         others: false,
     },
     checklistRemarks: '',
@@ -165,14 +170,16 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
         e.stopPropagation();
         setDragging(false);
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-            onBulkUpload(e.dataTransfer.files);
+            const filesArray = Array.from(e.dataTransfer.files);
+            onBulkUpload(filesArray);
             e.dataTransfer.clearData();
         }
     }, [onBulkUpload]);
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
-            onBulkUpload(e.target.files);
+            const filesArray = Array.from(e.target.files);
+            onBulkUpload(filesArray);
         }
     };
 
@@ -304,7 +311,9 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                            <div className="space-y-3">
                                 <div>
                                     <label htmlFor="orderStatus" className="block text-sm font-medium">Order Status</label>
-                                    <select id="orderStatus" name="orderStatus" value={order.orderStatus} onChange={handleOrderChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white">{['Pending', 'Invoiced', 'Shipped'].map(s => <option key={s} value={s}>{s}</option>)}</select>
+                                    <select id="orderStatus" name="orderStatus" value={order.orderStatus} onChange={handleOrderChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white">
+                                        {Object.values(OrderStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                                    </select>
                                 </div>
                                 <div>
                                     <label htmlFor="fulfillmentStatus" className="block text-sm font-medium">Fulfillment Status</label>
@@ -318,7 +327,16 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                                 <div className="flex items-center gap-4"><label className="flex items-center gap-2 font-medium"><input type="checkbox" name="pfAvailable" checked={order.pfAvailable} onChange={handleOrderChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> P & F Available</label></div>
                                 <div>
                                     <label className="block text-sm font-medium">Checklist</label>
-                                    <div className="flex flex-wrap gap-x-4 gap-y-2 mt-1"><label className="flex items-center gap-2"><input type="checkbox" name="bCheck" checked={order.checklist.bCheck} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> B-Check</label><label className="flex items-center gap-2"><input type="checkbox" name="cCheck" checked={order.checklist.cCheck} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> C-Check</label><label className="flex items-center gap-2"><input type="checkbox" name="dCheck" checked={order.checklist.dCheck} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> D-Check</label><label className="flex items-center gap-2"><input type="checkbox" name="others" checked={order.checklist.others} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> Others</label></div>
+                                    <div className="flex flex-wrap gap-x-4 gap-y-2 mt-1">
+                                        <label className="flex items-center gap-2"><input type="checkbox" name="bCheck" checked={order.checklist.bCheck} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> B-Check</label>
+                                        <label className="flex items-center gap-2"><input type="checkbox" name="cCheck" checked={order.checklist.cCheck} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> C-Check</label>
+                                        <label className="flex items-center gap-2"><input type="checkbox" name="dCheck" checked={order.checklist.dCheck} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> D-Check</label>
+                                        <label className="flex items-center gap-2"><input type="checkbox" name="battery" checked={order.checklist.battery} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> Battery</label>
+                                        <label className="flex items-center gap-2"><input type="checkbox" name="spares" checked={order.checklist.spares} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> Spares</label>
+                                        <label className="flex items-center gap-2"><input type="checkbox" name="bd" checked={order.checklist.bd} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> BD</label>
+                                        <label className="flex items-center gap-2"><input type="checkbox" name="radiatorDescaling" checked={order.checklist.radiatorDescaling} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> Radiator Descaling</label>
+                                        <label className="flex items-center gap-2"><input type="checkbox" name="others" checked={order.checklist.others} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> Others</label>
+                                    </div>
                                     {order.checklist.others && (
                                         <div className="mt-3">
                                             <label htmlFor="checklistRemarks" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Remarks for "Others"</label>

@@ -78,6 +78,10 @@ export const downloadTemplate = (): void => {
         'Checklist B (TRUE/FALSE)',
         'Checklist C (TRUE/FALSE)',
         'Checklist D (TRUE/FALSE)',
+        'Checklist Battery (TRUE/FALSE)',
+        'Checklist Spares (TRUE/FALSE)',
+        'Checklist BD (TRUE/FALSE)',
+        'Checklist Radiator Descaling (TRUE/FALSE)',
         'Checklist Others (TRUE/FALSE)',
         'Checklist Remarks'
     ];
@@ -107,12 +111,16 @@ export const downloadTemplate = (): void => {
         '', // OA Date
         'Credit', // Sale Type
         '30', // Credit Terms
-        'Draft', // Order Status
+        'Open Orders', // Order Status
         'New', // Fulfillment Status
         'FALSE', // P & F Available
         'FALSE', // B
         'FALSE', // C
         'FALSE', // D
+        'FALSE', // Battery
+        'FALSE', // Spares
+        'FALSE', // BD
+        'FALSE', // Radiator Descaling
         'FALSE', // Others
         '' // Remarks
     ];
