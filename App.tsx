@@ -66,8 +66,6 @@ function App() {
 
   useEffect(() => {
     // Attempt anonymous sign-in to satisfy "request.auth != null" rules.
-    // We catch configuration errors (like provider disabled) and log them as warnings
-    // to avoid crashing or spamming the console, as the app might still work with public rules.
     signInAnonymously(auth).catch(err => {
         const code = err.code;
         if (code === 'auth/admin-restricted-operation' || code === 'auth/operation-not-allowed') {
@@ -121,12 +119,10 @@ function App() {
             }));
 
             // Manually construct a plain JavaScript object to avoid circular references
-            // from Firestore's internal object structure.
             let createdAtStr = new Date().toISOString();
             if (data.createdAt && typeof data.createdAt.toDate === 'function') {
                 createdAtStr = data.createdAt.toDate().toISOString();
             } else if (data.createdAt) {
-                // Fallback if it's already a string or number, or pending FieldValue
                  createdAtStr = String(data.createdAt); 
             }
 
@@ -154,8 +150,6 @@ function App() {
                 pfAvailable: data.pfAvailable,
                 checklist: data.checklist,
                 checklistRemarks: data.checklistRemarks,
-                
-                // New fields
                 billingAddress: data.billingAddress || '',
                 billToGSTIN: data.billToGSTIN || '',
                 shippingAddress: data.shippingAddress || '',
@@ -247,7 +241,6 @@ function App() {
           case 'Invoiced': orderStatusValue = OrderStatus.Invoiced; break;
           case 'Shipped in System DC': orderStatusValue = OrderStatus.ShippedInSystemDC; break;
           case 'Cancelled': orderStatusValue = OrderStatus.Cancelled; break;
-          // Fallback map old values if present in state
           case 'Pending': orderStatusValue = OrderStatus.OpenOrders; break; 
           default: orderStatusValue = OrderStatus.OpenOrders;
       }
@@ -398,7 +391,8 @@ function App() {
 
                 console.log(`Successfully deleted PO ${poId} and its related data.`);
             } catch (error) {
-                console.error("Error deleting PO:", error);
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                console.error("Error deleting PO:", errorMessage);
                 alert("Failed to delete the purchase order.");
             }
             handleCloseConfirmation();

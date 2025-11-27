@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 
 function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
@@ -9,7 +10,8 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<Re
       const item = window.localStorage.getItem(key);
       return item ? JSON.parse(item) : initialValue;
     } catch (error) {
-      console.log(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.log(errorMessage);
       return initialValue;
     }
   });
@@ -22,7 +24,8 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<Re
         window.localStorage.setItem(key, JSON.stringify(valueToStore));
       }
     } catch (error) {
-      console.log(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.log(errorMessage);
     }
   };
   

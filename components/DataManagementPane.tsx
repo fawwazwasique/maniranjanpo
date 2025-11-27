@@ -94,7 +94,8 @@ const DataManagementPane: React.FC<DataManagementPaneProps> = ({ purchaseOrders 
             }, 100);
 
         } catch (error) {
-            console.error("Error deleting data:", error);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            console.error("Error deleting data:", errorMessage);
             alert("An error occurred while deleting data. Check console for details.");
         } finally {
             setIsDeleting(false);

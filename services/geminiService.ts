@@ -51,7 +51,8 @@ export const getProcurementSuggestion = async (item: POItem): Promise<Procuremen
         const suggestion: ProcurementSuggestion = JSON.parse(jsonText);
         return suggestion;
     } catch (error) {
-        console.error("Error fetching procurement suggestion from Gemini API:", error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error("Error fetching procurement suggestion from Gemini API:", errorMessage);
         return null;
     }
 };
