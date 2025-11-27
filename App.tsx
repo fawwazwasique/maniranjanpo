@@ -12,8 +12,9 @@ import AllOrdersPane from './components/AllOrdersPane';
 import DataManagementPane from './components/DataManagementPane';
 import ErrorBanner from './components/ErrorBanner';
 import useLocalStorage from './hooks/useLocalStorage';
-import { db } from './services/firebase';
+import { db, auth } from './services/firebase';
 import { collection, onSnapshot, addDoc, doc, updateDoc, writeBatch, query, where, getDocs, serverTimestamp, Timestamp, orderBy, deleteDoc } from 'firebase/firestore';
+import { signInAnonymously } from 'firebase/auth';
 
 import { getProcurementSuggestion } from './services/geminiService';
 
@@ -64,15 +65,31 @@ function App() {
   }, [theme]);
 
   useEffect(() => {
+    // Attempt anonymous sign-in to satisfy "request.auth != null" rules.
+    // We catch configuration errors (like provider disabled) and log them as warnings
+    // to avoid crashing or spamming the console, as the app might still work with public rules.
+    signInAnonymously(auth).catch(err => {
+        const code = err.code;
+        if (code === 'auth/admin-restricted-operation' || code === 'auth/operation-not-allowed') {
+            console.warn("Firebase Anonymous Auth is not enabled in the Console. If your Firestore Rules require auth, enable 'Anonymous' in Build > Authentication > Sign-in method.");
+        } else {
+            console.error("Anonymous auth failed:", err.message);
+        }
+    });
+
     const handleError = (error: any) => {
         // Safe error logging to prevent circular reference errors with Firestore objects
         const errorMessage = error instanceof Error ? error.message : String(error);
         console.error("Firestore error:", errorMessage);
+        
         if (error.code === 'permission-denied') {
             setFirestoreError(
-                'The application could not connect to the database due to missing or insufficient permissions. ' +
-                'This is likely caused by your Firestore Security Rules.'
+                'Database permission denied. To fix this:\n' +
+                '1. Go to Firebase Console > Authentication > Sign-in method and enable "Anonymous".\n' +
+                '2. OR Go to Firestore Database > Rules and change them to "allow read, write: if true;" (Public Test Mode).'
             );
+        } else if (error.code === 'unavailable') {
+             setFirestoreError('Firestore is offline or unreachable. Check your internet connection.');
         }
     };
     
