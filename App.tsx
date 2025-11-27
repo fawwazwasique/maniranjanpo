@@ -65,7 +65,9 @@ function App() {
 
   useEffect(() => {
     const handleError = (error: any) => {
-        console.error("Firestore error:", error);
+        // Safe error logging to prevent circular reference errors with Firestore objects
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error("Firestore error:", errorMessage);
         if (error.code === 'permission-denied') {
             setFirestoreError(
                 'The application could not connect to the database due to missing or insufficient permissions. ' +
@@ -682,8 +684,10 @@ function App() {
             totalProcessed++;
 
         } catch (err) {
-            console.error("Error processing file", file.name, err);
-            alert(`Error processing file ${file.name}: ${err}`);
+            // Fix: Safe error logging to prevent circular reference errors
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            console.error("Error processing file", file.name, errorMessage);
+            alert(`Error processing file ${file.name}: ${errorMessage}`);
         }
     }
     
