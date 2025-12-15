@@ -30,6 +30,8 @@ const initialItemState: POItem = {
     deliveryQuantity: 0,
     invoicedQuantity: 0,
     itemType: '',
+    oaNo: '',
+    oaDate: '',
 };
 
 const initialPOState: Omit<PurchaseOrder, 'id' | 'createdAt' | 'status'> = {
@@ -287,6 +289,16 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                                 <input type="number" placeholder="Allocated Qty" value={item.allocatedQuantity} onChange={e => handleItemChange(index, 'allocatedQuantity', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
                                 <input type="number" placeholder="Delivery Qty" value={item.deliveryQuantity} onChange={e => handleItemChange(index, 'deliveryQuantity', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
                                 <input type="number" placeholder="Invoiced Qty" value={item.invoicedQuantity} onChange={e => handleItemChange(index, 'invoicedQuantity', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 mt-2">
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">OA Number</label>
+                                    <input type="text" placeholder="OA No" value={item.oaNo || ''} onChange={e => handleItemChange(index, 'oaNo', e.target.value)} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">OA Date</label>
+                                    <input type="date" placeholder="OA Date" value={item.oaDate || ''} onChange={e => handleItemChange(index, 'oaDate', e.target.value)} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                                </div>
                             </div>
                           </div>
                         ))}

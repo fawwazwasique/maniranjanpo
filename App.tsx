@@ -337,6 +337,8 @@ function App() {
             deliveryQuantity: Number(item.deliveryQuantity) || 0,
             invoicedQuantity: Number(item.invoicedQuantity) || 0,
             itemType: item.itemType || '',
+            oaNo: item.oaNo || '',
+            oaDate: item.oaDate || '',
         })),
         status: updatedPO.status,
         saleType: updatedPO.saleType,
