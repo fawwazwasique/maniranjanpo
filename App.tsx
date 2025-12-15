@@ -416,17 +416,35 @@ function App() {
           newOverallStatus = OverallPOStatus.Open;
       }
 
+      // New Fulfillment Status Logic based on Item Availability
+      let newFulfillmentStatus = poToUpdate.fulfillmentStatus;
+      if (newItems.length > 0) {
+          const isAvailable = (s: POItemStatus) => s === POItemStatus.Available || s === POItemStatus.Dispatched;
+          
+          const allItemsAvailable = newItems.every(i => isAvailable(i.status));
+          const allItemsNotAvailable = newItems.every(i => i.status === POItemStatus.NotAvailable);
+          
+          if (allItemsAvailable) {
+              newFulfillmentStatus = FulfillmentStatus.Fulfillment; // Maps to "Fully Available"
+          } else if (allItemsNotAvailable) {
+              newFulfillmentStatus = FulfillmentStatus.NotAvailable;
+          } else {
+              newFulfillmentStatus = FulfillmentStatus.Partial;
+          }
+      }
+
       const poRef = doc(db, "purchaseOrders", poId);
       await updateDoc(poRef, {
         items: newItems,
         status: newOverallStatus,
+        fulfillmentStatus: newFulfillmentStatus,
       });
 
       if (selectedPO?.id === poId) {
-          setSelectedPO({ ...poToUpdate, items: newItems, status: newOverallStatus });
+          setSelectedPO({ ...poToUpdate, items: newItems, status: newOverallStatus, fulfillmentStatus: newFulfillmentStatus });
       }
       
-      await addLog(poId, `Item ${partNumber} status updated to ${status} by Stores.`);
+      await addLog(poId, `Item ${partNumber} status updated to ${status}. Fulfillment Status updated to ${newFulfillmentStatus}.`);
       await addNotification(poId, `Status of ${partNumber} updated to ${status}.`);
       handleCloseConfirmation();
   }, [purchaseOrders, selectedPO]);
