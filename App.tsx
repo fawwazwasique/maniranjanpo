@@ -10,6 +10,7 @@ import AnalysisPane from './components/AnalysisPane';
 import ConfirmationModal from './components/ConfirmationModal';
 import AllOrdersPane from './components/AllOrdersPane';
 import DataManagementPane from './components/DataManagementPane';
+import ReportsPane from './components/ReportsPane';
 import ErrorBanner from './components/ErrorBanner';
 import useLocalStorage from './hooks/useLocalStorage';
 import { db, auth } from './services/firebase';
@@ -22,7 +23,7 @@ import type { PurchaseOrder, Notification, LogEntry, POItem, ProcurementSuggesti
 import { POItemStatus, OverallPOStatus, OrderStatus, FulfillmentStatus } from './types';
 
 type ModalType = 'none' | 'poDetail' | 'suggestion';
-type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement';
+type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports';
 type Theme = 'light' | 'dark';
 
 function App() {
@@ -161,6 +162,7 @@ function App() {
                 shippingAddress: data.shippingAddress || '',
                 shipToGSTIN: data.shipToGSTIN || '',
                 quoteNumber: data.quoteNumber || '',
+                dispatchRemarks: data.dispatchRemarks || '',
             });
         });
         setPurchaseOrders(posFromDB);
@@ -303,6 +305,7 @@ function App() {
         shippingAddress: orderData.shippingAddress || '',
         shipToGSTIN: orderData.shipToGSTIN || '',
         quoteNumber: orderData.quoteNumber || '',
+        dispatchRemarks: '',
       };
       
       const docRef = await addDoc(collection(db, "purchaseOrders"), {
@@ -357,6 +360,7 @@ function App() {
         shippingAddress: updatedPO.shippingAddress || '',
         shipToGSTIN: updatedPO.shipToGSTIN || '',
         quoteNumber: updatedPO.quoteNumber || '',
+        dispatchRemarks: updatedPO.dispatchRemarks || '',
     };
 
     await updateDoc(poRef, dataToUpdate);
@@ -729,6 +733,7 @@ function App() {
                     paymentStatus: null,
                     paymentNotes: 'Imported via Bulk Upload',
                     systemRemarks: '',
+                    dispatchRemarks: '',
                     createdAt: serverTimestamp(),
                 };
 
@@ -830,6 +835,12 @@ function App() {
                     onDeletePO={handleDeletePO}
                     filter={ordersFilter}
                     onClearFilter={() => setOrdersFilter(null)}
+                />
+            )}
+             {activePane === 'reports' && (
+                 <ReportsPane
+                    purchaseOrders={purchaseOrders}
+                    onUpdatePO={handleUpdatePO}
                 />
             )}
             {activePane === 'upload' && (

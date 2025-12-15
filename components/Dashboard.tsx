@@ -32,7 +32,7 @@ interface TrendData {
     isPositiveGood: boolean;
 }
 
-const DashboardStatCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode; indicatorColor?: string; trend?: TrendData | null; onClick?: () => void }> = ({ title, value, icon, indicatorColor, trend, onClick }) => (
+const DashboardStatCard: React.FC<{ title: string; value: string | number; subValue?: string; icon: React.ReactNode; indicatorColor?: string; trend?: TrendData | null; onClick?: () => void }> = ({ title, value, subValue, icon, indicatorColor, trend, onClick }) => (
     <div 
         onClick={onClick}
         className={`bg-white dark:bg-slate-800 p-5 rounded-xl shadow-md flex items-center space-x-4 relative overflow-hidden transition-transform duration-200 ${onClick ? 'cursor-pointer hover:scale-105 hover:shadow-lg active:scale-95' : ''}`}
@@ -48,7 +48,14 @@ const DashboardStatCard: React.FC<{ title: string; value: string | number; icon:
                 {title}
                 {indicatorColor && <span className={`w-2 h-2 rounded-full ${indicatorColor}`}></span>}
             </p>
-            <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{value}</p>
+            <div className="flex items-baseline gap-2">
+                <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{value}</p>
+                {subValue && (
+                    <p className="text-lg font-semibold text-slate-500 dark:text-slate-400">
+                        {subValue}
+                    </p>
+                )}
+            </div>
             {trend && trend.percent !== 0 && (
                  <div className={`flex items-center gap-1 text-sm font-semibold mt-1 ${
                      trend.value > 0 
@@ -240,13 +247,24 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
 
     const dashboardData = useMemo(() => {
+        // Helper to calculate value
+        const calculateValue = (pos: PurchaseOrder[]) => pos.reduce((acc, po) => acc + po.items.reduce((itemAcc, item) => itemAcc + (Number(item.quantity) * Number(item.rate)), 0), 0);
+
         const openPOs = filteredPOs.filter(po => po.status === OverallPOStatus.Open || po.status === OverallPOStatus.PartiallyDispatched);
         const totalOpenPOs = openPOs.length;
-        const openPOValue = openPOs.reduce((acc, po) => acc + po.items.reduce((itemAcc, item) => itemAcc + (Number(item.quantity) * Number(item.rate)), 0), 0);
+        const openPOValue = calculateValue(openPOs);
         
-        const fullyAvailablePOs = filteredPOs.filter(po => po.fulfillmentStatus === FulfillmentStatus.Fulfillment).length;
-        const partiallyAvailablePOs = filteredPOs.filter(po => po.fulfillmentStatus === FulfillmentStatus.Partial).length;
-        const notAvailablePOs = filteredPOs.filter(po => po.fulfillmentStatus === FulfillmentStatus.NotAvailable).length;
+        const fullyAvailablePOsList = filteredPOs.filter(po => po.fulfillmentStatus === FulfillmentStatus.Fulfillment);
+        const fullyAvailablePOs = fullyAvailablePOsList.length;
+        const fullyAvailableValue = calculateValue(fullyAvailablePOsList);
+
+        const partiallyAvailablePOsList = filteredPOs.filter(po => po.fulfillmentStatus === FulfillmentStatus.Partial);
+        const partiallyAvailablePOs = partiallyAvailablePOsList.length;
+        const partiallyAvailableValue = calculateValue(partiallyAvailablePOsList);
+
+        const notAvailablePOsList = filteredPOs.filter(po => po.fulfillmentStatus === FulfillmentStatus.NotAvailable);
+        const notAvailablePOs = notAvailablePOsList.length;
+        const notAvailableValue = calculateValue(notAvailablePOsList);
 
         // Trends
         const openTrend = getTrend(purchaseOrders, filters, p => p.status === OverallPOStatus.Open || p.status === OverallPOStatus.PartiallyDispatched, p => p.length, true);
@@ -362,7 +380,10 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         const avgPOtoInvoiceTrend = getTrend(purchaseOrders, filters, () => true, (pos) => getAvgDays(pos, 'poDate', 'invoiceDate'), false);
 
         return { 
-            totalOpenPOs, openPOValue, fullyAvailablePOs, partiallyAvailablePOs, notAvailablePOs, 
+            totalOpenPOs, openPOValue, 
+            fullyAvailablePOs, fullyAvailableValue, 
+            partiallyAvailablePOs, partiallyAvailableValue, 
+            notAvailablePOs, notAvailableValue,
             checklistChartData, fulfillmentChartData, topCustomers, paymentTermsChartData, 
             poAgeingChartData, poAgeingValueChartData, branchPerformanceChartData, 
             avgPOtoSO, avgSOtoInvoice, avgPOtoInvoice,
@@ -436,6 +457,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 <DashboardStatCard 
                     title="Fully Available" 
                     value={dashboardData.fullyAvailablePOs} 
+                    subValue={dashboardData.fullyAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' })}
                     icon={<CheckCircleIcon className="w-6 h-6 text-green-500" />} 
                     indicatorColor="bg-green-500"
                     trend={dashboardData.fullyTrend}
@@ -444,6 +466,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 <DashboardStatCard 
                     title="Partially Available" 
                     value={dashboardData.partiallyAvailablePOs} 
+                    subValue={dashboardData.partiallyAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' })}
                     icon={<TruckIcon className="w-6 h-6 text-blue-500" />} 
                     indicatorColor="bg-blue-500"
                     trend={dashboardData.partialTrend}
@@ -452,6 +475,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 <DashboardStatCard 
                     title="Not Available" 
                     value={dashboardData.notAvailablePOs} 
+                    subValue={dashboardData.notAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' })}
                     icon={<NoSymbolIcon className="w-6 h-6 text-red-500" />} 
                     indicatorColor="bg-red-600"
                     trend={dashboardData.notAvailableTrend}

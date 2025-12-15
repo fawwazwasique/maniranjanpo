@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { HomeIcon, ArrowUpTrayIcon, ChartBarIcon, ListBulletIcon, LogoIcon, DatabaseIcon } from './icons';
+import { HomeIcon, ArrowUpTrayIcon, ChartBarIcon, ListBulletIcon, LogoIcon, DatabaseIcon, ClipboardDocumentListIcon } from './icons';
 
-type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement';
+type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports';
 
 interface SidebarProps {
   activePane: Pane;
@@ -69,6 +69,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activePane, setActivePane }) => {
                         label="All Purchase Orders"
                         isActive={activePane === 'allOrders'}
                         onClick={() => setActivePane('allOrders')}
+                    />
+                     <NavItem
+                        icon={<ClipboardDocumentListIcon className="w-6 h-6" />}
+                        label="Reports"
+                        isActive={activePane === 'reports'}
+                        onClick={() => setActivePane('reports')}
                     />
                     <NavItem
                         icon={<DatabaseIcon className="w-6 h-6" />}

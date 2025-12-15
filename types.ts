@@ -96,6 +96,9 @@ export interface PurchaseOrder {
   shippingAddress?: string;
   shipToGSTIN?: string;
   quoteNumber?: string;
+  
+  // New field for Dispatch Reports
+  dispatchRemarks?: string;
 }
 
 // Fix: Add missing QuotationItem and Quotation interfaces

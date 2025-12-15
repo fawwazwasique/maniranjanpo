@@ -28,6 +28,7 @@ const convertToCSV = (data: PurchaseOrder[]): string => {
         'Fulfillment Status',
         'System Remarks',
         'P&F Available',
+        'Dispatch Remarks (Not Shipped Reason)',
         
         // Checklist
         'Checklist: B-Check',
@@ -126,6 +127,7 @@ const convertToCSV = (data: PurchaseOrder[]): string => {
                 safe(po.fulfillmentStatus),
                 safe(po.systemRemarks),
                 safe(po.pfAvailable ? 'Yes' : 'No'),
+                safe(po.dispatchRemarks),
                 
                 // Checklist
                 safe(checklist.bCheck ? 'Yes' : 'No'),

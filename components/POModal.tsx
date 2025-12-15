@@ -66,6 +66,7 @@ const initialPOState: Omit<PurchaseOrder, 'id' | 'createdAt' | 'status'> = {
         others: false,
     },
     checklistRemarks: '',
+    dispatchRemarks: '',
 };
 
 
@@ -89,7 +90,8 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                 bd: existingPO.checklist?.bd || false,
                 radiatorDescaling: existingPO.checklist?.radiatorDescaling || false,
                 others: existingPO.checklist?.others || false,
-            }
+            },
+            dispatchRemarks: existingPO.dispatchRemarks || '',
         });
     } else if (isOpen && !existingPO) {
         setFormData(initialPOState);
@@ -361,6 +363,18 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                                     />
                                 </div>
                             )}
+                        </div>
+                        <div className="pt-2 border-t dark:border-slate-700">
+                             <label htmlFor="dispatchRemarks" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Dispatch Pending Remarks (Reason for not shipping)</label>
+                             <textarea
+                                 id="dispatchRemarks"
+                                 name="dispatchRemarks"
+                                 value={formData.dispatchRemarks || ''}
+                                 onChange={handleInputChange}
+                                 rows={2}
+                                 placeholder="Reason why fully available items are not shipped..."
+                                 className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                             />
                         </div>
                     </div>
 
