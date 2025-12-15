@@ -212,7 +212,7 @@ export const downloadTemplate = (): void => {
         'Sale Type (Cash/Credit)',
         'Credit Terms (Days)',
         'Order Status',
-        'Fulfillment Status',
+        'Fulfillment Status (Fully Available/Partially Available/Not Available)',
         'P & F Available (TRUE/FALSE)',
         'Checklist B (TRUE/FALSE)',
         'Checklist C (TRUE/FALSE)',
@@ -251,7 +251,7 @@ export const downloadTemplate = (): void => {
         'Credit', // Sale Type
         '30', // Credit Terms
         'Open Orders', // Order Status
-        'New', // Fulfillment Status
+        'Fully Available', // Fulfillment Status
         'FALSE', // P & F Available
         'FALSE', // B
         'FALSE', // C

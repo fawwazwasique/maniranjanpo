@@ -607,6 +607,27 @@ function App() {
                 else if (csvOrderStatus === 'Shipped in System DC') orderStatusVal = OrderStatus.ShippedInSystemDC;
                 else if (csvOrderStatus === 'Open Orders') orderStatusVal = OrderStatus.OpenOrders;
 
+                // Map Fulfillment Status (Handle friendly names from Single Upload UI)
+                let fulfillmentStatusVal: FulfillmentStatus = FulfillmentStatus.New;
+                const csvFulfillment = getCol(25);
+                const normFulfillment = csvFulfillment?.trim();
+                
+                if (normFulfillment === 'Fully Available' || normFulfillment === 'Fulfillment') {
+                    fulfillmentStatusVal = FulfillmentStatus.Fulfillment;
+                } else if (normFulfillment === 'Partially Available' || normFulfillment === 'Partial') {
+                    fulfillmentStatusVal = FulfillmentStatus.Partial;
+                } else if (normFulfillment === 'Not Available') {
+                    fulfillmentStatusVal = FulfillmentStatus.NotAvailable;
+                } else if (normFulfillment === 'Shipped') {
+                     fulfillmentStatusVal = FulfillmentStatus.Shipped;
+                } else if (normFulfillment === 'Release') {
+                     fulfillmentStatusVal = FulfillmentStatus.Release;
+                } else if (normFulfillment === 'Invoiced') {
+                     fulfillmentStatusVal = FulfillmentStatus.Invoiced;
+                } else if (normFulfillment === 'New') {
+                    fulfillmentStatusVal = FulfillmentStatus.New;
+                }
+
                 const poData = {
                     id: poRef.id,
                     mainBranch: getCol(0),
@@ -626,7 +647,7 @@ function App() {
                     saleType: (getCol(22) as 'Cash' | 'Credit') || 'Credit',
                     creditTerms: parseInt(getCol(23)) || 30,
                     orderStatus: orderStatusVal,
-                    fulfillmentStatus: (getCol(25) as FulfillmentStatus) || "New",
+                    fulfillmentStatus: fulfillmentStatusVal,
                     
                     pfAvailable: getBool(26),
                     checklist: {
