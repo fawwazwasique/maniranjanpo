@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
-import type { PurchaseOrder, OverallPOStatus, FulfillmentStatus } from '../types';
+import type { PurchaseOrder, OverallPOStatus, FulfillmentStatus, POItem } from '../types';
+import { POItemStatus } from '../types';
 import { MagnifyingGlassIcon, ArrowDownTrayIcon, TrashIcon, XMarkIcon } from './icons';
 import { exportToCSV } from '../utils/export';
 
@@ -76,6 +77,13 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
         return sortConfig.direction === 'ascending' ? '▲' : '▼';
     };
 
+    const getItemStats = (items: POItem[]) => {
+        const available = items.filter(i => i.status === POItemStatus.Available || i.status === POItemStatus.Dispatched).length;
+        const partial = items.filter(i => i.status === POItemStatus.PartiallyAvailable).length;
+        const notAvailable = items.filter(i => i.status === POItemStatus.NotAvailable).length;
+        return { available, partial, notAvailable };
+    };
+
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8 h-full flex flex-col">
             <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
@@ -108,7 +116,7 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
 
             <div className="flex-grow overflow-auto rounded-lg shadow-md border border-slate-200 dark:border-slate-700">
                 <table className="w-full text-left text-base text-slate-500 dark:text-slate-400">
-                    <thead className="text-sm text-slate-700 dark:text-slate-300 uppercase bg-slate-50 dark:bg-slate-800 sticky top-0">
+                    <thead className="text-sm text-slate-700 dark:text-slate-300 uppercase bg-slate-50 dark:bg-slate-800 sticky top-0 z-10">
                         <tr>
                             <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('poNumber')}>PO Number {getSortIndicator('poNumber')}</th>
                             <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('customerName')}>Customer {getSortIndicator('customerName')}</th>
@@ -116,32 +124,52 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                             <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('poDate')}>Date {getSortIndicator('poDate')}</th>
                             <th scope="col" className="p-4 cursor-pointer text-right" onClick={() => requestSort('totalValue')}>Value {getSortIndicator('totalValue')}</th>
                             <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('orderStatus')}>Order Status {getSortIndicator('orderStatus')}</th>
-                            <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('status')}>PO Status {getSortIndicator('status')}</th>
-                             <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('fulfillmentStatus')}>Fulfillment {getSortIndicator('fulfillmentStatus')}</th>
+                            <th scope="col" className="p-4 w-64">Item Availability (Breakdown)</th>
                             <th scope="col" className="p-4 text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white dark:bg-slate-800/50">
-                        {filteredAndSortedPOs.map(po => (
-                            <tr key={po.id} className="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50">
-                                <td className="p-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">{po.poNumber}</td>
-                                <td className="p-4">{po.customerName}</td>
-                                <td className="p-4">{po.mainBranch}{po.subBranch && ` / ${po.subBranch}`}</td>
-                                <td className="p-4">{new Date(po.poDate).toLocaleDateString()}</td>
-                                <td className="p-4 text-right font-semibold">{po.totalValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</td>
-                                <td className="p-4 font-medium">{po.orderStatus}</td>
-                                <td className="p-4">{po.status}</td>
-                                <td className="p-4">{po.fulfillmentStatus}</td>
-                                <td className="p-4 text-center">
-                                    <div className="flex justify-center items-center gap-2">
-                                        <button onClick={() => onSelectPO(po)} className="font-medium text-red-600 dark:text-red-500 hover:underline">Details</button>
-                                        <button onClick={() => onDeletePO(po.id)} className="text-red-500 hover:text-red-700 p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50">
-                                            <TrashIcon className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
+                        {filteredAndSortedPOs.map(po => {
+                            const stats = getItemStats(po.items);
+                            return (
+                                <tr key={po.id} className="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                                    <td className="p-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">{po.poNumber}</td>
+                                    <td className="p-4">{po.customerName}</td>
+                                    <td className="p-4">{po.mainBranch}{po.subBranch && ` / ${po.subBranch}`}</td>
+                                    <td className="p-4">{new Date(po.poDate).toLocaleDateString()}</td>
+                                    <td className="p-4 text-right font-semibold">{po.totalValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</td>
+                                    <td className="p-4 font-medium">{po.orderStatus}</td>
+                                    <td className="p-4">
+                                        <div className="flex flex-col gap-1 w-full max-w-[200px]">
+                                            <div className="flex text-xs font-semibold text-white overflow-hidden rounded-full h-4 w-full bg-slate-200 dark:bg-slate-700">
+                                                {stats.available > 0 && (
+                                                    <div className="bg-green-500 flex items-center justify-center" style={{ width: `${(stats.available / po.items.length) * 100}%` }} title={`${stats.available} Available`}></div>
+                                                )}
+                                                {stats.partial > 0 && (
+                                                    <div className="bg-yellow-500 flex items-center justify-center" style={{ width: `${(stats.partial / po.items.length) * 100}%` }} title={`${stats.partial} Partial`}></div>
+                                                )}
+                                                {stats.notAvailable > 0 && (
+                                                    <div className="bg-red-500 flex items-center justify-center" style={{ width: `${(stats.notAvailable / po.items.length) * 100}%` }} title={`${stats.notAvailable} Not Available`}></div>
+                                                )}
+                                            </div>
+                                            <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                                <span className={stats.available > 0 ? "text-green-600 dark:text-green-400" : ""}>{stats.available} Avail</span>
+                                                <span className={stats.partial > 0 ? "text-yellow-600 dark:text-yellow-400" : ""}>{stats.partial} Part</span>
+                                                <span className={stats.notAvailable > 0 ? "text-red-600 dark:text-red-400" : ""}>{stats.notAvailable} N/A</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="p-4 text-center">
+                                        <div className="flex justify-center items-center gap-2">
+                                            <button onClick={() => onSelectPO(po)} className="font-medium text-red-600 dark:text-red-500 hover:underline">Details</button>
+                                            <button onClick={() => onDeletePO(po.id)} className="text-red-500 hover:text-red-700 p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50">
+                                                <TrashIcon className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
                  {filteredAndSortedPOs.length === 0 && (

@@ -647,6 +647,35 @@ function App() {
                     };
                 });
                 
+                // --- AUTO-CALCULATE PO STATUS BASED ON ITEMS ---
+                let calcFulfillmentStatus = FulfillmentStatus.New;
+                let calcOverallStatus = OverallPOStatus.Open;
+
+                if (items.length > 0) {
+                    const availCount = items.filter(i => i.status === POItemStatus.Available || i.status === POItemStatus.Dispatched).length;
+                    const notAvailCount = items.filter(i => i.status === POItemStatus.NotAvailable).length;
+                    const dispatchedCount = items.filter(i => i.status === POItemStatus.Dispatched).length;
+
+                    // Fulfillment Status Calculation
+                    if (availCount === items.length) {
+                        calcFulfillmentStatus = FulfillmentStatus.Fulfillment; // Fully Available
+                    } else if (notAvailCount === items.length) {
+                        calcFulfillmentStatus = FulfillmentStatus.NotAvailable;
+                    } else {
+                        calcFulfillmentStatus = FulfillmentStatus.Partial;
+                    }
+
+                    // Overall Status Calculation
+                    if (dispatchedCount === items.length) {
+                        calcOverallStatus = OverallPOStatus.Fulfilled;
+                    } else if (dispatchedCount > 0) {
+                        calcOverallStatus = OverallPOStatus.PartiallyDispatched;
+                    } else {
+                        calcOverallStatus = OverallPOStatus.Open;
+                    }
+                }
+                // ------------------------------------------------
+
                 const poRef = doc(collection(db, "purchaseOrders"));
                 
                 // Map Order Status from string to Enum
@@ -658,26 +687,8 @@ function App() {
                 else if (csvOrderStatus === 'Shipped in System DC') orderStatusVal = OrderStatus.ShippedInSystemDC;
                 else if (csvOrderStatus === 'Open Orders') orderStatusVal = OrderStatus.OpenOrders;
 
-                // Map Fulfillment Status (Handle friendly names from Single Upload UI)
-                let fulfillmentStatusVal: FulfillmentStatus = FulfillmentStatus.New;
-                const csvFulfillment = getCol(26); // Shifted from 25
-                const normFulfillment = csvFulfillment?.trim();
-                
-                if (normFulfillment === 'Fully Available' || normFulfillment === 'Fulfillment') {
-                    fulfillmentStatusVal = FulfillmentStatus.Fulfillment;
-                } else if (normFulfillment === 'Partially Available' || normFulfillment === 'Partial') {
-                    fulfillmentStatusVal = FulfillmentStatus.Partial;
-                } else if (normFulfillment === 'Not Available') {
-                    fulfillmentStatusVal = FulfillmentStatus.NotAvailable;
-                } else if (normFulfillment === 'Shipped') {
-                     fulfillmentStatusVal = FulfillmentStatus.Shipped;
-                } else if (normFulfillment === 'Release') {
-                     fulfillmentStatusVal = FulfillmentStatus.Release;
-                } else if (normFulfillment === 'Invoiced') {
-                     fulfillmentStatusVal = FulfillmentStatus.Invoiced;
-                } else if (normFulfillment === 'New') {
-                    fulfillmentStatusVal = FulfillmentStatus.New;
-                }
+                // Priority: Use Calculated Status if valid, otherwise fallback to CSV
+                const fulfillmentStatusVal = calcFulfillmentStatus;
 
                 const poData = {
                     id: poRef.id,
@@ -699,7 +710,7 @@ function App() {
                     saleType: (getCol(23) as 'Cash' | 'Credit') || 'Credit', // Shifted from 22
                     creditTerms: parseInt(getCol(24)) || 30, // Shifted from 23
                     orderStatus: orderStatusVal,
-                    fulfillmentStatus: fulfillmentStatusVal,
+                    fulfillmentStatus: fulfillmentStatusVal, // Use calculated status
                     
                     pfAvailable: getBool(27), // Shifted from 26
                     checklist: {
@@ -714,7 +725,7 @@ function App() {
                     },
                     checklistRemarks: getCol(36), // Shifted from 35
 
-                    status: OverallPOStatus.Open,
+                    status: calcOverallStatus, // Use calculated status
                     paymentStatus: null,
                     paymentNotes: 'Imported via Bulk Upload',
                     systemRemarks: '',
@@ -730,7 +741,7 @@ function App() {
                     ref: logRef, 
                     data: {
                         poId: poRef.id,
-                        action: `PO #${poData.poNumber} created from bulk upload (${file.name}).`,
+                        action: `PO #${poData.poNumber} created from bulk upload (${file.name}). Status calculated as ${calcFulfillmentStatus}.`,
                         timestamp: serverTimestamp(),
                     } 
                 });
