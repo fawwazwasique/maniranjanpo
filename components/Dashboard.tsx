@@ -92,8 +92,8 @@ const DonutChart: React.FC<{ data: { label: string; value: number; color: string
                 <svg width="180" height="180" viewBox="0 0 100 100">
                     <g transform="rotate(-90 50 50)">
                         {data.reduce((acc, segment) => {
-                             const offset = (acc.sum / total) * circumference;
-                             acc.sum += segment.value;
+                             const segmentLength = (segment.value / total) * circumference;
+                             
                              acc.elements.push(
                                 <circle
                                     key={segment.label}
@@ -101,12 +101,13 @@ const DonutChart: React.FC<{ data: { label: string; value: number; color: string
                                     fill="transparent"
                                     stroke={segment.color}
                                     strokeWidth="15"
-                                    strokeDasharray={circumference}
-                                    strokeDashoffset={circumference - (segment.value / total * circumference) + offset}
+                                    strokeDasharray={`${segmentLength} ${circumference}`}
+                                    strokeDashoffset={-acc.accumulatedLength}
                                 />
                              );
+                             acc.accumulatedLength += segmentLength;
                              return acc;
-                        }, { sum: 0, elements: [] as React.ReactNode[] }).elements}
+                        }, { accumulatedLength: 0, elements: [] as React.ReactNode[] }).elements}
                     </g>
                      <text x="50" y="50" textAnchor="middle" dy=".3em" className="text-lg font-bold fill-current text-slate-800 dark:text-slate-100">
                        {total.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })}
