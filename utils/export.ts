@@ -207,6 +207,7 @@ export const downloadTemplate = (): void => {
         'Discount Amount',
         'GST Percentage',
         'Stock Status (Available/Unavailable)',
+        'Item Status (Available/Partially Available/Not Available/Dispatched)',
         'OA Number',
         'OA Date (YYYY-MM-DD)',
         'Sale Type (Cash/Credit)',
@@ -246,6 +247,7 @@ export const downloadTemplate = (): void => {
         '0.00', // Discount Amount
         '18', // GST Percentage
         'Available', // Stock Status
+        'Available', // Item Status
         '', // OA Number
         '', // OA Date
         'Credit', // Sale Type

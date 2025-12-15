@@ -22,6 +22,7 @@ interface DashboardProps {
     subBranch: string;
   }>>;
   customers: string[];
+  onCardClick?: (type: string) => void;
 }
 
 interface TrendData {
@@ -31,8 +32,11 @@ interface TrendData {
     isPositiveGood: boolean;
 }
 
-const DashboardStatCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode; indicatorColor?: string; trend?: TrendData | null }> = ({ title, value, icon, indicatorColor, trend }) => (
-    <div className="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-md flex items-center space-x-4 relative overflow-hidden">
+const DashboardStatCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode; indicatorColor?: string; trend?: TrendData | null; onClick?: () => void }> = ({ title, value, icon, indicatorColor, trend, onClick }) => (
+    <div 
+        onClick={onClick}
+        className={`bg-white dark:bg-slate-800 p-5 rounded-xl shadow-md flex items-center space-x-4 relative overflow-hidden transition-transform duration-200 ${onClick ? 'cursor-pointer hover:scale-105 hover:shadow-lg active:scale-95' : ''}`}
+    >
         {indicatorColor && (
             <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${indicatorColor}`}></div>
         )}
@@ -154,7 +158,7 @@ const HorizontalBarChart: React.FC<{ data: { label: string; value: number }[], i
 }
 
 
-const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilters, customers }) => {
+const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilters, customers, onCardClick }) => {
     const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         if (name === 'mainBranch') {
@@ -418,6 +422,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     icon={<ClockIcon className="w-6 h-6 text-amber-500" />} 
                     indicatorColor="bg-amber-500"
                     trend={dashboardData.openTrend}
+                    onClick={() => onCardClick?.('OPEN')}
                 />
                 <DashboardStatCard 
                     title="Open PO Value" 
@@ -425,6 +430,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     icon={<CurrencyRupeeIcon className="w-6 h-6 text-red-500" />} 
                     indicatorColor="bg-red-500"
                     trend={dashboardData.valueTrend}
+                    onClick={() => onCardClick?.('OPEN')}
                 />
                 <DashboardStatCard 
                     title="Fully Available" 
@@ -432,6 +438,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     icon={<CheckCircleIcon className="w-6 h-6 text-green-500" />} 
                     indicatorColor="bg-green-500"
                     trend={dashboardData.fullyTrend}
+                    onClick={() => onCardClick?.('FULLY_AVAILABLE')}
                 />
                 <DashboardStatCard 
                     title="Partially Available" 
@@ -439,6 +446,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     icon={<TruckIcon className="w-6 h-6 text-blue-500" />} 
                     indicatorColor="bg-blue-500"
                     trend={dashboardData.partialTrend}
+                    onClick={() => onCardClick?.('PARTIALLY_AVAILABLE')}
                 />
                 <DashboardStatCard 
                     title="Not Available" 
@@ -446,6 +454,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     icon={<NoSymbolIcon className="w-6 h-6 text-red-500" />} 
                     indicatorColor="bg-red-600"
                     trend={dashboardData.notAvailableTrend}
+                    onClick={() => onCardClick?.('NOT_AVAILABLE')}
                 />
             </div>
 

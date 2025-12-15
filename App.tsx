@@ -36,6 +36,12 @@ function App() {
 
   const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
   
+  // New state for cross-pane filtering (from Dashboard to All Orders)
+  const [ordersFilter, setOrdersFilter] = useState<{
+      status?: OverallPOStatus;
+      fulfillmentStatus?: FulfillmentStatus;
+  } | null>(null);
+
   const [suggestionItem, setSuggestionItem] = useState<POItem | null>(null);
   const [suggestion, setSuggestion] = useState<ProcurementSuggestion | null>(null);
   const [suggestionLoading, setSuggestionLoading] = useState(false);
@@ -510,6 +516,22 @@ function App() {
     setSuggestionItem(null);
   };
   
+  const handleDashboardCardClick = (filterType: string) => {
+      // Mapping dashboard card clicks to filters for All Orders pane
+      if (filterType === 'OPEN') {
+          setOrdersFilter({ status: OverallPOStatus.Open });
+      } else if (filterType === 'FULLY_AVAILABLE') {
+          setOrdersFilter({ fulfillmentStatus: FulfillmentStatus.Fulfillment });
+      } else if (filterType === 'PARTIALLY_AVAILABLE') {
+          setOrdersFilter({ fulfillmentStatus: FulfillmentStatus.Partial });
+      } else if (filterType === 'NOT_AVAILABLE') {
+          setOrdersFilter({ fulfillmentStatus: FulfillmentStatus.NotAvailable });
+      } else {
+          setOrdersFilter(null);
+      }
+      setActivePane('allOrders');
+  };
+
   const handleBulkUpload = useCallback(async (files: File[]) => {
     let totalProcessed = 0;
 
@@ -592,8 +614,17 @@ function App() {
                 const items: POItem[] = groupLines.map(line => {
                     const c = parseLine(line);
                     const getC = (idx: number) => c[idx] ? c[idx].trim() : '';
+                    
+                    // Parse item status column (New Index: 20)
+                    let itemStatusVal = POItemStatus.NotAvailable;
+                    const statusStr = getC(20).toLowerCase();
+                    if (statusStr.includes('partially')) itemStatusVal = POItemStatus.PartiallyAvailable;
+                    else if (statusStr.includes('not')) itemStatusVal = POItemStatus.NotAvailable;
+                    else if (statusStr.includes('available')) itemStatusVal = POItemStatus.Available;
+                    else if (statusStr.includes('dispatched')) itemStatusVal = POItemStatus.Dispatched;
+
                     return {
-                        partNumber: getC(12) || '', // Allow empty part number, user can update later
+                        partNumber: getC(12) || '',
                         itemType: getC(13) || '',
                         itemDesc: getC(14) || '',
                         quantity: parseFloat(getC(15)) || 0,
@@ -601,13 +632,15 @@ function App() {
                         discount: parseFloat(getC(17)) || 0,
                         gst: parseFloat(getC(18)) || 0,
                         stockStatus: (getC(19) as 'Available' | 'Unavailable') || 'Unavailable',
-                        oaNo: getC(20) || '',
-                        oaDate: getC(21) || '',
+                        status: itemStatusVal,
                         
-                        // Defaults for derived/internal logic
+                        // Shifted indices due to insertion of Item Status at 20
+                        oaNo: getC(21) || '',
+                        oaDate: getC(22) || '',
+                        
+                        // Defaults
                         stockAvailable: 0,
                         stockInHand: 0,
-                        status: POItemStatus.NotAvailable,
                         allocatedQuantity: 0,
                         deliveryQuantity: 0,
                         invoicedQuantity: 0
@@ -618,7 +651,7 @@ function App() {
                 
                 // Map Order Status from string to Enum
                 let orderStatusVal: OrderStatus = OrderStatus.OpenOrders;
-                const csvOrderStatus = getCol(24);
+                const csvOrderStatus = getCol(25); // Shifted from 24
                 if (csvOrderStatus === 'Invoiced') orderStatusVal = OrderStatus.Invoiced;
                 else if (csvOrderStatus === 'Partially Invoiced') orderStatusVal = OrderStatus.PartiallyInvoiced;
                 else if (csvOrderStatus === 'Cancelled') orderStatusVal = OrderStatus.Cancelled;
@@ -627,7 +660,7 @@ function App() {
 
                 // Map Fulfillment Status (Handle friendly names from Single Upload UI)
                 let fulfillmentStatusVal: FulfillmentStatus = FulfillmentStatus.New;
-                const csvFulfillment = getCol(25);
+                const csvFulfillment = getCol(26); // Shifted from 25
                 const normFulfillment = csvFulfillment?.trim();
                 
                 if (normFulfillment === 'Fully Available' || normFulfillment === 'Fulfillment') {
@@ -650,9 +683,9 @@ function App() {
                     id: poRef.id,
                     mainBranch: getCol(0),
                     subBranch: getCol(1),
-                    customerName: getCol(2) || 'Unknown Customer', // Default
-                    poNumber: getCol(3) || key, // Use the draft key if PO Num is missing
-                    poDate: getCol(4) || new Date().toISOString().split('T')[0], // Default to today
+                    customerName: getCol(2) || 'Unknown Customer',
+                    poNumber: getCol(3) || key,
+                    poDate: getCol(4) || new Date().toISOString().split('T')[0],
                     salesOrderNumber: getCol(5),
                     soDate: getCol(6) || new Date().toISOString().split('T')[0],
                     quoteNumber: getCol(7),
@@ -660,25 +693,26 @@ function App() {
                     billToGSTIN: getCol(9),
                     shippingAddress: getCol(10),
                     shipToGSTIN: getCol(11),
-                    items: items, // Add the parsed items array
+                    items: items, 
                     
-                    saleType: (getCol(22) as 'Cash' | 'Credit') || 'Credit',
-                    creditTerms: parseInt(getCol(23)) || 30,
+                    // Shifted indices
+                    saleType: (getCol(23) as 'Cash' | 'Credit') || 'Credit', // Shifted from 22
+                    creditTerms: parseInt(getCol(24)) || 30, // Shifted from 23
                     orderStatus: orderStatusVal,
                     fulfillmentStatus: fulfillmentStatusVal,
                     
-                    pfAvailable: getBool(26),
+                    pfAvailable: getBool(27), // Shifted from 26
                     checklist: {
-                        bCheck: getBool(27),
-                        cCheck: getBool(28),
-                        dCheck: getBool(29),
-                        battery: getBool(30),
-                        spares: getBool(31),
-                        bd: getBool(32),
-                        radiatorDescaling: getBool(33),
-                        others: getBool(34)
+                        bCheck: getBool(28), // Shifted from 27
+                        cCheck: getBool(29),
+                        dCheck: getBool(30),
+                        battery: getBool(31),
+                        spares: getBool(32),
+                        bd: getBool(33),
+                        radiatorDescaling: getBool(34),
+                        others: getBool(35)
                     },
-                    checklistRemarks: getCol(35),
+                    checklistRemarks: getCol(36), // Shifted from 35
 
                     status: OverallPOStatus.Open,
                     paymentStatus: null,
@@ -715,9 +749,6 @@ function App() {
             }
 
             // 2. EXECUTE BATCHES
-            // Firestore limit is 500 writes per batch. 
-            // We are adding 3 writes per PO. 
-            // 450 writes = 150 POs per batch. This is safe.
             const BATCH_SIZE = 450; 
 
             for (let k = 0; k < allOperations.length; k += BATCH_SIZE) {
@@ -778,6 +809,7 @@ function App() {
                     filters={filters}
                     setFilters={setFilters}
                     customers={allCustomers}
+                    onCardClick={handleDashboardCardClick}
                 />
             )}
              {activePane === 'allOrders' && (
@@ -785,6 +817,8 @@ function App() {
                     purchaseOrders={purchaseOrders}
                     onSelectPO={handleSelectPO}
                     onDeletePO={handleDeletePO}
+                    filter={ordersFilter}
+                    onClearFilter={() => setOrdersFilter(null)}
                 />
             )}
             {activePane === 'upload' && (

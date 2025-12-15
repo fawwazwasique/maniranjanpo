@@ -1,19 +1,20 @@
 
-
 import React, { useState, useMemo } from 'react';
-import type { PurchaseOrder } from '../types';
-import { MagnifyingGlassIcon, ArrowDownTrayIcon, TrashIcon } from './icons';
+import type { PurchaseOrder, OverallPOStatus, FulfillmentStatus } from '../types';
+import { MagnifyingGlassIcon, ArrowDownTrayIcon, TrashIcon, XMarkIcon } from './icons';
 import { exportToCSV } from '../utils/export';
 
 interface AllOrdersPaneProps {
   purchaseOrders: PurchaseOrder[];
   onSelectPO: (po: PurchaseOrder) => void;
   onDeletePO: (poId: string) => void;
+  filter?: { status?: OverallPOStatus, fulfillmentStatus?: FulfillmentStatus } | null;
+  onClearFilter?: () => void;
 }
 
 type SortKeys = 'poNumber' | 'customerName' | 'poDate' | 'totalValue' | 'status' | 'fulfillmentStatus' | 'orderStatus';
 
-const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectPO, onDeletePO }) => {
+const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectPO, onDeletePO, filter, onClearFilter }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: SortKeys; direction: 'ascending' | 'descending' } | null>({ key: 'poDate', direction: 'descending' });
 
@@ -26,6 +27,16 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
     
     const filteredAndSortedPOs = useMemo(() => {
         let sortableItems = [...posWithValues];
+
+        // Apply external filter from Dashboard clicks
+        if (filter) {
+            if (filter.status) {
+                 sortableItems = sortableItems.filter(po => po.status === filter.status || (filter.status === 'Open' && po.status === 'Partially Dispatched'));
+            }
+            if (filter.fulfillmentStatus) {
+                sortableItems = sortableItems.filter(po => po.fulfillmentStatus === filter.fulfillmentStatus);
+            }
+        }
 
         if (searchTerm) {
             sortableItems = sortableItems.filter(po =>
@@ -50,7 +61,7 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
             });
         }
         return sortableItems;
-    }, [posWithValues, searchTerm, sortConfig]);
+    }, [posWithValues, searchTerm, sortConfig, filter]);
     
     const requestSort = (key: SortKeys) => {
         let direction: 'ascending' | 'descending' = 'ascending';
@@ -78,13 +89,21 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                         className="w-full pl-10 pr-4 py-2.5 text-base rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500"
                     />
                 </div>
-                <button
-                    onClick={() => exportToCSV(filteredAndSortedPOs)}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                >
-                    <ArrowDownTrayIcon className="w-5 h-5" />
-                    Export to Excel
-                </button>
+                <div className="flex items-center gap-3">
+                    {filter && (
+                         <div className="flex items-center gap-2 bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200 px-3 py-1.5 rounded-full text-sm font-medium">
+                            <span>Filtering by: {filter.status || filter.fulfillmentStatus}</span>
+                            <button onClick={onClearFilter} className="hover:text-red-900 dark:hover:text-white"><XMarkIcon className="w-4 h-4"/></button>
+                         </div>
+                    )}
+                    <button
+                        onClick={() => exportToCSV(filteredAndSortedPOs)}
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                    >
+                        <ArrowDownTrayIcon className="w-5 h-5" />
+                        Export to Excel
+                    </button>
+                </div>
             </div>
 
             <div className="flex-grow overflow-auto rounded-lg shadow-md border border-slate-200 dark:border-slate-700">
