@@ -283,21 +283,44 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                                 <input type="number" placeholder="Discount" min="0" step="0.01" value={item.discount} onChange={e => handleItemChange(index, 'discount', parseFloat(e.target.value))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
                                 <input type="number" placeholder="GST %" min="0" step="0.01" value={item.gst} onChange={e => handleItemChange(index, 'gst', parseFloat(e.target.value))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
                             </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
-                                <input type="number" placeholder="Stock Avail." value={item.stockAvailable} onChange={e => handleItemChange(index, 'stockAvailable', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
-                                <input type="number" placeholder="Stock InHand" value={item.stockInHand} onChange={e => handleItemChange(index, 'stockInHand', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
-                                <input type="number" placeholder="Allocated Qty" value={item.allocatedQuantity} onChange={e => handleItemChange(index, 'allocatedQuantity', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
-                                <input type="number" placeholder="Delivery Qty" value={item.deliveryQuantity} onChange={e => handleItemChange(index, 'deliveryQuantity', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
-                                <input type="number" placeholder="Invoiced Qty" value={item.invoicedQuantity} onChange={e => handleItemChange(index, 'invoicedQuantity', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2 mt-2">
-                                <div>
-                                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">OA Number</label>
-                                    <input type="text" placeholder="OA No" value={item.oaNo || ''} onChange={e => handleItemChange(index, 'oaNo', e.target.value)} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                            
+                            <div className="mt-3 pt-2 border-t border-dashed border-slate-300 dark:border-slate-700">
+                                <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wide">Stock & Fulfillment Details</p>
+                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Stock Avail.</label>
+                                        <input type="number" value={item.stockAvailable} onChange={e => handleItemChange(index, 'stockAvailable', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Stock InHand</label>
+                                        <input type="number" value={item.stockInHand} onChange={e => handleItemChange(index, 'stockInHand', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Allocated</label>
+                                        <input type="number" value={item.allocatedQuantity} onChange={e => handleItemChange(index, 'allocatedQuantity', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Delivered</label>
+                                        <input type="number" value={item.deliveryQuantity} onChange={e => handleItemChange(index, 'deliveryQuantity', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Invoiced</label>
+                                        <input type="number" value={item.invoicedQuantity} onChange={e => handleItemChange(index, 'invoicedQuantity', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">OA Date</label>
-                                    <input type="date" placeholder="OA Date" value={item.oaDate || ''} onChange={e => handleItemChange(index, 'oaDate', e.target.value)} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                            </div>
+                            
+                            <div className="mt-3 pt-2 border-t border-dashed border-slate-300 dark:border-slate-700">
+                                <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wide">Order Acknowledgement (OA) Details</p>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">OA Number</label>
+                                        <input type="text" placeholder="Enter OA No" value={item.oaNo || ''} onChange={e => handleItemChange(index, 'oaNo', e.target.value)} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">OA Date</label>
+                                        <input type="date" placeholder="Select OA Date" value={item.oaDate || ''} onChange={e => handleItemChange(index, 'oaDate', e.target.value)} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                                    </div>
                                 </div>
                             </div>
                           </div>
