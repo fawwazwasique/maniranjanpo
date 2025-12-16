@@ -493,6 +493,7 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                             </div>
                         </div>
                     )}
+                    
                 </div>
             </div>
         </div>
