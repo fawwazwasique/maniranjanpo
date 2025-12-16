@@ -180,6 +180,8 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                     'Part Number': item.partNumber,
                     'Description': item.itemDesc,
                     'Quantity': item.quantity,
+                    'Unit Price': item.rate,
+                    'Total Value': item.quantity * item.rate,
                     'PO Fulfillment Status': po.fulfillmentStatus,
                     'Item Status': item.status
                 });
@@ -445,6 +447,7 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                                             <th className="p-3">Customer</th>
                                             <th className="p-3">Item Description</th>
                                             <th className="p-3">Qty</th>
+                                            <th className="p-3">Price</th>
                                             <th className="p-3">PO Status</th>
                                             <th className="p-3">Item Status</th>
                                         </tr>
@@ -461,6 +464,16 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                                                             <td className="p-3 font-medium text-slate-800 dark:text-slate-200">{item.itemDesc}</td>
                                                             <td className="p-3 font-bold">{item.quantity}</td>
                                                             <td className="p-3">
+                                                                <div>
+                                                                    <span className="block text-slate-800 dark:text-slate-200 font-medium">
+                                                                        {item.rate.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+                                                                    </span>
+                                                                    <span className="text-xs text-slate-500">
+                                                                        Total: {(item.quantity * item.rate).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+                                                                    </span>
+                                                                </div>
+                                                            </td>
+                                                            <td className="p-3">
                                                                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${po.fulfillmentStatus === FulfillmentStatus.Partial ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'}`}>
                                                                     {po.fulfillmentStatus}
                                                                 </span>
@@ -472,7 +485,7 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                                             ))
                                         ) : (
                                             <tr>
-                                                <td colSpan={7} className="p-8 text-center text-slate-500">No Valvoline items found in pending orders.</td>
+                                                <td colSpan={8} className="p-8 text-center text-slate-500">No Valvoline items found in pending orders.</td>
                                             </tr>
                                         )}
                                     </tbody>

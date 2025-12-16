@@ -103,67 +103,71 @@ function App() {
         setFirestoreError(null);
         const posFromDB: PurchaseOrder[] = [];
         querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            
-            // Defensively clean the items array to ensure they are plain objects
-            const cleanItems: POItem[] = (data.items || []).map((item: any) => ({
-                partNumber: item.partNumber || '',
-                quantity: Number(item.quantity) || 0,
-                rate: Number(item.rate) || 0,
-                status: item.status || POItemStatus.NotAvailable,
-                itemDesc: item.itemDesc || '',
-                discount: Number(item.discount) || 0,
-                gst: Number(item.gst) || 0,
-                stockAvailable: Number(item.stockAvailable) || 0,
-                stockInHand: Number(item.stockInHand) || 0,
-                allocatedQuantity: Number(item.allocatedQuantity) || 0,
-                deliveryQuantity: Number(item.deliveryQuantity) || 0,
-                invoicedQuantity: Number(item.invoicedQuantity) || 0,
-                stockStatus: item.stockStatus,
-                oaDate: item.oaDate,
-                oaNo: item.oaNo,
-                itemType: item.itemType || '',
-            }));
+            try {
+                const data = doc.data();
+                
+                // Defensively clean the items array to ensure they are plain objects
+                const cleanItems: POItem[] = (data.items || []).map((item: any) => ({
+                    partNumber: item.partNumber || '',
+                    quantity: Number(item.quantity) || 0,
+                    rate: Number(item.rate) || 0,
+                    status: item.status || POItemStatus.NotAvailable,
+                    itemDesc: item.itemDesc || '',
+                    discount: Number(item.discount) || 0,
+                    gst: Number(item.gst) || 0,
+                    stockAvailable: Number(item.stockAvailable) || 0,
+                    stockInHand: Number(item.stockInHand) || 0,
+                    allocatedQuantity: Number(item.allocatedQuantity) || 0,
+                    deliveryQuantity: Number(item.deliveryQuantity) || 0,
+                    invoicedQuantity: Number(item.invoicedQuantity) || 0,
+                    stockStatus: item.stockStatus,
+                    oaDate: item.oaDate,
+                    oaNo: item.oaNo,
+                    itemType: item.itemType || '',
+                }));
 
-            // Manually construct a plain JavaScript object to avoid circular references
-            let createdAtStr = new Date().toISOString();
-            if (data.createdAt && typeof data.createdAt.toDate === 'function') {
-                createdAtStr = data.createdAt.toDate().toISOString();
-            } else if (data.createdAt) {
-                 createdAtStr = String(data.createdAt); 
+                // Manually construct a plain JavaScript object to avoid circular references
+                let createdAtStr = new Date().toISOString();
+                if (data.createdAt && typeof data.createdAt.toDate === 'function') {
+                    createdAtStr = data.createdAt.toDate().toISOString();
+                } else if (data.createdAt) {
+                     createdAtStr = String(data.createdAt); 
+                }
+
+                posFromDB.push({
+                    id: doc.id,
+                    poNumber: data.poNumber,
+                    customerName: data.customerName,
+                    poDate: (data.poDate instanceof Timestamp) ? data.poDate.toDate().toISOString().split('T')[0] : data.poDate,
+                    items: cleanItems,
+                    status: data.status,
+                    createdAt: createdAtStr,
+                    saleType: data.saleType,
+                    paymentStatus: data.paymentStatus,
+                    paymentNotes: data.paymentNotes,
+                    creditTerms: data.creditTerms,
+                    mainBranch: data.mainBranch,
+                    subBranch: data.subBranch,
+                    salesOrderNumber: data.salesOrderNumber,
+                    systemRemarks: data.systemRemarks,
+                    orderStatus: data.orderStatus,
+                    fulfillmentStatus: data.fulfillmentStatus,
+                    soDate: data.soDate,
+                    invoiceDate: data.invoiceDate,
+                    invoiceNumber: data.invoiceNumber, 
+                    pfAvailable: data.pfAvailable,
+                    checklist: data.checklist,
+                    checklistRemarks: data.checklistRemarks,
+                    billingAddress: data.billingAddress || '',
+                    billToGSTIN: data.billToGSTIN || '',
+                    shippingAddress: data.shippingAddress || '',
+                    shipToGSTIN: data.shipToGSTIN || '',
+                    quoteNumber: data.quoteNumber || '',
+                    dispatchRemarks: data.dispatchRemarks || '',
+                });
+            } catch (err) {
+                console.warn(`Error processing document ${doc.id}:`, err);
             }
-
-            posFromDB.push({
-                id: doc.id,
-                poNumber: data.poNumber,
-                customerName: data.customerName,
-                poDate: (data.poDate instanceof Timestamp) ? data.poDate.toDate().toISOString().split('T')[0] : data.poDate,
-                items: cleanItems,
-                status: data.status,
-                createdAt: createdAtStr,
-                saleType: data.saleType,
-                paymentStatus: data.paymentStatus,
-                paymentNotes: data.paymentNotes,
-                creditTerms: data.creditTerms,
-                mainBranch: data.mainBranch,
-                subBranch: data.subBranch,
-                salesOrderNumber: data.salesOrderNumber,
-                systemRemarks: data.systemRemarks,
-                orderStatus: data.orderStatus,
-                fulfillmentStatus: data.fulfillmentStatus,
-                soDate: data.soDate,
-                invoiceDate: data.invoiceDate,
-                invoiceNumber: data.invoiceNumber, 
-                pfAvailable: data.pfAvailable,
-                checklist: data.checklist,
-                checklistRemarks: data.checklistRemarks,
-                billingAddress: data.billingAddress || '',
-                billToGSTIN: data.billToGSTIN || '',
-                shippingAddress: data.shippingAddress || '',
-                shipToGSTIN: data.shipToGSTIN || '',
-                quoteNumber: data.quoteNumber || '',
-                dispatchRemarks: data.dispatchRemarks || '',
-            });
         });
         setPurchaseOrders(posFromDB);
     }, handleError);
