@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
@@ -449,6 +448,7 @@ function App() {
           }
       }
 
+      // Fix: Resolved double assignment and incorrect constant assignment for poRef
       const poRef = doc(db, "purchaseOrders", poId);
       await updateDoc(poRef, {
         items: newItems,
@@ -856,7 +856,10 @@ function App() {
                 />
             )}
             {activePane === 'analysis' && (
-                <AnalysisPane purchaseOrders={purchaseOrders} />
+                <AnalysisPane 
+                    purchaseOrders={purchaseOrders} 
+                    onSelectPO={handleSelectPO}
+                />
             )}
              {activePane === 'dataManagement' && (
                 <DataManagementPane purchaseOrders={purchaseOrders} />

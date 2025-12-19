@@ -1,10 +1,11 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { PurchaseOrder, OverallPOStatus, FulfillmentStatus, POItemStatus } from '../types';
-import { ChartBarIcon, CheckCircleIcon, ClockIcon, TruckIcon, ChartPieIcon, SparklesIcon } from './icons';
+import { ChartBarIcon, CheckCircleIcon, ClockIcon, TruckIcon, ChartPieIcon, SparklesIcon, XMarkIcon, MagnifyingGlassIcon } from './icons';
 
 interface AnalysisPaneProps {
   purchaseOrders: PurchaseOrder[];
+  onSelectPO?: (po: PurchaseOrder) => void;
 }
 
 const StatCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode; subtext?: string }> = ({ title, value, icon, subtext }) => (
@@ -20,15 +21,89 @@ const StatCard: React.FC<{ title: string; value: string | number; icon: React.Re
     </div>
 );
 
-const ImpactCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode; color: string }> = ({ title, value, icon, color }) => (
-    <div className={`p-6 rounded-xl shadow-md border-l-4 ${color} bg-white dark:bg-slate-800`}>
+const ImpactCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode; color: string; onClick?: () => void }> = ({ title, value, icon, color, onClick }) => (
+    <div 
+        onClick={onClick}
+        className={`p-6 rounded-xl shadow-md border-l-4 ${color} bg-white dark:bg-slate-800 transition-all ${onClick ? 'cursor-pointer hover:shadow-xl hover:scale-105 active:scale-95' : ''}`}
+    >
         <div className="flex justify-between items-start mb-2">
             <span className="text-slate-500 dark:text-slate-400 font-semibold uppercase text-xs tracking-wider">{title}</span>
             <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-700">{icon}</div>
         </div>
         <p className="text-4xl font-black text-slate-800 dark:text-white">{value}</p>
+        {onClick && (
+             <div className="mt-3 flex items-center text-xs font-bold text-slate-400 uppercase tracking-tighter">
+                Click to view details <span className="ml-1">→</span>
+            </div>
+        )}
     </div>
 );
+
+const ClosableOrdersModal: React.FC<{ isOpen: boolean; onClose: () => void; orders: PurchaseOrder[]; onSelectPO?: (po: PurchaseOrder) => void }> = ({ isOpen, onClose, orders, onSelectPO }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden">
+                <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-green-500 rounded-lg">
+                            <CheckCircleIcon className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Closable Orders</h2>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">These POs are currently held up ONLY by Valvoline items.</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700">
+                        <XMarkIcon className="w-6 h-6 text-slate-600 dark:text-slate-300" />
+                    </button>
+                </div>
+                
+                <div className="flex-1 overflow-auto p-6">
+                    <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
+                        <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-700 dark:text-slate-300 uppercase sticky top-0">
+                            <tr>
+                                <th className="p-4 rounded-tl-lg">PO Number</th>
+                                <th className="p-4">Customer</th>
+                                <th className="p-4 text-right">Total Value</th>
+                                <th className="p-4 text-center rounded-tr-lg">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                            {orders.map(po => (
+                                <tr key={po.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                                    <td className="p-4 font-bold text-slate-800 dark:text-white">{po.poNumber}</td>
+                                    <td className="p-4">{po.customerName}</td>
+                                    <td className="p-4 text-right font-semibold">
+                                        {po.items.reduce((acc, i) => acc + (Number(i.quantity) * Number(i.rate)), 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+                                    </td>
+                                    <td className="p-4 text-center">
+                                        <button 
+                                            onClick={() => {
+                                                onSelectPO?.(po);
+                                                onClose();
+                                            }}
+                                            className="px-4 py-2 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 shadow-sm"
+                                        >
+                                            View Details
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div className="p-4 bg-slate-50 dark:bg-slate-900/50 border-t dark:border-slate-700 flex justify-end">
+                    <button onClick={onClose} className="px-6 py-2 text-sm font-bold text-slate-600 bg-white border dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 rounded-lg hover:bg-slate-100">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const SimpleBarChart: React.FC<{ data: { label: string; value: number }[], colorClass: string, isCurrency?: boolean }> = ({ data, colorClass, isCurrency = false }) => {
     if (data.length === 0) {
@@ -64,7 +139,9 @@ const SimpleBarChart: React.FC<{ data: { label: string; value: number }[], color
     );
 };
 
-const AnalysisPane: React.FC<AnalysisPaneProps> = ({ purchaseOrders }) => {
+const AnalysisPane: React.FC<AnalysisPaneProps> = ({ purchaseOrders, onSelectPO }) => {
+    const [showClosableModal, setShowClosableModal] = useState(false);
+
     const stats = useMemo(() => {
         const totalPOs = purchaseOrders.length;
         const totalValue = purchaseOrders.reduce((acc, po) => acc + po.items.reduce((itemAcc, item) => itemAcc + (Number(item.quantity) * Number(item.rate)), 0), 0);
@@ -97,7 +174,7 @@ const AnalysisPane: React.FC<AnalysisPaneProps> = ({ purchaseOrders }) => {
 
         // --- Valvoline Impact Calculation ---
         let valvolineBlockedPOsCount = 0;
-        let valvolinePotentialClosuresCount = 0;
+        const closablePOs: PurchaseOrder[] = [];
         let valvolineRecoveryValue = 0;
 
         purchaseOrders.forEach(po => {
@@ -115,7 +192,7 @@ const AnalysisPane: React.FC<AnalysisPaneProps> = ({ purchaseOrders }) => {
                 
                 // If Valvoline is the ONLY thing missing (nothing else is unavailable)
                 if (!hasUnavailableNonValvoline) {
-                    valvolinePotentialClosuresCount++;
+                    closablePOs.push(po);
                     valvolineRecoveryValue += po.items.reduce((acc, item) => acc + (Number(item.quantity) * Number(item.rate)), 0);
                 }
             }
@@ -129,7 +206,7 @@ const AnalysisPane: React.FC<AnalysisPaneProps> = ({ purchaseOrders }) => {
             valueOverTime: sortedValueOverTime,
             valvolineImpact: {
                 blocked: valvolineBlockedPOsCount,
-                closable: valvolinePotentialClosuresCount,
+                closableOrders: closablePOs,
                 value: valvolineRecoveryValue
             }
         };
@@ -169,9 +246,10 @@ const AnalysisPane: React.FC<AnalysisPaneProps> = ({ purchaseOrders }) => {
                         />
                         <ImpactCard 
                             title="Closable Orders (Sole Blocker)" 
-                            value={stats.valvolineImpact.closable} 
+                            value={stats.valvolineImpact.closableOrders.length} 
                             color="border-green-500" 
                             icon={<CheckCircleIcon className="w-6 h-6 text-green-500" />}
+                            onClick={() => setShowClosableModal(true)}
                         />
                         <ImpactCard 
                             title="Potential Closure Value" 
@@ -186,22 +264,30 @@ const AnalysisPane: React.FC<AnalysisPaneProps> = ({ purchaseOrders }) => {
                             <h3 className="text-lg font-semibold text-slate-200">Closure Efficiency</h3>
                             <span className="text-2xl font-black text-green-400">
                                 {stats.valvolineImpact.blocked > 0 
-                                    ? Math.round((stats.valvolineImpact.closable / stats.valvolineImpact.blocked) * 100) 
+                                    ? Math.round((stats.valvolineImpact.closableOrders.length / stats.valvolineImpact.blocked) * 100) 
                                     : 0}%
                             </span>
                         </div>
                         <div className="w-full bg-slate-700 rounded-full h-4 overflow-hidden">
                             <div 
                                 className="bg-gradient-to-r from-green-500 to-emerald-400 h-full transition-all duration-1000 shadow-[0_0_20px_rgba(16,185,129,0.5)]"
-                                style={{ width: `${stats.valvolineImpact.blocked > 0 ? (stats.valvolineImpact.closable / stats.valvolineImpact.blocked) * 100 : 0}%` }}
+                                style={{ width: `${stats.valvolineImpact.blocked > 0 ? (stats.valvolineImpact.closableOrders.length / stats.valvolineImpact.blocked) * 100 : 0}%` }}
                             />
                         </div>
                         <p className="text-sm text-slate-400 mt-4 leading-relaxed italic">
-                            * Analysis shows that if Valvoline stock is fulfilled, <strong>{stats.valvolineImpact.closable}</strong> orders will transition directly to "Fully Available" (Fulfillment) status immediately, unlocking <strong>{stats.valvolineImpact.value.toLocaleString('en-IN', {style: 'currency', currency: 'INR', notation: 'compact'})}</strong> in revenue.
+                            * Analysis shows that if Valvoline stock is fulfilled, <strong>{stats.valvolineImpact.closableOrders.length}</strong> orders will transition directly to "Fully Available" (Fulfillment) status immediately, unlocking <strong>{stats.valvolineImpact.value.toLocaleString('en-IN', {style: 'currency', currency: 'INR', notation: 'compact'})}</strong> in revenue.
                         </p>
                     </div>
                 </div>
             </div>
+
+            {/* Drill-down Modal */}
+            <ClosableOrdersModal 
+                isOpen={showClosableModal} 
+                onClose={() => setShowClosableModal(false)} 
+                orders={stats.valvolineImpact.closableOrders}
+                onSelectPO={onSelectPO}
+            />
 
             {/* Secondary Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
