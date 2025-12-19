@@ -117,7 +117,7 @@ const DonutChart: React.FC<{ data: { label: string; value: number; color: string
                         }, { accumulatedLength: 0, elements: [] as React.ReactNode[] }).elements}
                     </g>
                      <text x="50" y="50" textAnchor="middle" dy=".3em" className="text-lg font-bold fill-current text-slate-800 dark:text-slate-100">
-                       {total.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })}
+                       {total.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })}
                     </text>
                 </svg>
             </div>
@@ -127,7 +127,7 @@ const DonutChart: React.FC<{ data: { label: string; value: number; color: string
                         <span className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: segment.color }}></span>
                         <span className="text-slate-600 dark:text-slate-400 font-medium">{segment.label}</span>
                         <span className="ml-auto font-bold text-slate-700 dark:text-slate-200">
-                            {segment.value.toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' })}
+                            {segment.value.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })}
                         </span>
                     </div>
                 ))}
@@ -142,7 +142,7 @@ const HorizontalBarChart: React.FC<{ data: { label: string; value: number }[], i
     }
     const maxValue = Math.max(...data.map(d => d.value), 1);
     const formatValue = (val: number) => isCurrency
-        ? val.toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' })
+        ? val.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })
         : val.toLocaleString();
         
     return (
@@ -448,7 +448,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 />
                 <DashboardStatCard 
                     title="Open PO Value" 
-                    value={dashboardData.openPOValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' })} 
+                    value={dashboardData.openPOValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })} 
                     icon={<CurrencyRupeeIcon className="w-6 h-6 text-red-500" />} 
                     indicatorColor="bg-red-500"
                     trend={dashboardData.valueTrend}
@@ -457,7 +457,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 <DashboardStatCard 
                     title="Fully Available" 
                     value={dashboardData.fullyAvailablePOs} 
-                    subValue={dashboardData.fullyAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' })}
+                    subValue={dashboardData.fullyAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })}
                     icon={<CheckCircleIcon className="w-6 h-6 text-green-500" />} 
                     indicatorColor="bg-green-500"
                     trend={dashboardData.fullyTrend}
@@ -466,7 +466,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 <DashboardStatCard 
                     title="Partially Available" 
                     value={dashboardData.partiallyAvailablePOs} 
-                    subValue={dashboardData.partiallyAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' })}
+                    subValue={dashboardData.partiallyAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })}
                     icon={<TruckIcon className="w-6 h-6 text-blue-500" />} 
                     indicatorColor="bg-blue-500"
                     trend={dashboardData.partialTrend}
@@ -475,7 +475,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 <DashboardStatCard 
                     title="Not Available" 
                     value={dashboardData.notAvailablePOs} 
-                    subValue={dashboardData.notAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' })}
+                    subValue={dashboardData.notAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })}
                     icon={<NoSymbolIcon className="w-6 h-6 text-red-500" />} 
                     indicatorColor="bg-red-600"
                     trend={dashboardData.notAvailableTrend}

@@ -18,8 +18,9 @@ export const getProcurementSuggestion = async (item: POItem): Promise<Procuremen
 
     try {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        // Fix: Updated model to 'gemini-3-flash-preview' for text-based procurement strategy task.
         const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
+            model: "gemini-3-flash-preview",
             contents: `Provide a procurement strategy for the following item: Part Number: ${item.partNumber}, Quantity Required: ${item.quantity}. Suggest potential supplier types, key negotiation tactics, and important lead time considerations.`,
             config: {
                 responseMimeType: "application/json",
@@ -34,7 +35,7 @@ export const getProcurementSuggestion = async (item: POItem): Promise<Procuremen
                         negotiation_tactics: {
                             type: Type.ARRAY,
                             items: { type: Type.STRING },
-                            description: "Key negotiation points to consider."
+                            description: "Key negotiation tactics to consider."
                         },
                         lead_time_considerations: {
                             type: Type.ARRAY,

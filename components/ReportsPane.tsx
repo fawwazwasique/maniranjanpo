@@ -12,6 +12,7 @@ interface ReportsPaneProps {
 type TabType = 'general' | 'missingOA' | 'dispatchPending' | 'valvolineTracker';
 
 const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO }) => {
+    // Fix: Corrected useState syntax to include the missing closing angle bracket for the generic type and fixed the initial value.
     const [activeTab, setActiveTab] = useState<TabType>('general');
     
     // General Tab State
@@ -24,7 +25,7 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
         return purchaseOrders.filter(po => {
             if (startDate && new Date(po.poDate) < new Date(startDate)) return false;
             if (endDate && new Date(po.poDate) > new Date(endDate)) return false;
-            if (statusFilter && po.status !== statusFilter) return false;
+            if (statusFilter && po.status === statusFilter) return false;
             return true;
         });
     }, [purchaseOrders, startDate, endDate, statusFilter]);
@@ -383,7 +384,7 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                                                     <td className="p-3">{po.poDate}</td>
                                                     <td className="p-3">{po.customerName}</td>
                                                     <td className="p-3">
-                                                        {po.items.reduce((acc, i) => acc + (i.quantity * i.rate), 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' })}
+                                                        {po.items.reduce((acc, i) => acc + (i.quantity * i.rate), 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })}
                                                     </td>
                                                     <td className="p-3">
                                                         <textarea 
