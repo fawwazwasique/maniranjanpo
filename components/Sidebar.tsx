@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { HomeIcon, ArrowUpTrayIcon, ChartBarIcon, ListBulletIcon, LogoIcon, DatabaseIcon, ClipboardDocumentListIcon } from './icons';
+import { HomeIcon, ArrowUpTrayIcon, ChartBarIcon, ListBulletIcon, LogoIcon, DatabaseIcon, ClipboardDocumentListIcon, BRAND_RED } from './icons';
 
 type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports';
 
@@ -24,7 +24,7 @@ const NavItem: React.FC<{
       }}
       className={`flex items-center p-2.5 text-base font-normal rounded-lg transition-all duration-200 group ${
         isActive
-          ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg'
+          ? 'bg-gradient-to-r from-[#C1272D] to-[#E31E24] text-white shadow-lg'
           : 'text-slate-300 hover:bg-slate-700 hover:text-white'
       }`}
     >
@@ -37,15 +37,17 @@ const NavItem: React.FC<{
 const Sidebar: React.FC<SidebarProps> = ({ activePane, setActivePane }) => {
     return (
         <aside className="w-64 bg-slate-800 text-white flex-shrink-0 flex flex-col" aria-label="Sidebar">
-            <div className="flex items-center h-20 border-b border-slate-700 px-4">
-                <LogoIcon className="h-10 w-10 flex-shrink-0 text-red-500" />
+            <div className="flex items-center h-24 border-b border-slate-700 px-6">
+                <div className="bg-white p-1 rounded-xl shadow-inner">
+                    <LogoIcon className="h-12 w-12 flex-shrink-0" />
+                </div>
                 <div className="ml-3">
-                    <h1 className="text-lg font-bold text-white leading-tight">Maniranjan</h1>
-                    <p className="text-sm text-slate-300 leading-tight">PO Dashboard</p>
+                    <h1 className="text-xl font-black text-white leading-none tracking-tight">MANIRANJAN</h1>
+                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.2em] mt-1">PO Dashboard</p>
                 </div>
             </div>
-            <div className="flex-1 overflow-y-auto py-4 px-3">
-                <ul className="space-y-2">
+            <div className="flex-1 overflow-y-auto py-6 px-3">
+                <ul className="space-y-3">
                     <NavItem 
                         icon={<HomeIcon className="w-6 h-6" />}
                         label="Dashboard"
@@ -83,6 +85,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activePane, setActivePane }) => {
                         onClick={() => setActivePane('dataManagement')}
                     />
                 </ul>
+            </div>
+            <div className="p-4 border-t border-slate-700 text-center">
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">© {new Date().getFullYear()} Maniranjan</p>
             </div>
         </aside>
     );

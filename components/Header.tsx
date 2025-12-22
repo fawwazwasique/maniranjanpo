@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import type { Notification } from '../types';
-import { BellIcon, SunIcon, MoonIcon } from './icons';
+import { BellIcon, SunIcon, MoonIcon, LogoIcon } from './icons';
 
 interface HeaderProps {
   notifications: Notification[];
@@ -28,8 +29,13 @@ const Header: React.FC<HeaderProps> = ({ notifications, onMarkNotificationsAsRea
     <header className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-lg shadow-sm sticky top-0 z-30 border-b border-slate-200 dark:border-slate-700">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <div className="flex items-center space-x-4">
-             <h1 className="text-3xl font-bold text-slate-800 dark:text-white">Maniranjan PO Dashboard</h1>
+          <div className="flex items-center space-x-3">
+             <div className="bg-white dark:bg-slate-700 p-1 rounded-lg shadow-sm">
+                <LogoIcon className="w-8 h-8" />
+             </div>
+             <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">MANIRANJAN</h1>
+             <span className="hidden sm:block h-6 w-[2px] bg-slate-200 dark:bg-slate-600 mx-2"></span>
+             <p className="hidden md:block text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">PO Dashboard</p>
           </div>
           <div className="flex items-center space-x-2">
              <button
@@ -47,7 +53,7 @@ const Header: React.FC<HeaderProps> = ({ notifications, onMarkNotificationsAsRea
               >
                 <BellIcon />
                 {unreadCount > 0 && (
-                  <span className="absolute top-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-medium text-white ring-2 ring-white dark:ring-slate-800">
+                  <span className="absolute top-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-[#C1272D] text-xs font-medium text-white ring-2 ring-white dark:ring-slate-800">
                     {unreadCount}
                   </span>
                 )}

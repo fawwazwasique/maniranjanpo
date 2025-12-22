@@ -1,6 +1,10 @@
 
 import React from 'react';
 
+// Exact Brand Colors from Logo Image
+export const BRAND_RED = '#C1272D';
+export const BRAND_GREEN = '#39B54A';
+
 export const BellIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-6 h-6"}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
@@ -116,9 +120,16 @@ export const ListBulletIcon: React.FC<{ className?: string }> = ({ className }) 
   </svg>
 );
 
+/**
+ * Recreated MJ logo based on user-provided branding image.
+ * Uses BRAND_RED and BRAND_GREEN.
+ */
 export const LogoIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-6 h-6"}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
+  <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" className={className || "w-10 h-10"}>
+    {/* Red "M" part */}
+    <path d="M48 48H352V256L240 144L48 336V48Z" fill={BRAND_RED}/>
+    {/* Green "J" part */}
+    <path d="M464 464H160V256L272 368L464 176V464Z" fill={BRAND_GREEN}/>
   </svg>
 );
 
