@@ -121,11 +121,12 @@ function App() {
     addLog(updatedPO.id, "PO updated.");
   }, []);
 
+  // Fix: Explicitly assign partNumber to resolve scoping error with shorthand properties (line 161)
   const handleRegisterPart = async (partNumber: string, description: string, initialQty: number) => {
       const stockRef = doc(db, "stock", partNumber);
       await setDoc(stockRef, {
-          partNumber,
-          description,
+          partNumber: partNumber,
+          description: description,
           totalQuantity: initialQty,
           allocatedQuantity: 0,
           updatedAt: serverTimestamp()
@@ -133,7 +134,7 @@ function App() {
 
       if (initialQty > 0) {
           await logStockMovement({
-              partNumber,
+              partNumber: partNumber,
               type: 'INWARD',
               quantity: initialQty,
               remarks: 'Initial stock registration'
@@ -173,7 +174,7 @@ function App() {
     const newTotal = (existing?.totalQuantity || 0) + qty;
     
     await setDoc(stockRef, {
-        partNumber,
+        partNumber: partNumber,
         description: existing?.description || 'Inward Entry',
         totalQuantity: newTotal,
         allocatedQuantity: existing?.allocatedQuantity || 0,
@@ -181,7 +182,7 @@ function App() {
     }, { merge: true });
 
     await logStockMovement({
-        partNumber,
+        partNumber: partNumber,
         type: 'INWARD',
         quantity: qty,
         remarks: `Inward: ${remark}`
@@ -200,7 +201,7 @@ function App() {
     await updateDoc(stockRef, { totalQuantity: newTotal, updatedAt: serverTimestamp() });
 
     await logStockMovement({
-        partNumber,
+        partNumber: partNumber,
         type: 'OUTWARD_WALKING',
         quantity: qty,
         remarks: `Walking Sale: ${remark}`
@@ -234,13 +235,45 @@ function App() {
 
     await batch.commit();
     await logStockMovement({
-        partNumber,
+        partNumber: partNumber,
         type: 'ALLOCATION',
         quantity: qty,
         referenceId: poId,
         remarks: `Allocated to PO #${targetPo.poNumber}`
     });
     addLog(poId, `Allocated ${qty} units of ${partNumber} from stock.`);
+  };
+
+  // Fix: Connect Gemini procurement suggestion logic
+  const handleGetSuggestion = async (item: POItem) => {
+    setSuggestionLoading(true);
+    setSuggestionError(null);
+    setSuggestionItem(item);
+    setActiveModal('suggestion');
+    try {
+      const result = await getProcurementSuggestion(item);
+      setSuggestion(result);
+    } catch (err) {
+      setSuggestionError("Failed to fetch procurement strategy from Gemini.");
+    } finally {
+      setSuggestionLoading(false);
+    }
+  };
+
+  // Fix: Handle item status updates from modal
+  const handleUpdateItemStatus = async (poId: string, partNumber: string, status: POItemStatus) => {
+      const targetPO = purchaseOrders.find(po => po.id === poId);
+      if (!targetPO) return;
+
+      const newItems = targetPO.items.map(item => {
+          if (item.partNumber === partNumber) {
+              return { ...item, status };
+          }
+          return item;
+      });
+
+      await handleUpdatePO({ ...targetPO, items: newItems });
+      addLog(poId, `Status for item ${partNumber} updated to ${status}.`);
   };
 
   const handleSelectPO = useCallback((po: PurchaseOrder) => {
@@ -251,6 +284,8 @@ function App() {
   const handleCloseModal = useCallback(() => {
     setActiveModal('none');
     setSelectedPO(null);
+    setSuggestionItem(null);
+    setSuggestion(null);
   }, []);
 
   const handleDashboardCardClick = useCallback((type: string) => {
@@ -280,6 +315,7 @@ function App() {
                     onAllocate={handleAllocateStock}
                     onRegisterPart={handleRegisterPart}
                     onBulkStockUpload={handleBulkStockUpload}
+                    onNavigateToReports={() => setActivePane('reports')}
                 />
             )}
             {activePane === 'upload' && <UploadPane onSaveSingleOrder={() => {}} onBulkUpload={() => {}} />}
@@ -296,8 +332,20 @@ function App() {
           existingPO={selectedPO}
           logs={logs.filter(log => log.poId === selectedPO.id)}
           onUpdate={handleUpdatePO}
+          onGetSuggestion={handleGetSuggestion}
+          onUpdateItemStatus={handleUpdateItemStatus}
         />
        )}
+
+       {/* Fix: Render Procurement Suggestion Modal */}
+       <ProcurementSuggestionModal 
+          isOpen={activeModal === 'suggestion'}
+          onClose={() => setActiveModal('none')}
+          item={suggestionItem}
+          suggestion={suggestion}
+          isLoading={suggestionLoading}
+          error={suggestionError}
+       />
     </div>
   );
 }

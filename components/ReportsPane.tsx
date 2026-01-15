@@ -2,14 +2,14 @@
 import React, { useState, useMemo } from 'react';
 import { PurchaseOrder, OverallPOStatus, FulfillmentStatus, OrderStatus, POItemStatus } from '../types';
 import { exportToCSV } from '../utils/export';
-import { ArrowDownTrayIcon, ClipboardDocumentListIcon, ExclamationTriangleIcon, TruckIcon, CheckCircleIcon } from './icons';
+import { ArrowDownTrayIcon, ClipboardDocumentListIcon, ExclamationTriangleIcon, TruckIcon, CheckCircleIcon, DatabaseIcon } from './icons';
 
 interface ReportsPaneProps {
     purchaseOrders: PurchaseOrder[];
     onUpdatePO: (po: PurchaseOrder) => void;
 }
 
-type TabType = 'general' | 'missingOA' | 'dispatchPending' | 'oaFilled';
+type TabType = 'general' | 'missingOA' | 'dispatchPending' | 'oaFilled' | 'allocation';
 
 const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO }) => {
     const [activeTab, setActiveTab] = useState<TabType>('general');
@@ -44,7 +44,7 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
         return results;
     }, [purchaseOrders]);
 
-    // OA Filled Logic (New Report)
+    // OA Filled Logic
     const oaFilledData = useMemo(() => {
         const results: { po: PurchaseOrder, items: any[] }[] = [];
         purchaseOrders.forEach(po => {
@@ -52,6 +52,19 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
             if (filledItems.length > 0) {
                 results.push({ po, items: filledItems });
             }
+        });
+        return results;
+    }, [purchaseOrders]);
+
+    // Allocation Logic (New Report)
+    const allocationData = useMemo(() => {
+        const results: { po: PurchaseOrder, item: any }[] = [];
+        purchaseOrders.forEach(po => {
+            (po.items || []).forEach(item => {
+                if ((item.allocatedQuantity || 0) > 0) {
+                    results.push({ po, item });
+                }
+            });
         });
         return results;
     }, [purchaseOrders]);
@@ -133,6 +146,27 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
         link.click();
     };
 
+    const exportAllocationReport = () => {
+        const rows = allocationData.map(({ po, item }) => ({
+            'PO Number': po.poNumber,
+            'Customer': po.customerName,
+            'Part Number': item.partNumber,
+            'Allocated Qty': item.allocatedQuantity,
+            'Total Required': item.quantity,
+            'Item Status': item.status,
+            'Branch': po.mainBranch || 'N/A'
+        }));
+        if (rows.length === 0) return alert("No allocation data found");
+        const headers = Object.keys(rows[0]).join(',');
+        const csvRows = rows.map(row => Object.values(row).map(v => `"${v}"`).join(',')).join('\n');
+        const csvContent = `${headers}\n${csvRows}`;
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'stock_allocation_report.csv';
+        link.click();
+    };
+
     const exportDispatchPending = () => {
         const rows = dispatchPendingPOs.map(po => ({
             'PO Number': po.poNumber,
@@ -175,6 +209,16 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                         }`}
                     >
                         General Data Export
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('allocation')}
+                        className={`flex-1 rounded-lg py-2.5 text-sm font-medium leading-5 transition-all flex justify-center items-center gap-2 ${
+                            activeTab === 'allocation'
+                                ? 'bg-white dark:bg-slate-700 shadow text-indigo-600 dark:text-indigo-400'
+                                : 'text-slate-500 hover:bg-white/[0.12] hover:text-slate-700 dark:hover:text-slate-200'
+                        }`}
+                    >
+                        <DatabaseIcon className="w-4 h-4" /> Allocation Report
                     </button>
                     <button
                         onClick={() => setActiveTab('oaFilled')}
@@ -234,6 +278,55 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                                 <button onClick={() => exportToCSV(filteredGeneralPOs)} className="flex items-center gap-2 px-6 py-3 text-white bg-red-600 rounded-lg hover:bg-red-700 shadow-md">
                                     <ArrowDownTrayIcon className="w-5 h-5" /> Export Filtered Data
                                 </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'allocation' && (
+                        <div className="space-y-4 h-full flex flex-col">
+                            <div className="flex justify-between items-center mb-2">
+                                <p className="text-slate-600 dark:text-slate-400">System-wide record of stock quantities assigned to specific Purchase Orders.</p>
+                                <button onClick={exportAllocationReport} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-lg">
+                                    <ArrowDownTrayIcon className="w-4 h-4" /> Export Allocation Report
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-auto rounded-lg border border-slate-200 dark:border-slate-700">
+                                <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
+                                    <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-700 dark:text-slate-300 uppercase sticky top-0">
+                                        <tr>
+                                            <th className="p-3">PO Number</th>
+                                            <th className="p-3">Customer</th>
+                                            <th className="p-3">Part Number</th>
+                                            <th className="p-3 text-right">Allocated</th>
+                                            <th className="p-3 text-right">Required</th>
+                                            <th className="p-3">Progress</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                                        {allocationData.length > 0 ? (
+                                            allocationData.map(({ po, item }, idx) => {
+                                                const percent = Math.min(100, Math.round((item.allocatedQuantity / item.quantity) * 100));
+                                                return (
+                                                    <tr key={`${po.id}-${idx}`} className="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                                                        <td className="p-3 font-medium text-slate-900 dark:text-white">{po.poNumber}</td>
+                                                        <td className="p-3">{po.customerName}</td>
+                                                        <td className="p-3 font-bold">{item.partNumber}</td>
+                                                        <td className="p-3 text-right font-black text-indigo-600">{item.allocatedQuantity}</td>
+                                                        <td className="p-3 text-right">{item.quantity}</td>
+                                                        <td className="p-3">
+                                                            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 max-w-[100px]">
+                                                                <div className="bg-indigo-600 h-2.5 rounded-full" style={{ width: `${percent}%` }}></div>
+                                                            </div>
+                                                            <span className="text-[10px] text-slate-500">{percent}%</span>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        ) : (
+                                            <tr><td colSpan={6} className="p-8 text-center text-slate-500">No stock allocations have been made yet.</td></tr>
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     )}

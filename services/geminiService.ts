@@ -48,7 +48,11 @@ export const getProcurementSuggestion = async (item: POItem): Promise<Procuremen
             },
         });
         
-        const jsonText = response.text.trim();
+        // Fix: Safely handle response.text property (getter)
+        const jsonText = (response.text || "").trim();
+        if (!jsonText) {
+            throw new Error("Empty response from AI");
+        }
         const suggestion: ProcurementSuggestion = JSON.parse(jsonText);
         return suggestion;
     } catch (error) {
