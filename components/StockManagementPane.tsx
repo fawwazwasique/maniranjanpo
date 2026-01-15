@@ -11,16 +11,20 @@ interface StockManagementPaneProps {
   onInward: (partNumber: string, qty: number, remark: string) => Promise<void>;
   onWalkingSale: (partNumber: string, qty: number, remark: string) => Promise<void>;
   onAllocate: (poId: string, partNumber: string, qty: number) => Promise<void>;
+  onRegisterPart: (partNumber: string, description: string, initialQty: number) => Promise<void>;
+  onBulkStockUpload: (items: { partNumber: string; description: string; quantity: number }[]) => Promise<void>;
 }
 
-const StockManagementPane: React.FC<StockManagementPaneProps> = ({ stock, purchaseOrders, movements, onInward, onWalkingSale, onAllocate }) => {
+const StockManagementPane: React.FC<StockManagementPaneProps> = ({ 
+    stock, purchaseOrders, movements, onInward, onWalkingSale, onAllocate, onRegisterPart, onBulkStockUpload 
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeModal, setActiveModal] = useState<'inward' | 'walking' | 'allocate' | 'history' | null>(null);
+  const [activeModal, setActiveModal] = useState<'inward' | 'walking' | 'allocate' | 'history' | 'registerPart' | null>(null);
   const [selectedPart, setSelectedPart] = useState<string | null>(null);
   
   // Search filter for PO allocation
   const [poSearchQuery, setPoSearchQuery] = useState('');
-  const [formState, setFormState] = useState({ qty: 1, remark: '', poId: '' });
+  const [formState, setFormState] = useState({ qty: 1, remark: '', poId: '', partNumber: '', description: '' });
 
   const filteredStock = useMemo(() => {
     return stock.filter(s => 
@@ -73,24 +77,64 @@ const StockManagementPane: React.FC<StockManagementPaneProps> = ({ stock, purcha
     }
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+          const text = event.target?.result as string;
+          const lines = text.split('\n').filter(line => line.trim());
+          const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+          
+          const partIndex = headers.indexOf('part number');
+          const descIndex = headers.indexOf('description');
+          const qtyIndex = headers.indexOf('quantity');
+
+          if (partIndex === -1 || qtyIndex === -1) {
+              alert("Invalid CSV format. Header must contain 'Part Number' and 'Quantity'.");
+              return;
+          }
+
+          const itemsToUpload = lines.slice(1).map(line => {
+              const columns = line.split(',');
+              return {
+                  partNumber: columns[partIndex]?.trim() || '',
+                  description: columns[descIndex]?.trim() || '',
+                  quantity: parseInt(columns[qtyIndex]?.trim() || '0', 10)
+              };
+          }).filter(item => item.partNumber);
+
+          if (itemsToUpload.length > 0) {
+              await onBulkStockUpload(itemsToUpload);
+              alert(`Successfully uploaded ${itemsToUpload.length} part records.`);
+          }
+      };
+      reader.readAsText(file);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedPart) return;
 
-    if (activeModal === 'inward') {
-        await onInward(selectedPart, formState.qty, formState.remark);
-    } else if (activeModal === 'walking') {
-        await onWalkingSale(selectedPart, formState.qty, formState.remark);
-    } else if (activeModal === 'allocate') {
-        await onAllocate(formState.poId, selectedPart, formState.qty);
+    if (activeModal === 'registerPart') {
+        await onRegisterPart(formState.partNumber, formState.description, formState.qty);
+    } else if (selectedPart) {
+        if (activeModal === 'inward') {
+            await onInward(selectedPart, formState.qty, formState.remark);
+        } else if (activeModal === 'walking') {
+            await onWalkingSale(selectedPart, formState.qty, formState.remark);
+        } else if (activeModal === 'allocate') {
+            await onAllocate(formState.poId, selectedPart, formState.qty);
+        }
     }
     closeModal();
   };
 
   const closeModal = () => {
     setActiveModal(null);
-    setFormState({ qty: 1, remark: '', poId: '' });
+    setFormState({ qty: 1, remark: '', poId: '', partNumber: '', description: '' });
     setPoSearchQuery('');
+    setSelectedPart(null);
   };
 
   return (
@@ -102,6 +146,12 @@ const StockManagementPane: React.FC<StockManagementPaneProps> = ({ stock, purcha
         </div>
         <div className="flex flex-wrap gap-2">
             <button 
+                onClick={() => setActiveModal('registerPart')}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm text-sm font-semibold"
+            >
+                <PlusIcon className="w-5 h-5" /> Register New Part
+            </button>
+            <button 
                 onClick={downloadStockTemplate}
                 className="flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors shadow-sm text-sm font-semibold"
             >
@@ -110,7 +160,7 @@ const StockManagementPane: React.FC<StockManagementPaneProps> = ({ stock, purcha
             <label className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 cursor-pointer shadow-sm text-sm font-semibold">
                 <ArrowUpTrayIcon className="w-5 h-5" />
                 Bulk Inward CSV
-                <input type="file" className="hidden" accept=".csv" />
+                <input type="file" className="hidden" accept=".csv" onChange={handleFileUpload} />
             </label>
         </div>
       </div>
@@ -194,17 +244,43 @@ const StockManagementPane: React.FC<StockManagementPaneProps> = ({ stock, purcha
         </div>
       </div>
 
-      {/* Stock Adjust Modal (Combined for Inward, Walking, Allocation) */}
+      {/* Stock Adjust Modal (Combined for Inward, Walking, Allocation, Register) */}
       {activeModal && activeModal !== 'history' && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border dark:border-slate-700">
             <div className="flex justify-between items-center p-6 border-b dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
               <h3 className="text-xl font-bold text-slate-800 dark:text-white capitalize">
-                {activeModal.replace('_', ' ')} Stock: {selectedPart}
+                {activeModal === 'registerPart' ? 'Register New Part Number' : `${activeModal.replace('_', ' ')} Stock: ${selectedPart}`}
               </h3>
               <button onClick={closeModal}><XMarkIcon className="w-6 h-6" /></button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
+              {activeModal === 'registerPart' && (
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-bold mb-1.5 text-slate-700 dark:text-slate-300 uppercase tracking-tight">Part Number</label>
+                        <input 
+                            type="text"
+                            required
+                            placeholder="e.g., VALV-5W30-1L"
+                            className="w-full p-3 rounded-lg border dark:bg-slate-700 dark:border-slate-600 dark:text-white border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none"
+                            value={formState.partNumber}
+                            onChange={e => setFormState({ ...formState, partNumber: e.target.value.toUpperCase() })}
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-bold mb-1.5 text-slate-700 dark:text-slate-300 uppercase tracking-tight">Part Description</label>
+                        <textarea 
+                            required
+                            placeholder="Briefly describe the part..."
+                            className="w-full p-3 rounded-lg border dark:bg-slate-700 dark:border-slate-600 dark:text-white border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none"
+                            value={formState.description}
+                            onChange={e => setFormState({ ...formState, description: e.target.value })}
+                        />
+                    </div>
+                </div>
+              )}
+
               {activeModal === 'allocate' && (
                 <div className="space-y-4">
                   <div>
@@ -239,11 +315,6 @@ const StockManagementPane: React.FC<StockManagementPaneProps> = ({ stock, purcha
                             );
                         })}
                     </select>
-                    {targetPOsForPart.length === 0 && selectedPart && (
-                        <p className="mt-2 text-xs text-amber-600 dark:text-amber-400 italic">
-                            Tip: Only POs that have "{selectedPart}" as an item and have not been fully allocated yet will appear here.
-                        </p>
-                    )}
                   </div>
                 </div>
               )}
@@ -253,7 +324,7 @@ const StockManagementPane: React.FC<StockManagementPaneProps> = ({ stock, purcha
                     <label className="block text-sm font-bold mb-1.5 text-slate-700 dark:text-slate-300 uppercase tracking-tight">Quantity</label>
                     <input 
                         type="number"
-                        min="1"
+                        min="0"
                         required
                         className="w-full p-3 rounded-lg border dark:bg-slate-700 dark:border-slate-600 dark:text-white border-slate-300 focus:ring-2 focus:ring-red-500"
                         value={formState.qty}
@@ -262,26 +333,28 @@ const StockManagementPane: React.FC<StockManagementPaneProps> = ({ stock, purcha
                 </div>
                 <div className="col-span-1 flex items-end">
                     <p className="text-xs text-slate-500 dark:text-slate-400 pb-2">
-                        {activeModal === 'allocate' ? 'Quantity to assign to PO' : 'Physical units to move'}
+                        {activeModal === 'allocate' ? 'Quantity to assign to PO' : activeModal === 'registerPart' ? 'Starting physical units' : 'Physical units to move'}
                     </p>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-bold mb-1.5 text-slate-700 dark:text-slate-300 uppercase tracking-tight">Remarks / Reference</label>
-                <textarea 
-                    className="w-full p-3 rounded-lg border dark:bg-slate-700 dark:border-slate-600 dark:text-white border-slate-300 focus:ring-2 focus:ring-red-500 shadow-inner"
-                    placeholder={activeModal === 'inward' ? 'e.g., Supplier Invoice #991' : activeModal === 'allocate' ? 'Reason for specific allocation' : 'e.g., Walk-in customer cash sale'}
-                    value={formState.remark}
-                    rows={2}
-                    onChange={e => setFormState({ ...formState, remark: e.target.value })}
-                />
-              </div>
+              {activeModal !== 'registerPart' && (
+                <div>
+                  <label className="block text-sm font-bold mb-1.5 text-slate-700 dark:text-slate-300 uppercase tracking-tight">Remarks / Reference</label>
+                  <textarea 
+                      className="w-full p-3 rounded-lg border dark:bg-slate-700 dark:border-slate-600 dark:text-white border-slate-300 focus:ring-2 focus:ring-red-500 shadow-inner"
+                      placeholder={activeModal === 'inward' ? 'e.g., Supplier Invoice #991' : activeModal === 'allocate' ? 'Reason for specific allocation' : 'e.g., Walk-in customer cash sale'}
+                      value={formState.remark}
+                      rows={2}
+                      onChange={e => setFormState({ ...formState, remark: e.target.value })}
+                  />
+                </div>
+              )}
 
               <div className="pt-4 flex justify-end gap-3">
                 <button type="button" onClick={closeModal} className="px-5 py-2.5 text-slate-500 font-bold hover:text-slate-700 transition-colors">Cancel</button>
-                <button type="submit" className={`px-8 py-2.5 rounded-lg font-bold text-white shadow-lg transition-transform active:scale-95 ${activeModal === 'inward' ? 'bg-green-600' : activeModal === 'allocate' ? 'bg-amber-600' : 'bg-blue-600'}`}>
-                    Confirm {activeModal}
+                <button type="submit" className={`px-8 py-2.5 rounded-lg font-bold text-white shadow-lg transition-transform active:scale-95 ${activeModal === 'inward' ? 'bg-green-600' : activeModal === 'allocate' ? 'bg-amber-600' : activeModal === 'registerPart' ? 'bg-indigo-600' : 'bg-blue-600'}`}>
+                    {activeModal === 'registerPart' ? 'Register Part' : `Confirm ${activeModal}`}
                 </button>
               </div>
             </form>

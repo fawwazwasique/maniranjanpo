@@ -121,6 +121,52 @@ function App() {
     addLog(updatedPO.id, "PO updated.");
   }, []);
 
+  const handleRegisterPart = async (partNumber: string, description: string, initialQty: number) => {
+      const stockRef = doc(db, "stock", partNumber);
+      await setDoc(stockRef, {
+          partNumber,
+          description,
+          totalQuantity: initialQty,
+          allocatedQuantity: 0,
+          updatedAt: serverTimestamp()
+      }, { merge: true });
+
+      if (initialQty > 0) {
+          await logStockMovement({
+              partNumber,
+              type: 'INWARD',
+              quantity: initialQty,
+              remarks: 'Initial stock registration'
+          });
+      }
+  };
+
+  const handleBulkStockUpload = async (items: { partNumber: string; description: string; quantity: number }[]) => {
+      const batch = writeBatch(db);
+      for (const item of items) {
+          const stockRef = doc(db, "stock", item.partNumber);
+          batch.set(stockRef, {
+              partNumber: item.partNumber,
+              description: item.description,
+              totalQuantity: item.quantity,
+              allocatedQuantity: 0,
+              updatedAt: serverTimestamp()
+          }, { merge: true });
+      }
+      await batch.commit();
+
+      for (const item of items) {
+          if (item.quantity > 0) {
+              await logStockMovement({
+                  partNumber: item.partNumber,
+                  type: 'INWARD',
+                  quantity: item.quantity,
+                  remarks: 'Bulk inward upload'
+              });
+          }
+      }
+  };
+
   const handleInwardStock = async (partNumber: string, qty: number, remark: string) => {
     const stockRef = doc(db, "stock", partNumber);
     const existing = stock.find(s => s.partNumber === partNumber);
@@ -232,6 +278,8 @@ function App() {
                     onInward={handleInwardStock}
                     onWalkingSale={handleWalkingSale}
                     onAllocate={handleAllocateStock}
+                    onRegisterPart={handleRegisterPart}
+                    onBulkStockUpload={handleBulkStockUpload}
                 />
             )}
             {activePane === 'upload' && <UploadPane onSaveSingleOrder={() => {}} onBulkUpload={() => {}} />}
