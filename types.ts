@@ -21,7 +21,6 @@ export enum OrderStatus {
   Cancelled = 'Cancelled'
 }
 
-// New status based on Excel screenshot
 export enum FulfillmentStatus {
   New = 'New',
   Partial = 'Partial',
@@ -40,18 +39,15 @@ export interface POItem {
   itemDesc?: string;
   discount?: number;
   gst?: number;
-  // New fields from Excel
   stockAvailable?: number;
   stockInHand?: number;
-
   allocatedQuantity?: number;
   deliveryQuantity?: number;
   invoicedQuantity?: number;
-  // New fields from user request
   stockStatus?: 'Available' | 'Unavailable';
   oaDate?: string;
   oaNo?: string;
-  itemType?: string; // Added item type
+  itemType?: string;
 }
 
 export interface PurchaseOrder {
@@ -63,17 +59,15 @@ export interface PurchaseOrder {
   status: OverallPOStatus;
   createdAt: string;
   saleType: 'Cash' | 'Credit';
-  paymentStatus: 'Received' | 'Pending' | null; // null for credit
+  paymentStatus: 'Received' | 'Pending' | null;
   paymentNotes: string;
-  creditTerms: number; // in days, 0 for cash
+  creditTerms: number;
   mainBranch?: string;
   subBranch?: string;
   salesOrderNumber?: string;
   systemRemarks?: string;
   orderStatus?: OrderStatus;
-  // New status field
   fulfillmentStatus?: FulfillmentStatus;
-  // New fields from user request
   soDate?: string;
   invoiceDate?: string;
   invoiceNumber?: string;
@@ -89,19 +83,33 @@ export interface PurchaseOrder {
     others: boolean;
   };
   checklistRemarks?: string;
-  
-  // New fields for bulk upload template
   billingAddress?: string;
   billToGSTIN?: string;
   shippingAddress?: string;
   shipToGSTIN?: string;
   quoteNumber?: string;
-  
-  // New field for Dispatch Reports
   dispatchRemarks?: string;
 }
 
-// Fix: Add missing QuotationItem and Quotation interfaces
+export interface StockItem {
+  id: string;
+  partNumber: string;
+  description: string;
+  totalQuantity: number;
+  allocatedQuantity: number;
+  updatedAt: string;
+}
+
+export interface StockMovement {
+  id: string;
+  partNumber: string;
+  type: 'INWARD' | 'OUTWARD_WALKING' | 'ALLOCATION' | 'TRANSFER' | 'DEALLOCATION';
+  quantity: number;
+  referenceId?: string; // PO ID or Invoice Number
+  remarks: string;
+  timestamp: string;
+}
+
 export interface QuotationItem {
   partNumber: string;
   quantity: number;

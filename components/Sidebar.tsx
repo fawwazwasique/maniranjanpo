@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { HomeIcon, ArrowUpTrayIcon, ChartBarIcon, ListBulletIcon, LogoIcon, DatabaseIcon, ClipboardDocumentListIcon, BRAND_RED } from './icons';
+import { HomeIcon, ArrowUpTrayIcon, ChartBarIcon, ListBulletIcon, LogoIcon, DatabaseIcon, ClipboardDocumentListIcon, BRAND_RED, DatabaseIcon as StockIcon } from './icons';
 
-type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports';
+type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'stockManagement';
 
 interface SidebarProps {
   activePane: Pane;
@@ -71,6 +71,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activePane, setActivePane }) => {
                         label="All Purchase Orders"
                         isActive={activePane === 'allOrders'}
                         onClick={() => setActivePane('allOrders')}
+                    />
+                     <NavItem 
+                        icon={<DatabaseIcon className="w-6 h-6" />}
+                        label="Stock Management"
+                        isActive={activePane === 'stockManagement'}
+                        onClick={() => setActivePane('stockManagement')}
                     />
                      <NavItem
                         icon={<ClipboardDocumentListIcon className="w-6 h-6" />}

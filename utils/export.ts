@@ -283,3 +283,23 @@ export const downloadTemplate = (): void => {
     link.click();
     document.body.removeChild(link);
 };
+
+export const downloadStockTemplate = (): void => {
+    const headers = ['Part Number', 'Description', 'Quantity'];
+    const exampleRow = ['VALV-5W30-4L', 'Valvoline 5W30 Motor Oil 4L', '50'];
+    
+    const csvContent = [
+        headers.join(','), 
+        exampleRow.join(',')
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'stock_upload_template.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};

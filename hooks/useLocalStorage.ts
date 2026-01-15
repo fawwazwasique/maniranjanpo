@@ -8,36 +8,43 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<Re
     }
     try {
       const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
+      if (!item) return initialValue;
+      
+      // Simple types don't need JSON parse if they are already strings/numbers
+      try {
+          return JSON.parse(item);
+      } catch {
+          return item as unknown as T;
+      }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.log(errorMessage);
+      console.warn(`useLocalStorage: Error reading key "${key}":`, error);
       return initialValue;
     }
   });
 
   const setValue: React.Dispatch<React.SetStateAction<T>> = (value) => {
     try {
-      // Allow value to be a function so we have same API as useState
       const valueToStore = value instanceof Function ? value(storedValue) : value;
       
-      // Save state
+      // Prevent saving circular structures or complex DOM/Firebase objects
+      if (typeof valueToStore === 'object' && valueToStore !== null) {
+          try {
+              // Quick test to see if it's serializable
+              JSON.stringify(valueToStore);
+          } catch (e) {
+              console.error(`useLocalStorage: Attempted to save non-serializable object to "${key}". Operation cancelled to prevent crash.`, e);
+              return;
+          }
+      }
+
       setStoredValue(valueToStore);
       
-      // Save to local storage
       if (typeof window !== 'undefined') {
-        // Defensive check: Ensure we don't crash on circular objects (like Events)
-        try {
-            const jsonValue = JSON.stringify(valueToStore);
-            window.localStorage.setItem(key, jsonValue);
-        } catch (serializationError) {
-            console.warn(`useLocalStorage: Could not serialize value for key "${key}". It might contain circular references or be an Event object.`, serializationError);
-        }
+          const stringifiedValue = typeof valueToStore === 'string' ? valueToStore : JSON.stringify(valueToStore);
+          window.localStorage.setItem(key, stringifiedValue);
       }
     } catch (error) {
-      // A more advanced implementation would handle the error case
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.log(errorMessage);
+      console.error(`useLocalStorage: Error setting key "${key}":`, error);
     }
   };
   
