@@ -285,7 +285,7 @@ function App() {
             {activePane === 'upload' && <UploadPane onSaveSingleOrder={() => {}} onBulkUpload={() => {}} />}
             {activePane === 'analysis' && <AnalysisPane purchaseOrders={purchaseOrders} onSelectPO={handleSelectPO} />}
             {activePane === 'reports' && <ReportsPane purchaseOrders={purchaseOrders} onUpdatePO={handleUpdatePO} />}
-            {activePane === 'dataManagement' && <DataManagementPane purchaseOrders={purchaseOrders} />}
+            {activePane === 'dataManagement' && <DataManagementPane purchaseOrders={purchaseOrders} stock={stock} stockMovements={stockMovements} />}
         </main>
       </div>
       

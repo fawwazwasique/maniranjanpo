@@ -28,8 +28,8 @@ const StockManagementPane: React.FC<StockManagementPaneProps> = ({
 
   const filteredStock = useMemo(() => {
     return stock.filter(s => 
-        s.partNumber.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        s.description.toLowerCase().includes(searchTerm.toLowerCase())
+        (s.partNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+        (s.description || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [stock, searchTerm]);
 
@@ -44,11 +44,11 @@ const StockManagementPane: React.FC<StockManagementPaneProps> = ({
     const normalizedPart = selectedPart.trim().toLowerCase();
     
     return purchaseOrders.filter(po => {
-        const matchingItem = po.items.find(item => item.partNumber.trim().toLowerCase() === normalizedPart);
-        const needsAllocation = matchingItem ? (matchingItem.quantity - (matchingItem.allocatedQuantity || 0)) > 0 : false;
+        const matchingItem = po.items.find(item => (item.partNumber || '').trim().toLowerCase() === normalizedPart);
+        const needsAllocation = matchingItem ? (Number(matchingItem.quantity || 0) - Number(matchingItem.allocatedQuantity || 0)) > 0 : false;
         
-        const matchesSearch = po.poNumber.toLowerCase().includes(poSearchQuery.toLowerCase()) || 
-                             po.customerName.toLowerCase().includes(poSearchQuery.toLowerCase());
+        const matchesSearch = (po.poNumber || '').toLowerCase().includes(poSearchQuery.toLowerCase()) || 
+                             (po.customerName || '').toLowerCase().includes(poSearchQuery.toLowerCase());
         
         return needsAllocation && matchesSearch;
     });
@@ -64,8 +64,8 @@ const StockManagementPane: React.FC<StockManagementPaneProps> = ({
     const selectedPO = targetPOsForPart.find(p => p.id === poId);
     if (selectedPO && selectedPart) {
         const normalizedPart = selectedPart.trim().toLowerCase();
-        const item = selectedPO.items.find(i => i.partNumber.trim().toLowerCase() === normalizedPart);
-        const neededQty = item ? (item.quantity - (item.allocatedQuantity || 0)) : 1;
+        const item = selectedPO.items.find(i => (i.partNumber || '').trim().toLowerCase() === normalizedPart);
+        const neededQty = item ? (Number(item.quantity || 0) - Number(item.allocatedQuantity || 0)) : 1;
         
         setFormState(prev => ({ 
             ...prev, 
@@ -189,53 +189,58 @@ const StockManagementPane: React.FC<StockManagementPaneProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y dark:divide-slate-700">
-              {filteredStock.map(item => (
-                <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group">
-                  <td className="p-4">
-                    <p className="font-bold text-slate-900 dark:text-white text-base">{item.partNumber}</p>
-                    <p className="text-slate-500 dark:text-slate-400 text-xs truncate max-w-xs">{item.description}</p>
-                  </td>
-                  <td className="p-4 text-right font-medium text-lg">{item.totalQuantity}</td>
-                  <td className="p-4 text-right text-red-500 font-medium">-{item.allocatedQuantity}</td>
-                  <td className="p-4 text-right">
-                    <span className={`font-black text-xl ${item.totalQuantity - item.allocatedQuantity > 0 ? 'text-green-600 dark:text-green-400' : 'text-slate-400'}`}>
-                        {item.totalQuantity - item.allocatedQuantity}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex justify-center gap-1">
-                        <button 
-                            onClick={() => { setSelectedPart(item.partNumber); setActiveModal('inward'); }}
-                            className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg"
-                            title='Inward Stock'
-                        >
-                            <PlusIcon className="w-5 h-5" />
-                        </button>
-                        <button 
-                             onClick={() => { setSelectedPart(item.partNumber); setActiveModal('walking'); }}
-                             className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
-                             title='Walking Sale'
-                        >
-                            <CurrencyRupeeIcon className="w-5 h-5" />
-                        </button>
-                        <button 
-                             onClick={() => { setSelectedPart(item.partNumber); setActiveModal('allocate'); }}
-                             className="p-2 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg"
-                             title='Allocate to PO'
-                        >
-                            <TruckIcon className="w-5 h-5" />
-                        </button>
-                        <button 
-                             onClick={() => { setSelectedPart(item.partNumber); setActiveModal('history'); }}
-                             className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
-                             title='History'
-                        >
-                            <ClockIcon className="w-5 h-5" />
-                        </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {filteredStock.map(item => {
+                const total = Number(item.totalQuantity || 0);
+                const allocated = Number(item.allocatedQuantity || 0);
+                const available = total - allocated;
+                return (
+                  <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group">
+                    <td className="p-4">
+                      <p className="font-bold text-slate-900 dark:text-white text-base">{item.partNumber || 'Unknown'}</p>
+                      <p className="text-slate-500 dark:text-slate-400 text-xs truncate max-w-xs">{item.description || 'No description'}</p>
+                    </td>
+                    <td className="p-4 text-right font-medium text-lg">{total}</td>
+                    <td className="p-4 text-right text-red-500 font-medium">-{allocated}</td>
+                    <td className="p-4 text-right">
+                      <span className={`font-black text-xl ${available > 0 ? 'text-green-600 dark:text-green-400' : 'text-slate-400'}`}>
+                          {available}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex justify-center gap-1">
+                          <button 
+                              onClick={() => { setSelectedPart(item.partNumber); setActiveModal('inward'); }}
+                              className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg"
+                              title='Inward Stock'
+                          >
+                              <PlusIcon className="w-5 h-5" />
+                          </button>
+                          <button 
+                               onClick={() => { setSelectedPart(item.partNumber); setActiveModal('walking'); }}
+                               className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
+                               title='Walking Sale'
+                          >
+                              <CurrencyRupeeIcon className="w-5 h-5" />
+                          </button>
+                          <button 
+                               onClick={() => { setSelectedPart(item.partNumber); setActiveModal('allocate'); }}
+                               className="p-2 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg"
+                               title='Allocate to PO'
+                          >
+                              <TruckIcon className="w-5 h-5" />
+                          </button>
+                          <button 
+                               onClick={() => { setSelectedPart(item.partNumber); setActiveModal('history'); }}
+                               className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+                               title='History'
+                          >
+                              <ClockIcon className="w-5 h-5" />
+                          </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           {filteredStock.length === 0 && (
@@ -306,8 +311,8 @@ const StockManagementPane: React.FC<StockManagementPaneProps> = ({
                     >
                         <option value="">{targetPOsForPart.length > 0 ? "Choose PO needing this part" : "No pending POs need this part"}</option>
                         {targetPOsForPart.map(po => {
-                            const item = po.items.find(i => i.partNumber.trim().toLowerCase() === selectedPart?.trim().toLowerCase());
-                            const needed = item ? (item.quantity - (item.allocatedQuantity || 0)) : 0;
+                            const item = po.items.find(i => (i.partNumber || '').trim().toLowerCase() === selectedPart?.trim().toLowerCase());
+                            const needed = item ? (Number(item.quantity || 0) - Number(item.allocatedQuantity || 0)) : 0;
                             return (
                                 <option key={po.id} value={po.id}>
                                     #{po.poNumber} - {po.customerName} (Needs: {needed})

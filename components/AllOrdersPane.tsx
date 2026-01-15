@@ -22,14 +22,17 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
     const posWithValues = useMemo(() => {
         return purchaseOrders.map(po => ({
             ...po,
-            totalValue: po.items.reduce((acc, item) => acc + item.quantity * item.rate, 0)
+            totalValue: (po.items || []).reduce((acc, item) => {
+                const val = Number(item.quantity || 0) * Number(item.rate || 0);
+                return acc + (isNaN(val) ? 0 : val);
+            }, 0)
         }));
     }, [purchaseOrders]);
     
     const filteredAndSortedPOs = useMemo(() => {
         let sortableItems = [...posWithValues];
 
-        // Apply external filter from Dashboard clicks
+        // Apply external filter
         if (filter) {
             if (filter.status) {
                  sortableItems = sortableItems.filter(po => po.status === filter.status || (filter.status === 'Open' && po.status === 'Partially Dispatched'));
@@ -41,10 +44,10 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
 
         if (searchTerm) {
             sortableItems = sortableItems.filter(po =>
-                po.poNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                po.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                po.mainBranch?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                po.subBranch?.toLowerCase().includes(searchTerm.toLowerCase())
+                (po.poNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (po.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (po.mainBranch || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (po.subBranch || '').toLowerCase().includes(searchTerm.toLowerCase())
             );
         }
 
@@ -78,9 +81,10 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
     };
 
     const getItemStats = (items: POItem[]) => {
-        const available = items.filter(i => i.status === POItemStatus.Available || i.status === POItemStatus.Dispatched).length;
-        const partial = items.filter(i => i.status === POItemStatus.PartiallyAvailable).length;
-        const notAvailable = items.filter(i => i.status === POItemStatus.NotAvailable).length;
+        const i = items || [];
+        const available = i.filter(i => i.status === POItemStatus.Available || i.status === POItemStatus.Dispatched).length;
+        const partial = i.filter(i => i.status === POItemStatus.PartiallyAvailable).length;
+        const notAvailable = i.filter(i => i.status === POItemStatus.NotAvailable).length;
         return { available, partial, notAvailable };
     };
 
@@ -131,6 +135,7 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                     <tbody className="bg-white dark:bg-slate-800/50">
                         {filteredAndSortedPOs.map(po => {
                             const stats = getItemStats(po.items);
+                            const totalItems = (po.items || []).length;
                             return (
                                 <tr key={po.id} className="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50">
                                     <td className="p-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">{po.poNumber}</td>
@@ -143,13 +148,13 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                                         <div className="flex flex-col gap-1 w-full max-w-[200px]">
                                             <div className="flex text-xs font-semibold text-white overflow-hidden rounded-full h-4 w-full bg-slate-200 dark:bg-slate-700">
                                                 {stats.available > 0 && (
-                                                    <div className="bg-green-500 flex items-center justify-center" style={{ width: `${(stats.available / po.items.length) * 100}%` }} title={`${stats.available} Available`}></div>
+                                                    <div className="bg-green-500 flex items-center justify-center" style={{ width: `${(stats.available / totalItems) * 100}%` }} title={`${stats.available} Available`}></div>
                                                 )}
                                                 {stats.partial > 0 && (
-                                                    <div className="bg-yellow-500 flex items-center justify-center" style={{ width: `${(stats.partial / po.items.length) * 100}%` }} title={`${stats.partial} Partial`}></div>
+                                                    <div className="bg-yellow-500 flex items-center justify-center" style={{ width: `${(stats.partial / totalItems) * 100}%` }} title={`${stats.partial} Partial`}></div>
                                                 )}
                                                 {stats.notAvailable > 0 && (
-                                                    <div className="bg-red-500 flex items-center justify-center" style={{ width: `${(stats.notAvailable / po.items.length) * 100}%` }} title={`${stats.notAvailable} Not Available`}></div>
+                                                    <div className="bg-red-500 flex items-center justify-center" style={{ width: `${(stats.notAvailable / totalItems) * 100}%` }} title={`${stats.notAvailable} Not Available`}></div>
                                                 )}
                                             </div>
                                             <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 font-medium">

@@ -179,7 +179,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
     const filteredPOs = useMemo(() => {
         return purchaseOrders
             .filter(po => filters.status ? po.status === filters.status : true)
-            .filter(po => filters.customer ? po.customerName.toLowerCase().includes(filters.customer.toLowerCase()) : true)
+            .filter(po => filters.customer ? (po.customerName || '').toLowerCase().includes(filters.customer.toLowerCase()) : true)
             .filter(po => filters.date ? new Date(po.poDate).toISOString().split('T')[0] === filters.date : true)
             .filter(po => filters.mainBranch ? po.mainBranch === filters.mainBranch : true)
             .filter(po => filters.subBranch ? po.subBranch === filters.subBranch : true);
@@ -192,9 +192,9 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         valueFn: (pos: PurchaseOrder[]) => number,
         isPositiveGood: boolean = true
     ): TrendData | null => {
-        // Filter context: Apply Customer and Branch filters, but IGNORE Date filter to get valid Month-Over-Month context
+        // Filter context
         const contextPOs = allPOs.filter(po => {
-            if (currentFilters.customer && !po.customerName.toLowerCase().includes(currentFilters.customer.toLowerCase())) return false;
+            if (currentFilters.customer && !(po.customerName || '').toLowerCase().includes(currentFilters.customer.toLowerCase())) return false;
             if (currentFilters.mainBranch && po.mainBranch !== currentFilters.mainBranch) return false;
             if (currentFilters.subBranch && po.subBranch !== currentFilters.subBranch) return false;
             return true;
@@ -224,11 +224,12 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         const thisVal = valueFn(thisMonthMetricPOs);
         const lastVal = valueFn(lastMonthMetricPOs);
 
-        if (lastVal === 0) {
-            return thisVal === 0 ? { value: 0, percent: 0, text: '0% MOM', isPositiveGood } : { value: 100, percent: 100, text: '100% MOM', isPositiveGood };
+        if (lastVal === 0 || isNaN(lastVal)) {
+            return (thisVal === 0 || isNaN(thisVal)) ? { value: 0, percent: 0, text: '0% MOM', isPositiveGood } : { value: 100, percent: 100, text: '100% MOM', isPositiveGood };
         }
         
-        const percent = ((thisVal - lastVal) / lastVal) * 100;
+        const diff = thisVal - lastVal;
+        const percent = (diff / lastVal) * 100;
         return { value: percent, percent, text: `${Math.abs(percent).toFixed(1)}% MOM`, isPositiveGood };
     };
 
@@ -248,7 +249,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
     const dashboardData = useMemo(() => {
         // Helper to calculate value
-        const calculateValue = (pos: PurchaseOrder[]) => pos.reduce((acc, po) => acc + po.items.reduce((itemAcc, item) => itemAcc + (Number(item.quantity) * Number(item.rate)), 0), 0);
+        const calculateValue = (pos: PurchaseOrder[]) => pos.reduce((acc, po) => acc + (po.items || []).reduce((itemAcc, item) => itemAcc + (Number(item.quantity || 0) * Number(item.rate || 0)), 0), 0);
 
         const openPOs = filteredPOs.filter(po => po.status === OverallPOStatus.Open || po.status === OverallPOStatus.PartiallyDispatched);
         const totalOpenPOs = openPOs.length;
@@ -268,10 +269,10 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
         // Trends
         const openTrend = getTrend(purchaseOrders, filters, p => p.status === OverallPOStatus.Open || p.status === OverallPOStatus.PartiallyDispatched, p => p.length, true);
-        const valueTrend = getTrend(purchaseOrders, filters, p => p.status === OverallPOStatus.Open || p.status === OverallPOStatus.PartiallyDispatched, p => p.reduce((acc, po) => acc + po.items.reduce((itemAcc, item) => itemAcc + (Number(item.quantity) * Number(item.rate)), 0), 0), true);
+        const valueTrend = getTrend(purchaseOrders, filters, p => p.status === OverallPOStatus.Open || p.status === OverallPOStatus.PartiallyDispatched, p => calculateValue(p), true);
         const fullyTrend = getTrend(purchaseOrders, filters, p => p.fulfillmentStatus === FulfillmentStatus.Fulfillment, p => p.length, true);
         const partialTrend = getTrend(purchaseOrders, filters, p => p.fulfillmentStatus === FulfillmentStatus.Partial, p => p.length, true);
-        const notAvailableTrend = getTrend(purchaseOrders, filters, p => p.fulfillmentStatus === FulfillmentStatus.NotAvailable, p => p.length, false); // Increase is bad
+        const notAvailableTrend = getTrend(purchaseOrders, filters, p => p.fulfillmentStatus === FulfillmentStatus.NotAvailable, p => p.length, false);
 
         const checklistDataRaw = {
             'B-Check': filteredPOs.filter(po => po.checklist?.bCheck).length,
@@ -297,7 +298,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
         const valueByFulfillment = filteredPOs.reduce((acc, po) => {
             const status = po.fulfillmentStatus || 'N/A';
-            const value = po.items.reduce((iAcc, i) => iAcc + (Number(i.quantity) * Number(i.rate)), 0);
+            const value = (po.items || []).reduce((iAcc, i) => iAcc + (Number(i.quantity || 0) * Number(i.rate || 0)), 0);
             acc[status] = (acc[status] || 0) + value;
             return acc;
         }, {} as Record<string, number>);
@@ -313,7 +314,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         const fulfillmentChartData = Object.entries(valueByFulfillment).map(([label, value]) => ({ label, value, color: fulfillmentColors[label] || '#9ca3af' }));
 
         const customerValue = filteredPOs.reduce((acc, po) => {
-            const value = po.items.reduce((itemAcc, item) => itemAcc + (Number(item.quantity) * Number(item.rate)), 0);
+            const value = (po.items || []).reduce((itemAcc, item) => itemAcc + (Number(item.quantity || 0) * Number(item.rate || 0)), 0);
             acc[po.customerName] = (acc[po.customerName] || 0) + value;
             return acc;
         }, {} as { [key: string]: number });
@@ -321,7 +322,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
         const valueByPayment = filteredPOs.reduce((acc, po) => {
             const type = po.saleType || 'N/A';
-            const value = po.items.reduce((iAcc, i) => iAcc + (Number(i.quantity) * Number(i.rate)), 0);
+            const value = (po.items || []).reduce((iAcc, i) => iAcc + (Number(i.quantity || 0) * Number(i.rate || 0)), 0);
             acc[type] = (acc[type] || 0) + value;
             return acc;
         }, {} as Record<string, number>);
@@ -336,7 +337,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             const poDate = new Date(po.poDate);
             if (isNaN(poDate.getTime())) return;
             const diffDays = Math.floor((today.getTime() - poDate.getTime()) / (1000 * 3600 * 24));
-            const poValue = po.items.reduce((iAcc, i) => iAcc + (Number(i.quantity) * Number(i.rate)), 0);
+            const poValue = (po.items || []).reduce((iAcc, i) => iAcc + (Number(i.quantity || 0) * Number(i.rate || 0)), 0);
 
             if (diffDays <= 30) {
                 ageing['0-30 Days']++;
@@ -360,7 +361,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
         const valueByBranch = filteredPOs.reduce((acc, po) => {
             const branch = po.mainBranch || 'Unassigned';
-            const value = po.items.reduce((iAcc, i) => iAcc + (Number(i.quantity) * Number(i.rate)), 0);
+            const value = (po.items || []).reduce((iAcc, i) => iAcc + (Number(i.quantity || 0) * Number(i.rate || 0)), 0);
             acc[branch] = (acc[branch] || 0) + value;
             return acc;
         }, {} as Record<string, number>);
@@ -370,20 +371,19 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         const avgSOtoInvoiceVal = getAvgDays(filteredPOs, 'soDate', 'invoiceDate');
         const avgPOtoInvoiceVal = getAvgDays(filteredPOs, 'poDate', 'invoiceDate');
 
-        const avgPOtoSO = avgPOtoSOVal ? `${Math.round(avgPOtoSOVal)} days` : 'N/A';
-        const avgSOtoInvoice = avgSOtoInvoiceVal ? `${Math.round(avgSOtoInvoiceVal)} days` : 'N/A';
-        const avgPOtoInvoice = avgPOtoInvoiceVal ? `${Math.round(avgPOtoInvoiceVal)} days` : 'N/A';
+        const avgPOtoSO = avgPOtoSOVal ? `${Math.round(avgPOtoSOVal)} days` : '0 days';
+        const avgSOtoInvoice = avgSOtoInvoiceVal ? `${Math.round(avgSOtoInvoiceVal)} days` : '0 days';
+        const avgPOtoInvoice = avgPOtoInvoiceVal ? `${Math.round(avgPOtoInvoiceVal)} days` : '0 days';
 
-        // Average Trends (Increase in days is Bad, so isPositiveGood = false)
         const avgPOtoSOTrend = getTrend(purchaseOrders, filters, () => true, (pos) => getAvgDays(pos, 'poDate', 'soDate'), false);
         const avgSOtoInvoiceTrend = getTrend(purchaseOrders, filters, () => true, (pos) => getAvgDays(pos, 'soDate', 'invoiceDate'), false);
         const avgPOtoInvoiceTrend = getTrend(purchaseOrders, filters, () => true, (pos) => getAvgDays(pos, 'poDate', 'invoiceDate'), false);
 
         return { 
-            totalOpenPOs, openPOValue, 
-            fullyAvailablePOs, fullyAvailableValue, 
-            partiallyAvailablePOs, partiallyAvailableValue, 
-            notAvailablePOs, notAvailableValue,
+            totalOpenPOs, openPOValue: isNaN(openPOValue) ? 0 : openPOValue, 
+            fullyAvailablePOs, fullyAvailableValue: isNaN(fullyAvailableValue) ? 0 : fullyAvailableValue, 
+            partiallyAvailablePOs, partiallyAvailableValue: isNaN(partiallyAvailableValue) ? 0 : partiallyAvailableValue, 
+            notAvailablePOs, notAvailableValue: isNaN(notAvailableValue) ? 0 : notAvailableValue,
             checklistChartData, fulfillmentChartData, topCustomers, paymentTermsChartData, 
             poAgeingChartData, poAgeingValueChartData, branchPerformanceChartData, 
             avgPOtoSO, avgSOtoInvoice, avgPOtoInvoice,
