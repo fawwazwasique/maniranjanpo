@@ -3,11 +3,11 @@ import React, { useState, useCallback } from 'react';
 import { ArrowUpTrayIcon, DocumentPlusIcon, PlusIcon, XMarkIcon, ArrowDownTrayIcon } from './icons';
 import { MAIN_BRANCHES, BRANCH_STRUCTURE } from '../constants';
 import { downloadTemplate } from '../utils/export';
-import { OrderStatus } from '../types';
+import { OrderStatus, OverallPOStatus, FulfillmentStatus, POItemStatus } from '../types';
 
 interface UploadPaneProps {
     onSaveSingleOrder: (order: any) => void;
-    onBulkUpload: (files: File[]) => void;
+    onBulkUpload: (orders: any[]) => void;
 }
 
 const initialItemState = { 
@@ -36,7 +36,6 @@ const initialOrderState = {
     poDate: new Date().toISOString().split('T')[0],
     soNo: '',
     soDate: new Date().toISOString().split('T')[0],
-    // invoiceDate removed
     items: [initialItemState],
     orderStatus: OrderStatus.OpenOrders,
     fulfillmentStatus: 'Fully Available',
@@ -65,17 +64,126 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
     const [dragging, setDragging] = useState(false);
     const [order, setOrder] = useState(initialOrderState);
 
+    const parseCSVAndUpload = (file: File) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const text = e.target?.result as string;
+            const lines = text.split('\n').filter(l => l.trim());
+            if (lines.length < 2) return;
+
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            const rows = lines.slice(1).map(line => {
+                const values: string[] = [];
+                let current = '';
+                let inQuotes = false;
+                for (let char of line) {
+                    if (char === '"') inQuotes = !inQuotes;
+                    else if (char === ',' && !inQuotes) {
+                        values.push(current.trim());
+                        current = '';
+                    } else current += char;
+                }
+                values.push(current.trim());
+                return values;
+            });
+
+            // Map header indices
+            const idx = (name: string) => headers.findIndex(h => h.includes(name.toLowerCase()));
+            
+            const branchIdx = idx('branch');
+            const soNoIdx = idx('sale order number');
+            const dateIdx = idx('dates');
+            const accountIdx = idx('account name');
+            const zoneIdx = idx('zone');
+            const poStatIdx = idx('po status');
+            const partIdx = idx('item part number');
+            const descIdx = idx('item description');
+            const qtyIdx = idx('quantity');
+            const priceIdx = idx('unit price');
+            const discountIdx = idx('discount');
+            const gstIdx = idx('tax amount'); // Simple approximation if gst % isn't explicit
+            const billIdx = idx('billing address');
+            const shipIdx = idx('shipping address');
+            const billGstIdx = idx('bill to gstin');
+            const shipGstIdx = idx('ship to gstin');
+            const quoteIdx = idx('quote number');
+            const pfIdx = idx('p & f');
+            const matStatIdx = idx('material status');
+            const billStatIdx = idx('billing status');
+
+            // Group rows by Sale Order Number
+            const poGroups: Record<string, any[]> = {};
+            rows.forEach(row => {
+                const soNo = row[soNoIdx] || 'UNKNOWN';
+                if (!poGroups[soNo]) poGroups[soNo] = [];
+                poGroups[soNo].push(row);
+            });
+
+            const parsedPOs = Object.values(poGroups).map(group => {
+                const first = group[0];
+                
+                // Fuzzy status mapping to match dashboard logic
+                let status = OverallPOStatus.Open;
+                const rawStat = (first[poStatIdx] || '').toLowerCase();
+                if (rawStat.includes('cancel')) status = OverallPOStatus.Cancelled;
+                if (rawStat.includes('fulfill') || rawStat.includes('done')) status = OverallPOStatus.Fulfilled;
+
+                let fulfillment = FulfillmentStatus.Partial;
+                const rawFill = (first[billStatIdx] || '').toLowerCase();
+                if (rawFill.includes('fully') || rawFill.includes('fulfillment')) fulfillment = FulfillmentStatus.Fulfillment;
+                if (rawFill.includes('not')) fulfillment = FulfillmentStatus.NotAvailable;
+
+                const items = group.map(row => ({
+                    partNumber: row[partIdx] || 'N/A',
+                    itemDesc: row[descIdx] || '',
+                    quantity: parseFloat(row[qtyIdx]) || 0,
+                    rate: parseFloat(row[priceIdx]) || 0,
+                    discount: parseFloat(row[discountIdx]) || 0,
+                    gst: 18, // Default fallback
+                    status: (row[matStatIdx] || '').toLowerCase().includes('avail') ? POItemStatus.Available : POItemStatus.NotAvailable,
+                    allocatedQuantity: 0,
+                    deliveryQuantity: 0,
+                    invoicedQuantity: 0,
+                }));
+
+                return {
+                    poNumber: first[soNoIdx] || 'N/A', // Mapping SO to PO# for demo context
+                    salesOrderNumber: first[soNoIdx] || 'N/A',
+                    poDate: first[dateIdx] || new Date().toISOString().split('T')[0],
+                    customerName: first[accountIdx] || 'Unknown Customer',
+                    mainBranch: first[branchIdx] || '',
+                    subBranch: first[zoneIdx] || '',
+                    items,
+                    status,
+                    fulfillmentStatus: fulfillment,
+                    orderStatus: OrderStatus.OpenOrders,
+                    saleType: 'Credit',
+                    creditTerms: 30,
+                    billingAddress: first[billIdx] || '',
+                    billToGSTIN: first[billGstIdx] || '',
+                    shippingAddress: first[shipIdx] || '',
+                    shipToGSTIN: first[shipGstIdx] || '',
+                    quoteNumber: first[quoteIdx] || '',
+                    pfAvailable: (first[pfIdx] || '').toLowerCase() === 'true',
+                    checklist: {
+                        bCheck: false, cCheck: false, dCheck: false, battery: false,
+                        spares: false, bd: false, radiatorDescaling: false, others: false,
+                    }
+                };
+            });
+
+            onBulkUpload(parsedPOs);
+        };
+        reader.readAsText(file);
+    };
+
     const handleOrderChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
         const isCheckbox = type === 'checkbox';
         const checkedValue = (e.target as HTMLInputElement).checked;
 
         if (name === 'mainBranch') {
-            if (value === '') {
-                 setOrder(prev => ({ ...prev, mainBranch: '', subBranch: '' }));
-            } else {
-                 setOrder(prev => ({ ...prev, mainBranch: value, subBranch: '' }));
-            }
+            setOrder(prev => ({ ...prev, mainBranch: value, subBranch: '' }));
         } else {
             setOrder(prev => ({ ...prev, [name]: isCheckbox ? checkedValue : value }));
         }
@@ -147,39 +255,30 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
         }, { grossValue: 0, totalDiscount: 0, netTaxableValue: 0, gst: 0, totalAmount: 0 });
     }, [order.items]);
 
-
     const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setDragging(true);
+        e.preventDefault(); e.stopPropagation(); setDragging(true);
     };
 
     const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setDragging(false);
+        e.preventDefault(); e.stopPropagation(); setDragging(false);
     };
     
     const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        e.stopPropagation();
+        e.preventDefault(); e.stopPropagation();
     };
 
     const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
         setDragging(false);
-        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-            const filesArray = Array.from(e.dataTransfer.files);
-            onBulkUpload(filesArray);
-            e.dataTransfer.clearData();
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            parseCSVAndUpload(e.dataTransfer.files[0]);
         }
     }, [onBulkUpload]);
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            const filesArray = Array.from(e.target.files);
-            onBulkUpload(filesArray);
+        if (e.target.files && e.target.files[0]) {
+            parseCSVAndUpload(e.target.files[0]);
         }
     };
 
@@ -205,7 +304,6 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
             </div>
         );
     }
-
 
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
@@ -371,7 +469,7 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                         <span>Bulk Upload POs</span>
                     </h2>
                     <p className="text-base text-slate-600 dark:text-slate-400 mb-4">
-                        Upload one or more PO files (e.g., CSV). The system will process them automatically. Make sure your file follows the template format.
+                        Upload your CSV file. The system will group multiple rows with the same Sale Order Number into single Purchase Orders.
                     </p>
                     <div className="mb-6">
                         <button
@@ -396,11 +494,8 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                         <p className="text-sm text-slate-500 dark:text-slate-400">or</p>
                          <label htmlFor="file-upload" className="relative cursor-pointer rounded-md font-medium text-red-600 hover:text-red-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-red-500">
                            <span>Select files</span>
-                           <input id="file-upload" name="file-upload" type="file" className="sr-only" multiple onChange={handleFileSelect} accept=".csv" />
+                           <input id="file-upload" name="file-upload" type="file" className="sr-only" onChange={handleFileSelect} accept=".csv" />
                         </label>
-                    </div>
-                     <div className="mt-8 text-center text-sm text-slate-500 dark:text-slate-400">
-                        <p><strong>Note:</strong> Bulk upload is a demo feature. Uploaded files will generate mock POs for demonstration purposes.</p>
                     </div>
                 </div>
             </div>

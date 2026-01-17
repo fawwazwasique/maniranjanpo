@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { HomeIcon, ArrowUpTrayIcon, ChartBarIcon, ListBulletIcon, LogoIcon, DatabaseIcon, ClipboardDocumentListIcon, BRAND_RED, DatabaseIcon as StockIcon } from './icons';
+import { HomeIcon, ArrowUpTrayIcon, ChartBarIcon, ListBulletIcon, LogoIcon, DatabaseIcon, ClipboardDocumentListIcon } from './icons';
 
 type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'stockManagement';
 
@@ -24,7 +24,7 @@ const NavItem: React.FC<{
       }}
       className={`flex items-center p-2.5 text-base font-normal rounded-lg transition-all duration-200 group ${
         isActive
-          ? 'bg-gradient-to-r from-[#C1272D] to-[#E31E24] text-white shadow-lg'
+          ? 'bg-gradient-to-r from-[#00AEEF] to-[#0092C8] text-white shadow-lg'
           : 'text-slate-300 hover:bg-slate-700 hover:text-white'
       }`}
     >
@@ -42,8 +42,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activePane, setActivePane }) => {
                     <LogoIcon className="h-12 w-12 flex-shrink-0" />
                 </div>
                 <div className="ml-3">
-                    <h1 className="text-xl font-black text-white leading-none tracking-tight">MANIRANJAN</h1>
-                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.2em] mt-1">PO Dashboard</p>
+                    <h1 className="text-xl font-black text-white leading-none tracking-tight">ETHEN</h1>
+                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.2em] mt-1">POWER SOLUTIONS</p>
                 </div>
             </div>
             <div className="flex-1 overflow-y-auto py-6 px-3">
@@ -93,7 +93,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePane, setActivePane }) => {
                 </ul>
             </div>
             <div className="p-4 border-t border-slate-700 text-center">
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">© {new Date().getFullYear()} Maniranjan</p>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">© {new Date().getFullYear()} Ethen Power Solutions</p>
             </div>
         </aside>
     );

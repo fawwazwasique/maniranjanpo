@@ -121,7 +121,6 @@ function App() {
     addLog(updatedPO.id, "PO updated.");
   }, []);
 
-  // Fix: Explicitly assign partNumber to resolve scoping error with shorthand properties (line 161)
   const handleRegisterPart = async (partNumber: string, description: string, initialQty: number) => {
       const stockRef = doc(db, "stock", partNumber);
       await setDoc(stockRef, {
@@ -244,7 +243,6 @@ function App() {
     addLog(poId, `Allocated ${qty} units of ${partNumber} from stock.`);
   };
 
-  // Fix: Connect Gemini procurement suggestion logic
   const handleGetSuggestion = async (item: POItem) => {
     setSuggestionLoading(true);
     setSuggestionError(null);
@@ -260,7 +258,6 @@ function App() {
     }
   };
 
-  // Fix: Handle item status updates from modal
   const handleUpdateItemStatus = async (poId: string, partNumber: string, status: POItemStatus) => {
       const targetPO = purchaseOrders.find(po => po.id === poId);
       if (!targetPO) return;
@@ -274,6 +271,64 @@ function App() {
 
       await handleUpdatePO({ ...targetPO, items: newItems });
       addLog(poId, `Status for item ${partNumber} updated to ${status}.`);
+  };
+
+  const handleSaveSingleOrder = async (order: any) => {
+      try {
+          const poData = {
+              poNumber: order.poNo,
+              salesOrderNumber: order.soNo,
+              poDate: order.poDate,
+              customerName: order.accountName,
+              mainBranch: order.mainBranch,
+              subBranch: order.subBranch,
+              items: order.items.map((i: any) => ({
+                  ...i,
+                  status: i.stockStatus === 'Available' ? POItemStatus.Available : POItemStatus.NotAvailable
+              })),
+              saleType: order.saleType,
+              creditTerms: order.creditTerms,
+              status: OverallPOStatus.Open,
+              fulfillmentStatus: order.fulfillmentStatus === 'Fully Available' ? FulfillmentStatus.Fulfillment : FulfillmentStatus.Partial,
+              orderStatus: order.orderStatus,
+              billingAddress: order.billingAddress,
+              billToGSTIN: order.billToGSTIN,
+              shippingAddress: order.shippingAddress,
+              shipToGSTIN: order.shipToGSTIN,
+              quoteNumber: order.quoteNumber,
+              pfAvailable: order.pfAvailable,
+              checklist: order.checklist,
+              checklistRemarks: order.checklistRemarks,
+              createdAt: new Date().toISOString(),
+              paymentStatus: order.saleType === 'Cash' ? 'Pending' : null,
+              paymentNotes: '',
+          };
+          await addDoc(collection(db, "purchaseOrders"), poData);
+          alert("Order saved successfully.");
+      } catch (e) {
+          console.error("Error saving order:", e);
+          alert("Error saving order.");
+      }
+  };
+
+  const handleBulkUpload = async (parsedOrders: any[]) => {
+      const batch = writeBatch(db);
+      try {
+          for (const order of parsedOrders) {
+              const newRef = doc(collection(db, "purchaseOrders"));
+              batch.set(newRef, {
+                  ...order,
+                  createdAt: new Date().toISOString(),
+                  paymentNotes: '',
+              });
+          }
+          await batch.commit();
+          alert(`Successfully uploaded ${parsedOrders.length} orders.`);
+          setActivePane('dashboard');
+      } catch (e) {
+          console.error("Bulk upload batch error:", e);
+          alert("Failed to process bulk upload.");
+      }
   };
 
   const handleSelectPO = useCallback((po: PurchaseOrder) => {
@@ -298,7 +353,7 @@ function App() {
 
   return (
     <div className="flex h-screen bg-slate-100 dark:bg-gray-900 text-slate-900 dark:text-slate-100 overflow-hidden">
-       {firestoreError && <ErrorBanner projectId="maniranjan-po" message={firestoreError} onDismiss={() => setFirestoreError(null)} />}
+       {firestoreError && <ErrorBanner projectId="ethen-power-po" message={firestoreError} onDismiss={() => setFirestoreError(null)} />}
       <Sidebar activePane={activePane} setActivePane={setActivePane} />
        <div className="flex-1 flex flex-col">
         <Header notifications={notifications} onMarkNotificationsAsRead={() => {}} theme={theme} setTheme={setTheme} />
@@ -318,7 +373,7 @@ function App() {
                     onNavigateToReports={() => setActivePane('reports')}
                 />
             )}
-            {activePane === 'upload' && <UploadPane onSaveSingleOrder={() => {}} onBulkUpload={() => {}} />}
+            {activePane === 'upload' && <UploadPane onSaveSingleOrder={handleSaveSingleOrder} onBulkUpload={handleBulkUpload} />}
             {activePane === 'analysis' && <AnalysisPane purchaseOrders={purchaseOrders} onSelectPO={handleSelectPO} />}
             {activePane === 'reports' && <ReportsPane purchaseOrders={purchaseOrders} onUpdatePO={handleUpdatePO} />}
             {activePane === 'dataManagement' && <DataManagementPane purchaseOrders={purchaseOrders} stock={stock} stockMovements={stockMovements} />}
@@ -337,7 +392,6 @@ function App() {
         />
        )}
 
-       {/* Fix: Render Procurement Suggestion Modal */}
        <ProcurementSuggestionModal 
           isOpen={activeModal === 'suggestion'}
           onClose={() => setActiveModal('none')}

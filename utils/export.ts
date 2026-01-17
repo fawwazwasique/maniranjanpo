@@ -3,34 +3,44 @@ import { PurchaseOrder } from '../types';
 
 const convertToCSV = (data: PurchaseOrder[]): string => {
     const headers = [
-        // PO Details
-        'PO ID',
-        'PO Number',
-        'Customer Name',
-        'Main Branch',
-        'Sub Branch',
-        'PO Date',
-        'SO Number',
-        'SO Date',
-        'Invoice Number',
-        'Invoice Date',
-        'Quote Number',
+        // Primary columns matching User Screenshot
+        'Branch',
+        'Sale Order Number',
+        'Dates (PO Date)',
+        'Account Name',
+        'Zone',
+        'Po Status',
+        'Overall Remarks',
+        'OA Number',
+        'OA Date',
+        'ETA',
+        'Billing Status',
+        'Material Status',
+        'Payment Status',
+        'Item Part Number',
+        'Item Description',
+        'Quantity',
+        'Stock Available',
+        'Stock In Hand',
+        'Unit Price',
+        'Base Amount',
+        'Discount',
+        'Tax Amount',
+        'Gross Amount',
+        'Item Remarks',
         'Billing Address',
         'Bill To GSTIN',
         'Shipping Address',
         'Ship To GSTIN',
+        'Quote Number',
+
+        // App-specific metadata appended at last
+        'Sub Branch',
         'Sale Type',
-        'Credit Terms (Days)',
-        'Payment Status',
-        'Payment Notes',
-        'Overall PO Status',
-        'Order Status',
+        'Credit Terms',
         'Fulfillment Status',
-        'System Remarks',
-        'P&F Available',
-        'Dispatch Remarks (Not Shipped Reason)',
-        
-        // Checklist
+        'P & F Available',
+        'Dispatch Remarks',
         'Checklist: B-Check',
         'Checklist: C-Check',
         'Checklist: D-Check',
@@ -40,29 +50,6 @@ const convertToCSV = (data: PurchaseOrder[]): string => {
         'Checklist: Radiator Descaling',
         'Checklist: Others',
         'Checklist Remarks',
-        
-        // Item Details
-        'Item Part Number',
-        'Item Type',
-        'Item Description',
-        'Quantity',
-        'Rate (Unit Price)',
-        'Discount',
-        'GST %',
-        'Net Taxable Value',
-        'Tax Amount',
-        'Gross Amount',
-        'Item Status',
-        'Stock Status',
-        'OA Number',
-        'OA Date',
-        'Stock Available',
-        'Stock In Hand',
-        'Allocated Qty',
-        'Delivery Qty',
-        'Invoiced Qty',
-        
-        // Metadata
         'Created At'
     ];
 
@@ -102,34 +89,44 @@ const convertToCSV = (data: PurchaseOrder[]): string => {
             const totalAmt = netTaxable + taxAmt;
 
             const row = [
-                // PO Details
-                safe(po.id),
-                safe(po.poNumber),
-                safe(po.customerName),
+                // Primary Columns
                 safe(po.mainBranch),
-                safe(po.subBranch),
-                safe(po.poDate),
                 safe(po.salesOrderNumber),
-                safe(po.soDate),
-                safe(po.invoiceNumber),
-                safe(po.invoiceDate),
-                safe(po.quoteNumber),
+                safe(po.poDate),
+                safe(po.customerName),
+                safe(po.subBranch), // Zone mapping
+                safe(po.orderStatus),
+                safe(po.systemRemarks),
+                safe(item.oaNo),
+                safe(item.oaDate),
+                safe(''), // ETA placeholder
+                safe(po.fulfillmentStatus), // Billing Status mapping
+                safe(item.status), // Material Status mapping
+                safe(po.paymentStatus),
+                safe(item.partNumber),
+                safe(item.itemDesc),
+                safe(qty),
+                safe(item.stockAvailable),
+                safe(item.stockInHand),
+                safe(rate),
+                safe(baseVal.toFixed(2)),
+                safe(discount),
+                safe(taxAmt.toFixed(2)),
+                safe(totalAmt.toFixed(2)),
+                safe(''), // Item Remarks placeholder
                 safe(po.billingAddress),
                 safe(po.billToGSTIN),
                 safe(po.shippingAddress),
                 safe(po.shipToGSTIN),
+                safe(po.quoteNumber),
+
+                // Technical Metadata
+                safe(po.subBranch),
                 safe(po.saleType),
                 safe(po.creditTerms),
-                safe(po.paymentStatus),
-                safe(po.paymentNotes),
-                safe(po.status),
-                safe(po.orderStatus),
                 safe(po.fulfillmentStatus),
-                safe(po.systemRemarks),
                 safe(po.pfAvailable ? 'Yes' : 'No'),
                 safe(po.dispatchRemarks),
-                
-                // Checklist
                 safe(checklist.bCheck ? 'Yes' : 'No'),
                 safe(checklist.cCheck ? 'Yes' : 'No'),
                 safe(checklist.dCheck ? 'Yes' : 'No'),
@@ -139,29 +136,6 @@ const convertToCSV = (data: PurchaseOrder[]): string => {
                 safe(checklist.radiatorDescaling ? 'Yes' : 'No'),
                 safe(checklist.others ? 'Yes' : 'No'),
                 safe(po.checklistRemarks),
-                
-                // Item Details
-                safe(item.partNumber),
-                safe(item.itemType),
-                safe(item.itemDesc),
-                safe(qty),
-                safe(rate),
-                safe(discount),
-                safe(gst),
-                safe(netTaxable.toFixed(2)),
-                safe(taxAmt.toFixed(2)),
-                safe(totalAmt.toFixed(2)),
-                safe(item.status),
-                safe(item.stockStatus),
-                safe(item.oaNo),
-                safe(item.oaDate),
-                safe(item.stockAvailable),
-                safe(item.stockInHand),
-                safe(item.allocatedQuantity),
-                safe(item.deliveryQuantity),
-                safe(item.invoicedQuantity),
-                
-                // Metadata
                 safe(po.createdAt)
             ];
             
@@ -189,33 +163,37 @@ export const exportToCSV = (data: PurchaseOrder[], filename: string = 'purchase_
 
 export const downloadTemplate = (): void => {
     const headers = [
-        'Main Branch',
-        'Sub Branch',
-        'Customer Name',
-        'PO Number',
-        'PO Date (YYYY-MM-DD)',
-        'SO Number',
-        'SO Date (YYYY-MM-DD)',
-        'Quote Number',
+        'Branch',
+        'Sale Order Number',
+        'Dates (YYYY-MM-DD)',
+        'Account Name',
+        'Zone',
+        'Po Status',
+        'Overall Remarks',
+        'OA Number',
+        'OA Date (YYYY-MM-DD)',
+        'ETA',
+        'Billing Status',
+        'Material Status',
+        'Payment Status',
+        'Item Part Number',
+        'Item Description',
+        'Quantity',
+        'Stock Available',
+        'Stock In Hand',
+        'Unit Price',
+        'Base Amount',
+        'Discount',
+        'Tax Amount',
+        'Gross Amount',
+        'Item Remarks',
         'Billing Address',
         'Bill To GSTIN',
         'Shipping Address',
         'Ship To GSTIN',
-        'Item Name',
-        'Item Type',
-        'Item Description',
-        'Quantity',
-        'Unit Price',
-        'Discount Amount',
-        'GST Percentage',
-        'Stock Status (Available/Unavailable)',
-        'Item Status (Available/Partially Available/Not Available/Dispatched)',
-        'OA Number',
-        'OA Date (YYYY-MM-DD)',
-        'Sale Type (Cash/Credit)',
-        'Credit Terms (Days)',
-        'Order Status',
-        'Fulfillment Status (Fully Available/Partially Available/Not Available)',
+        'Quote Number',
+        // New items added at last as per instructions
+        'Sub Branch',
         'P & F Available (TRUE/FALSE)',
         'Checklist B (TRUE/FALSE)',
         'Checklist C (TRUE/FALSE)',
@@ -229,43 +207,47 @@ export const downloadTemplate = (): void => {
     ];
     
     const exampleRow = [
-        'Bengaluru', // Main Branch
-        'Peenya', // Sub Branch
-        'Innovate Inc.', // Customer Name
-        'PO-2024-001', // PO Number
-        '2024-03-15', // PO Date
-        'SO-2024-001', // SO Number
-        '2024-03-16', // SO Date
-        'QT-2024-100', // Quote Number
-        '123 Industrial Area', // Billing Address
-        '29ABCDE1234F1Z5', // Bill To GSTIN
-        '456 Warehouse Rd', // Shipping Address
-        '29ABCDE1234F1Z5', // Ship To GSTIN
-        'HAMMER-01', // Item Name
-        'Hardware', // Item Type
-        'Heavy Duty Hammer', // Item Description
-        '10', // Quantity
-        '100.00', // Unit Price
-        '0.00', // Discount Amount
-        '18', // GST Percentage
-        'Available', // Stock Status
-        'Available', // Item Status
-        '', // OA Number
-        '', // OA Date
-        'Credit', // Sale Type
-        '30', // Credit Terms
-        'Open Orders', // Order Status
-        'Fully Available', // Fulfillment Status
-        'FALSE', // P & F Available
-        'FALSE', // B
-        'FALSE', // C
-        'FALSE', // D
-        'FALSE', // Battery
-        'FALSE', // Spares
-        'FALSE', // BD
-        'FALSE', // Radiator Descaling
-        'FALSE', // Others
-        '' // Remarks
+        'Bengaluru',
+        'SO-2024-001',
+        '2024-03-15',
+        'Innovate Inc.',
+        'Peenya',
+        'Open Orders',
+        'Urgent delivery required',
+        'OA-9912',
+        '2024-03-16',
+        '2024-03-25',
+        'Fully Available',
+        'Available',
+        'Pending',
+        'VALV-5W30-4L',
+        'Valvoline 5W30 Motor Oil 4L',
+        '10',
+        '50',
+        '40',
+        '1200.00',
+        '12000.00',
+        '0.00',
+        '2160.00',
+        '14160.00',
+        'Fragile handling',
+        '123 Industrial Area',
+        '29ABCDE1234F1Z5',
+        '456 Warehouse Rd',
+        '29ABCDE1234F1Z5',
+        'QT-2024-100',
+        // New at last
+        'Peenya',
+        'FALSE',
+        'FALSE',
+        'FALSE',
+        'FALSE',
+        'FALSE',
+        'FALSE',
+        'FALSE',
+        'FALSE',
+        'FALSE',
+        ''
     ];
 
     const csvContent = [

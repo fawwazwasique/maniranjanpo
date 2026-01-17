@@ -33,7 +33,10 @@ const Header: React.FC<HeaderProps> = ({ notifications, onMarkNotificationsAsRea
              <div className="bg-white dark:bg-slate-700 p-1 rounded-lg shadow-sm">
                 <LogoIcon className="w-8 h-8" />
              </div>
-             <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">MANIRANJAN</h1>
+             <div className="flex flex-col">
+                <h1 className="text-xl font-black text-slate-800 dark:text-white tracking-tight leading-none">ETHEN</h1>
+                <p className="text-[8px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-widest leading-none mt-1">Power Solutions</p>
+             </div>
              <span className="hidden sm:block h-6 w-[2px] bg-slate-200 dark:bg-slate-600 mx-2"></span>
              <p className="hidden md:block text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">PO Dashboard</p>
           </div>

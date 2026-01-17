@@ -1,9 +1,11 @@
 
 import React from 'react';
 
-// Exact Brand Colors from Logo Image
-export const BRAND_RED = '#C1272D';
-export const BRAND_GREEN = '#39B54A';
+// Ethen Brand Colors from Logo Image
+export const ETHEN_BLUE = '#00AEEF';
+export const ETHEN_GREEN = '#8DC63F';
+export const ETHEN_ORANGE = '#F7941E';
+export const ETHEN_GRAY = '#707070';
 
 export const BellIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-6 h-6"}>
@@ -121,15 +123,17 @@ export const ListBulletIcon: React.FC<{ className?: string }> = ({ className }) 
 );
 
 /**
- * Recreated MJ logo based on user-provided branding image.
- * Uses BRAND_RED and BRAND_GREEN.
+ * Recreated Ethen Power Solutions logo based on provided branding image.
+ * Uses ETHEN_BLUE, ETHEN_GREEN, and ETHEN_ORANGE.
  */
 export const LogoIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" className={className || "w-10 h-10"}>
-    {/* Red "M" part */}
-    <path d="M48 48H352V256L240 144L48 336V48Z" fill={BRAND_RED}/>
-    {/* Green "J" part */}
-    <path d="M464 464H160V256L272 368L464 176V464Z" fill={BRAND_GREEN}/>
+    {/* Blue Top Segment */}
+    <path d="M176 170.6C176 123.6 211.2 85.3 256 85.3H426.6V170.6L341.3 213.3H176V170.6Z" fill={ETHEN_BLUE} />
+    {/* Green Middle Segment */}
+    <path d="M176 298.6C176 251.6 211.2 213.3 256 213.3H426.6V298.6L341.3 341.3H176V298.6Z" fill={ETHEN_GREEN} />
+    {/* Orange Bottom Segment */}
+    <path d="M176 426.6C176 379.6 211.2 341.3 256 341.3H426.6V426.6L341.3 469.3H176V426.6Z" fill={ETHEN_ORANGE} />
   </svg>
 );
 
