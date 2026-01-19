@@ -43,7 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePane, setActivePane }) => {
                 </div>
                 <div className="ml-3">
                     <h1 className="text-xl font-black text-white leading-none tracking-tight">ETHEN</h1>
-                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.2em] mt-1">POWER SOLUTIONS</p>
+                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.2em] mt-1">POWER SOLUTIONNS</p>
                 </div>
             </div>
             <div className="flex-1 overflow-y-auto py-6 px-3">
@@ -93,7 +93,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePane, setActivePane }) => {
                 </ul>
             </div>
             <div className="p-4 border-t border-slate-700 text-center">
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">© {new Date().getFullYear()} Ethen Power Solutions</p>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">© {new Date().getFullYear()} ETHEN POWER SOLUTIONNS</p>
             </div>
         </aside>
     );

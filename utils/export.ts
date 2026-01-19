@@ -3,61 +3,46 @@ import { PurchaseOrder } from '../types';
 
 const convertToCSV = (data: PurchaseOrder[]): string => {
     const headers = [
-        // Primary columns matching User Screenshot
-        'Branch',
-        'Sale Order Number',
-        'Dates (PO Date)',
+        'Main Branch',
+        'Sub Branch',
         'Account Name',
-        'Zone',
-        'Po Status',
-        'Overall Remarks',
-        'OA Number',
-        'OA Date',
-        'ETA',
-        'Billing Status',
-        'Material Status',
-        'Payment Status',
-        'Item Part Number',
-        'Item Description',
-        'Quantity',
-        'Stock Available',
-        'Stock In Hand',
-        'Unit Price',
-        'Base Amount',
-        'Discount',
-        'Tax Amount',
-        'Gross Amount',
-        'Item Remarks',
+        'PO Number',
+        'PO Date',
+        'SO Number',
+        'SO Date',
+        'Quote Number',
         'Billing Address',
         'Bill To GSTIN',
         'Shipping Address',
         'Ship To GSTIN',
-        'Quote Number',
-
-        // App-specific metadata appended at last
-        'Sub Branch',
         'Sale Type',
         'Credit Terms',
-        'Fulfillment Status',
         'P & F Available',
-        'Dispatch Remarks',
-        'Checklist: B-Check',
-        'Checklist: C-Check',
-        'Checklist: D-Check',
-        'Checklist: Battery',
-        'Checklist: Spares',
-        'Checklist: BD',
-        'Checklist: Radiator Descaling',
-        'Checklist: Others',
+        'B-Check',
+        'C-Check',
+        'D-Check',
+        'Battery',
+        'Spares',
+        'BD',
+        'Radiator Descaling',
+        'Others',
         'Checklist Remarks',
-        'Created At'
+        'Item Name',
+        'Item Type',
+        'Item Description',
+        'Quantity',
+        'Unit Price',
+        'Discount',
+        'GST',
+        'Stock Status',
+        'OA Number',
+        'OA Date'
     ];
 
     const rows: string[] = [];
 
-    // Helper to escape CSV fields
-    const safe = (str: string | number | undefined | null) => {
-        if (str === undefined || str === null) return '';
+    const safe = (str: any) => {
+        if (str === undefined || str === null) return '""';
         const s = String(str).replace(/"/g, '""');
         return `"${s}"`;
     };
@@ -73,72 +58,45 @@ const convertToCSV = (data: PurchaseOrder[]): string => {
             radiatorDescaling: false,
             others: false,
         };
-        const items = po.items && po.items.length > 0 ? po.items : [{
-            partNumber: '', quantity: 0, rate: 0, status: '', discount: 0, gst: 0
-        } as any];
+        const items = po.items && po.items.length > 0 ? po.items : [{} as any];
 
         items.forEach(item => {
-            const qty = Number(item.quantity) || 0;
-            const rate = Number(item.rate) || 0;
-            const discount = Number(item.discount) || 0;
-            const gst = Number(item.gst) || 0;
-            
-            const baseVal = qty * rate;
-            const netTaxable = baseVal - discount;
-            const taxAmt = netTaxable * (gst / 100);
-            const totalAmt = netTaxable + taxAmt;
-
             const row = [
-                // Primary Columns
                 safe(po.mainBranch),
-                safe(po.salesOrderNumber),
-                safe(po.poDate),
+                safe(po.subBranch),
                 safe(po.customerName),
-                safe(po.subBranch), // Zone mapping
-                safe(po.orderStatus),
-                safe(po.systemRemarks),
-                safe(item.oaNo),
-                safe(item.oaDate),
-                safe(''), // ETA placeholder
-                safe(po.fulfillmentStatus), // Billing Status mapping
-                safe(item.status), // Material Status mapping
-                safe(po.paymentStatus),
-                safe(item.partNumber),
-                safe(item.itemDesc),
-                safe(qty),
-                safe(item.stockAvailable),
-                safe(item.stockInHand),
-                safe(rate),
-                safe(baseVal.toFixed(2)),
-                safe(discount),
-                safe(taxAmt.toFixed(2)),
-                safe(totalAmt.toFixed(2)),
-                safe(''), // Item Remarks placeholder
+                safe(po.poNumber),
+                safe(po.poDate),
+                safe(po.salesOrderNumber),
+                safe(po.soDate),
+                safe(po.quoteNumber),
                 safe(po.billingAddress),
                 safe(po.billToGSTIN),
                 safe(po.shippingAddress),
                 safe(po.shipToGSTIN),
-                safe(po.quoteNumber),
-
-                // Technical Metadata
-                safe(po.subBranch),
                 safe(po.saleType),
                 safe(po.creditTerms),
-                safe(po.fulfillmentStatus),
-                safe(po.pfAvailable ? 'Yes' : 'No'),
-                safe(po.dispatchRemarks),
-                safe(checklist.bCheck ? 'Yes' : 'No'),
-                safe(checklist.cCheck ? 'Yes' : 'No'),
-                safe(checklist.dCheck ? 'Yes' : 'No'),
-                safe(checklist.battery ? 'Yes' : 'No'),
-                safe(checklist.spares ? 'Yes' : 'No'),
-                safe(checklist.bd ? 'Yes' : 'No'),
-                safe(checklist.radiatorDescaling ? 'Yes' : 'No'),
-                safe(checklist.others ? 'Yes' : 'No'),
+                safe(po.pfAvailable ? 'TRUE' : 'FALSE'),
+                safe(checklist.bCheck ? 'TRUE' : 'FALSE'),
+                safe(checklist.cCheck ? 'TRUE' : 'FALSE'),
+                safe(checklist.dCheck ? 'TRUE' : 'FALSE'),
+                safe(checklist.battery ? 'TRUE' : 'FALSE'),
+                safe(checklist.spares ? 'TRUE' : 'FALSE'),
+                safe(checklist.bd ? 'TRUE' : 'FALSE'),
+                safe(checklist.radiatorDescaling ? 'TRUE' : 'FALSE'),
+                safe(checklist.others ? 'TRUE' : 'FALSE'),
                 safe(po.checklistRemarks),
-                safe(po.createdAt)
+                safe(item.partNumber),
+                safe(item.itemType),
+                safe(item.itemDesc),
+                safe(item.quantity),
+                safe(item.rate),
+                safe(item.discount),
+                safe(item.gst),
+                safe(item.status),
+                safe(item.oaNo),
+                safe(item.oaDate)
             ];
-            
             rows.push(row.join(','));
         });
     });
@@ -163,91 +121,77 @@ export const exportToCSV = (data: PurchaseOrder[], filename: string = 'purchase_
 
 export const downloadTemplate = (): void => {
     const headers = [
-        'Branch',
-        'Sale Order Number',
-        'Dates (YYYY-MM-DD)',
+        'Main Branch',
+        'Sub Branch',
         'Account Name',
-        'Zone',
-        'Po Status',
-        'Overall Remarks',
-        'OA Number',
-        'OA Date (YYYY-MM-DD)',
-        'ETA',
-        'Billing Status',
-        'Material Status',
-        'Payment Status',
-        'Item Part Number',
-        'Item Description',
-        'Quantity',
-        'Stock Available',
-        'Stock In Hand',
-        'Unit Price',
-        'Base Amount',
-        'Discount',
-        'Tax Amount',
-        'Gross Amount',
-        'Item Remarks',
+        'PO Number',
+        'PO Date',
+        'SO Number',
+        'SO Date',
+        'Quote Number',
         'Billing Address',
         'Bill To GSTIN',
         'Shipping Address',
         'Ship To GSTIN',
-        'Quote Number',
-        // New items added at last as per instructions
-        'Sub Branch',
+        'Sale Type',
+        'Credit Terms',
         'P & F Available (TRUE/FALSE)',
-        'Checklist B (TRUE/FALSE)',
-        'Checklist C (TRUE/FALSE)',
-        'Checklist D (TRUE/FALSE)',
-        'Checklist Battery (TRUE/FALSE)',
-        'Checklist Spares (TRUE/FALSE)',
-        'Checklist BD (TRUE/FALSE)',
-        'Checklist Radiator Descaling (TRUE/FALSE)',
-        'Checklist Others (TRUE/FALSE)',
-        'Checklist Remarks'
+        'B-Check (TRUE/FALSE)',
+        'C-Check (TRUE/FALSE)',
+        'D-Check (TRUE/FALSE)',
+        'Battery (TRUE/FALSE)',
+        'Spares (TRUE/FALSE)',
+        'BD (TRUE/FALSE)',
+        'Radiator Descaling (TRUE/FALSE)',
+        'Others (TRUE/FALSE)',
+        'Checklist Remarks',
+        'Item Name',
+        'Item Type',
+        'Item Description',
+        'Quantity',
+        'Unit Price',
+        'Discount',
+        'GST',
+        'Stock Status (Available/Unavailable)',
+        'OA Number',
+        'OA Date'
     ];
     
     const exampleRow = [
         'Bengaluru',
-        'SO-2024-001',
-        '2024-03-15',
-        'Innovate Inc.',
         'Peenya',
-        'Open Orders',
-        'Urgent delivery required',
-        'OA-9912',
+        'Innovate Inc.',
+        'PO-2024-001',
+        '2024-03-15',
+        'SO-2024-001',
         '2024-03-16',
-        '2024-03-25',
-        'Fully Available',
-        'Available',
-        'Pending',
+        'QT-2024-100',
+        '123 Industrial Area, Bengaluru',
+        '29ABCDE1234F1Z5',
+        '456 Warehouse Rd, Peenya',
+        '29ABCDE1234F1Z5',
+        'Credit',
+        '30',
+        'TRUE',
+        'TRUE',
+        'FALSE',
+        'FALSE',
+        'FALSE',
+        'TRUE',
+        'FALSE',
+        'FALSE',
+        'FALSE',
+        '',
         'VALV-5W30-4L',
+        'Lubricant',
         'Valvoline 5W30 Motor Oil 4L',
         '10',
-        '50',
-        '40',
         '1200.00',
-        '12000.00',
-        '0.00',
-        '2160.00',
-        '14160.00',
-        'Fragile handling',
-        '123 Industrial Area',
-        '29ABCDE1234F1Z5',
-        '456 Warehouse Rd',
-        '29ABCDE1234F1Z5',
-        'QT-2024-100',
-        // New at last
-        'Peenya',
-        'FALSE',
-        'FALSE',
-        'FALSE',
-        'FALSE',
-        'FALSE',
-        'FALSE',
-        'FALSE',
-        'FALSE',
-        'FALSE',
-        ''
+        '100.00',
+        '18',
+        'Available',
+        'OA-9912',
+        '2024-03-20'
     ];
 
     const csvContent = [

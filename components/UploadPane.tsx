@@ -68,64 +68,62 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
         const reader = new FileReader();
         reader.onload = (e) => {
             const text = e.target?.result as string;
-            // Split lines and handle potential \r\n
             const lines = text.split(/\r?\n/).filter(l => l.trim());
             if (lines.length < 2) return;
 
-            // Sanitize headers: remove Byte Order Mark (BOM), trim, and lowercase
             const rawHeaders = lines[0].split(',');
-            const headers = rawHeaders.map(h => 
-                h.replace(/^\uFEFF/, '').trim().toLowerCase()
-            );
+            const headers = rawHeaders.map(h => h.replace(/^\uFEFF/, '').trim().toLowerCase());
             
-            /**
-             * Strict Index Finder
-             * Priority 1: Exact matches
-             * Priority 2: Very high confidence partials (excluding dangerous keywords)
-             */
-            const getColIdx = (searchTerms: string[], forbiddenTerms: string[] = []) => {
-                // Try Exact first
+            const getColIdx = (searchTerms: string[]) => {
                 for (const term of searchTerms) {
-                    const exact = headers.indexOf(term.toLowerCase());
-                    if (exact !== -1) return exact;
+                    const idx = headers.indexOf(term.toLowerCase());
+                    if (idx !== -1) return idx;
                 }
-                
-                // Try Partial only if not a "dangerous" column
+                // Partial match fallback
                 for (const term of searchTerms) {
-                    const idx = headers.findIndex(h => {
-                        const hStr = h || '';
-                        const isMatch = hStr.includes(term.toLowerCase());
-                        const isForbidden = forbiddenTerms.some(f => hStr.includes(f.toLowerCase()));
-                        return isMatch && !isForbidden;
-                    });
+                    const idx = headers.findIndex(h => h.includes(term.toLowerCase()));
                     if (idx !== -1) return idx;
                 }
                 return -1;
             };
 
-            // STRICT MAPPING: Ensure no collision between Branch and Remarks
-            const branchIdx = getColIdx(['branch', 'main branch'], ['remark', 'email', 'description', 'note', 'zone']);
-            const soNoIdx = getColIdx(['sale order number', 'so number', 'sales order']);
-            const dateIdx = getColIdx(['dates', 'po date', 'po_date', 'date']);
-            const accountIdx = getColIdx(['account name', 'customer', 'customer name']);
-            const zoneIdx = getColIdx(['zone', 'sub branch', 'sub-branch']);
-            const poStatIdx = getColIdx(['po stat', 'po status', 'order status']);
-            const partIdx = getColIdx(['item part number', 'part number', 'material', 'item code']);
-            const descIdx = getColIdx(['item description', 'description']);
+            // Mapping to Template
+            const branchIdx = getColIdx(['main branch', 'branch']);
+            const subBranchIdx = getColIdx(['sub branch', 'zone']);
+            const accountIdx = getColIdx(['account name', 'customer']);
+            const poNoIdx = getColIdx(['po number', 'po no']);
+            const poDateIdx = getColIdx(['po date']);
+            const soNoIdx = getColIdx(['so number', 'so no', 'sale order']);
+            const soDateIdx = getColIdx(['so date']);
+            const quoteIdx = getColIdx(['quote number']);
+            const billAddrIdx = getColIdx(['billing address']);
+            const billGstIdx = getColIdx(['bill to gstin']);
+            const shipAddrIdx = getColIdx(['shipping address']);
+            const shipGstIdx = getColIdx(['ship to gstin']);
+            const saleTypeIdx = getColIdx(['sale type']);
+            const creditIdx = getColIdx(['credit terms']);
+            const pfIdx = getColIdx(['p & f available']);
+            
+            // Checklist
+            const bCheckIdx = getColIdx(['b-check']);
+            const cCheckIdx = getColIdx(['c-check']);
+            const dCheckIdx = getColIdx(['d-check']);
+            const battIdx = getColIdx(['battery']);
+            const spareIdx = getColIdx(['spares']);
+            const bdIdx = getColIdx(['bd']);
+            const radIdx = getColIdx(['radiator descaling']);
+            const otherIdx = getColIdx(['others']);
+            const checkRemarksIdx = getColIdx(['checklist remarks']);
+
+            // Item Level
+            const partIdx = getColIdx(['item name', 'part number']);
+            const typeIdx = getColIdx(['item type']);
+            const descIdx = getColIdx(['item description']);
             const qtyIdx = getColIdx(['quantity', 'qty']);
-            const priceIdx = getColIdx(['unit price', 'rate', 'price']);
+            const priceIdx = getColIdx(['unit price', 'rate']);
             const discountIdx = getColIdx(['discount']);
-            const gstIdx = getColIdx(['tax amount', 'gst', 'tax']);
-            const billIdx = getColIdx(['billing address']);
-            const shipIdx = getColIdx(['shipping address']);
-            const billGstIdx = getColIdx(['bill to gstin', 'billing gstin']);
-            const shipGstIdx = getColIdx(['ship to gstin', 'shipping gstin']);
-            const quoteIdx = getColIdx(['quote number', 'quotation']);
-            const pfIdx = getColIdx(['p & f', 'p&f']);
-            const matStatIdx = getColIdx(['material status', 'mat status']);
-            const billStatIdx = getColIdx(['billing status', 'fulfillment status']);
-            const remarksIdx = getColIdx(['overall remarks', 'remarks', 'remark', 'notes']);
-            // Pre-calculate OA column indices to resolve potential scope issues
+            const gstIdx = getColIdx(['gst']);
+            const stockStatIdx = getColIdx(['stock status']);
             const oaNoIdx = getColIdx(['oa number', 'oa no']);
             const oaDateIdx = getColIdx(['oa date']);
 
@@ -136,92 +134,81 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                 for (let i = 0; i < line.length; i++) {
                     const char = line[i];
                     if (char === '"') {
-                        if (inQuotes && line[i+1] === '"') { // Handle escaped quotes ""
-                            current += '"';
-                            i++;
-                        } else {
-                            inQuotes = !inQuotes;
-                        }
+                        if (inQuotes && line[i+1] === '"') { current += '"'; i++; }
+                        else inQuotes = !inQuotes;
                     } else if (char === ',' && !inQuotes) {
                         values.push(current.trim());
                         current = '';
-                    } else {
-                        current += char;
-                    }
+                    } else current += char;
                 }
                 values.push(current.trim());
                 return values;
             });
 
-            // Helper for safe row string access
-            const getStr = (row: string[], idx: number, fallback = '') => {
-                const val = row[idx];
-                return (val !== undefined && val !== null) ? String(val).trim() : fallback;
+            const getStr = (row: string[], idx: number, fallback = '') => (idx !== -1 && row[idx]) ? row[idx].trim() : fallback;
+            const getBool = (row: string[], idx: number) => {
+                if (idx === -1 || !row[idx]) return false;
+                const v = row[idx].toLowerCase();
+                return v === 'true' || v === 'yes' || v === '1';
             };
 
-            const getLower = (row: string[], idx: number) => getStr(row, idx).toLowerCase();
-
-            // Group rows by Sale Order Number to handle multi-item POs correctly
+            // Group by PO Number for multi-item logic
             const poGroups: Record<string, any[]> = {};
             rows.forEach(row => {
-                const soNo = (soNoIdx !== -1 ? getStr(row, soNoIdx) : '') || 'EMPTY-SO';
-                if (!poGroups[soNo]) poGroups[soNo] = [];
-                poGroups[soNo].push(row);
+                const id = getStr(row, poNoIdx) || 'MANUAL-' + Math.random();
+                if (!poGroups[id]) poGroups[id] = [];
+                poGroups[id].push(row);
             });
 
-            const parsedPOs = Object.entries(poGroups).map(([soNumber, group]) => {
+            const parsedPOs = Object.entries(poGroups).map(([poNumber, group]) => {
                 const first = group[0];
                 
-                // Dashboard Status Mapping
-                let status = OverallPOStatus.Open;
-                const rawStat = (poStatIdx !== -1 ? getLower(first, poStatIdx) : '');
-                if (rawStat.includes('cancel')) status = OverallPOStatus.Cancelled;
-                if (rawStat.includes('fulfill') || rawStat.includes('done') || rawStat.includes('complete')) status = OverallPOStatus.Fulfilled;
-
-                let fulfillment = FulfillmentStatus.Partial;
-                const rawFill = (billStatIdx !== -1 ? getLower(first, billStatIdx) : '');
-                if (rawFill.includes('fully') || rawFill.includes('fulfillment')) fulfillment = FulfillmentStatus.Fulfillment;
-                if (rawFill.includes('not')) fulfillment = FulfillmentStatus.NotAvailable;
-
                 const items = group.map(row => ({
-                    partNumber: partIdx !== -1 ? getStr(row, partIdx, 'N/A') : 'N/A',
-                    itemDesc: descIdx !== -1 ? getStr(row, descIdx) : '',
-                    quantity: qtyIdx !== -1 ? parseFloat(getStr(row, qtyIdx)) || 0 : 0,
-                    rate: priceIdx !== -1 ? parseFloat(getStr(row, priceIdx)) || 0 : 0,
-                    discount: discountIdx !== -1 ? parseFloat(getStr(row, discountIdx)) || 0 : 0,
-                    gst: gstIdx !== -1 ? parseFloat(getStr(row, gstIdx)) || 18 : 18, 
-                    status: (matStatIdx !== -1 && getLower(row, matStatIdx).includes('avail')) ? POItemStatus.Available : POItemStatus.NotAvailable,
-                    allocatedQuantity: 0,
-                    deliveryQuantity: 0,
-                    invoicedQuantity: 0,
-                    oaNo: oaNoIdx !== -1 ? getStr(row, oaNoIdx) : '',
-                    oaDate: oaDateIdx !== -1 ? getStr(row, oaDateIdx) : '',
+                    partNumber: getStr(row, partIdx, 'N/A'),
+                    itemType: getStr(row, typeIdx),
+                    itemDesc: getStr(row, descIdx),
+                    quantity: parseFloat(getStr(row, qtyIdx)) || 0,
+                    rate: parseFloat(getStr(row, priceIdx)) || 0,
+                    discount: parseFloat(getStr(row, discountIdx)) || 0,
+                    gst: parseFloat(getStr(row, gstIdx)) || 18,
+                    status: getStr(row, stockStatIdx).toLowerCase().includes('avail') ? POItemStatus.Available : POItemStatus.NotAvailable,
+                    oaNo: getStr(row, oaNoIdx),
+                    oaDate: getStr(row, oaDateIdx),
                 }));
 
+                const saleType = getStr(first, saleTypeIdx) as 'Cash' | 'Credit' || 'Credit';
+
                 return {
-                    poNumber: soNumber === 'EMPTY-SO' ? 'MANUAL-' + Math.floor(Math.random()*1000) : soNumber,
-                    salesOrderNumber: soNumber === 'EMPTY-SO' ? '' : soNumber,
-                    poDate: dateIdx !== -1 ? getStr(first, dateIdx) : new Date().toISOString().split('T')[0],
-                    customerName: accountIdx !== -1 ? getStr(first, accountIdx, 'Unknown Customer') : 'Unknown Customer',
-                    mainBranch: branchIdx !== -1 ? getStr(first, branchIdx, 'Unassigned') : 'Unassigned',
-                    subBranch: zoneIdx !== -1 ? getStr(first, zoneIdx) : '',
-                    systemRemarks: remarksIdx !== -1 ? getStr(first, remarksIdx) : '',
-                    items,
-                    status,
-                    fulfillmentStatus: fulfillment,
-                    orderStatus: OrderStatus.OpenOrders,
-                    saleType: 'Credit',
-                    creditTerms: 30,
-                    billingAddress: billIdx !== -1 ? getStr(first, billIdx) : '',
-                    billToGSTIN: billGstIdx !== -1 ? getStr(first, billGstIdx) : '',
-                    shippingAddress: shipIdx !== -1 ? getStr(first, shipIdx) : '',
-                    shipToGSTIN: shipGstIdx !== -1 ? getStr(first, shipGstIdx) : '',
-                    quoteNumber: quoteIdx !== -1 ? getStr(first, quoteIdx) : '',
-                    pfAvailable: pfIdx !== -1 ? (getLower(first, pfIdx) === 'true' || getLower(first, pfIdx) === 'yes') : false,
+                    mainBranch: getStr(first, branchIdx, 'Unassigned'),
+                    subBranch: getStr(first, subBranchIdx),
+                    customerName: getStr(first, accountIdx, 'Unknown'),
+                    poNumber: poNumber,
+                    poDate: getStr(first, poDateIdx, new Date().toISOString().split('T')[0]),
+                    salesOrderNumber: getStr(first, soNoIdx),
+                    soDate: getStr(first, soDateIdx, new Date().toISOString().split('T')[0]),
+                    quoteNumber: getStr(first, quoteIdx),
+                    billingAddress: getStr(first, billAddrIdx),
+                    billToGSTIN: getStr(first, billGstIdx),
+                    shippingAddress: getStr(first, shipAddrIdx),
+                    shipToGSTIN: getStr(first, shipGstIdx),
+                    saleType: saleType,
+                    creditTerms: parseInt(getStr(first, creditIdx)) || (saleType === 'Credit' ? 30 : 0),
+                    pfAvailable: getBool(first, pfIdx),
                     checklist: {
-                        bCheck: false, cCheck: false, dCheck: false, battery: false,
-                        spares: false, bd: false, radiatorDescaling: false, others: false,
+                        bCheck: getBool(first, bCheckIdx),
+                        cCheck: getBool(first, cCheckIdx),
+                        dCheck: getBool(first, dCheckIdx),
+                        battery: getBool(first, battIdx),
+                        spares: getBool(first, spareIdx),
+                        bd: getBool(first, bdIdx),
+                        radiatorDescaling: getBool(first, radIdx),
+                        others: getBool(first, otherIdx),
                     },
+                    checklistRemarks: getStr(first, checkRemarksIdx),
+                    items,
+                    status: OverallPOStatus.Open,
+                    fulfillmentStatus: FulfillmentStatus.Partial,
+                    orderStatus: OrderStatus.OpenOrders,
                     createdAt: new Date().toISOString()
                 };
             });
@@ -541,5 +528,4 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
     );
 };
 
-// Fixed: Added missing default export
 export default UploadPane;
