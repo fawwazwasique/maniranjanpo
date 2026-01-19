@@ -68,103 +68,142 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
         const reader = new FileReader();
         reader.onload = (e) => {
             const text = e.target?.result as string;
-            const lines = text.split('\n').filter(l => l.trim());
+            // Split lines and handle potential \r\n
+            const lines = text.split(/\r?\n/).filter(l => l.trim());
             if (lines.length < 2) return;
 
-            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            // Sanitize headers: remove Byte Order Mark (BOM), trim, and lowercase
+            const rawHeaders = lines[0].split(',');
+            const headers = rawHeaders.map(h => 
+                h.replace(/^\uFEFF/, '').trim().toLowerCase()
+            );
+            
+            /**
+             * Strict Index Finder
+             * Priority 1: Exact matches
+             * Priority 2: Very high confidence partials (excluding dangerous keywords)
+             */
+            const getColIdx = (searchTerms: string[], forbiddenTerms: string[] = []) => {
+                // Try Exact first
+                for (const term of searchTerms) {
+                    const exact = headers.indexOf(term.toLowerCase());
+                    if (exact !== -1) return exact;
+                }
+                
+                // Try Partial only if not a "dangerous" column
+                for (const term of searchTerms) {
+                    const idx = headers.findIndex(h => {
+                        const isMatch = h.includes(term.toLowerCase());
+                        const isForbidden = forbiddenTerms.some(f => h.includes(f.toLowerCase()));
+                        return isMatch && !isForbidden;
+                    });
+                    if (idx !== -1) return idx;
+                }
+                return -1;
+            };
+
+            // STRICT MAPPING: 'Branch' must not be confused with 'Remarks'
+            const branchIdx = getColIdx(['branch'], ['remark', 'email', 'description', 'note']);
+            const soNoIdx = getColIdx(['sale order number', 'so number', 'sales order']);
+            const dateIdx = getColIdx(['dates', 'po date', 'date']);
+            const accountIdx = getColIdx(['account name', 'customer', 'customer name']);
+            const zoneIdx = getColIdx(['zone', 'sub branch', 'sub-branch']);
+            const poStatIdx = getColIdx(['po stat', 'po status', 'order status']);
+            const partIdx = getColIdx(['item part number', 'part number', 'material', 'item code']);
+            const descIdx = getColIdx(['item description', 'description']);
+            const qtyIdx = getColIdx(['quantity', 'qty']);
+            const priceIdx = getColIdx(['unit price', 'rate', 'price']);
+            const discountIdx = getColIdx(['discount']);
+            const gstIdx = getColIdx(['tax amount', 'gst', 'tax']);
+            const billIdx = getColIdx(['billing address']);
+            const shipIdx = getColIdx(['shipping address']);
+            const billGstIdx = getColIdx(['bill to gstin', 'billing gstin']);
+            const shipGstIdx = getColIdx(['ship to gstin', 'shipping gstin']);
+            const quoteIdx = getColIdx(['quote number', 'quotation']);
+            const pfIdx = getColIdx(['p & f', 'p&f']);
+            const matStatIdx = getColIdx(['material status']);
+            const billStatIdx = getColIdx(['billing status', 'fulfillment status']);
+            const remarksIdx = getColIdx(['overall remarks', 'remarks', 'remark']);
+
             const rows = lines.slice(1).map(line => {
                 const values: string[] = [];
                 let current = '';
                 let inQuotes = false;
-                for (let char of line) {
-                    if (char === '"') inQuotes = !inQuotes;
-                    else if (char === ',' && !inQuotes) {
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    if (char === '"') {
+                        if (inQuotes && line[i+1] === '"') { // Handle escaped quotes ""
+                            current += '"';
+                            i++;
+                        } else {
+                            inQuotes = !inQuotes;
+                        }
+                    } else if (char === ',' && !inQuotes) {
                         values.push(current.trim());
                         current = '';
-                    } else current += char;
+                    } else {
+                        current += char;
+                    }
                 }
                 values.push(current.trim());
                 return values;
             });
 
-            // Map header indices
-            const idx = (name: string) => headers.findIndex(h => h.includes(name.toLowerCase()));
-            
-            const branchIdx = idx('branch');
-            const soNoIdx = idx('sale order number');
-            const dateIdx = idx('dates');
-            const accountIdx = idx('account name');
-            const zoneIdx = idx('zone');
-            const poStatIdx = idx('po status');
-            const partIdx = idx('item part number');
-            const descIdx = idx('item description');
-            const qtyIdx = idx('quantity');
-            const priceIdx = idx('unit price');
-            const discountIdx = idx('discount');
-            const gstIdx = idx('tax amount'); // Simple approximation if gst % isn't explicit
-            const billIdx = idx('billing address');
-            const shipIdx = idx('shipping address');
-            const billGstIdx = idx('bill to gstin');
-            const shipGstIdx = idx('ship to gstin');
-            const quoteIdx = idx('quote number');
-            const pfIdx = idx('p & f');
-            const matStatIdx = idx('material status');
-            const billStatIdx = idx('billing status');
-
-            // Group rows by Sale Order Number
+            // Group rows by Sale Order Number to handle multi-item POs correctly
             const poGroups: Record<string, any[]> = {};
             rows.forEach(row => {
-                const soNo = row[soNoIdx] || 'UNKNOWN';
+                const soNo = (soNoIdx !== -1 ? row[soNoIdx] : '') || 'EMPTY-SO';
                 if (!poGroups[soNo]) poGroups[soNo] = [];
                 poGroups[soNo].push(row);
             });
 
-            const parsedPOs = Object.values(poGroups).map(group => {
+            const parsedPOs = Object.entries(poGroups).map(([soNumber, group]) => {
                 const first = group[0];
                 
-                // Fuzzy status mapping to match dashboard logic
+                // Dashboard Status Mapping
                 let status = OverallPOStatus.Open;
-                const rawStat = (first[poStatIdx] || '').toLowerCase();
+                const rawStat = (poStatIdx !== -1 ? first[poStatIdx] : '').toLowerCase();
                 if (rawStat.includes('cancel')) status = OverallPOStatus.Cancelled;
-                if (rawStat.includes('fulfill') || rawStat.includes('done')) status = OverallPOStatus.Fulfilled;
+                if (rawStat.includes('fulfill') || rawStat.includes('done') || rawStat.includes('complete')) status = OverallPOStatus.Fulfilled;
 
                 let fulfillment = FulfillmentStatus.Partial;
-                const rawFill = (first[billStatIdx] || '').toLowerCase();
+                const rawFill = (billStatIdx !== -1 ? first[billStatIdx] : '').toLowerCase();
                 if (rawFill.includes('fully') || rawFill.includes('fulfillment')) fulfillment = FulfillmentStatus.Fulfillment;
                 if (rawFill.includes('not')) fulfillment = FulfillmentStatus.NotAvailable;
 
                 const items = group.map(row => ({
-                    partNumber: row[partIdx] || 'N/A',
-                    itemDesc: row[descIdx] || '',
-                    quantity: parseFloat(row[qtyIdx]) || 0,
-                    rate: parseFloat(row[priceIdx]) || 0,
-                    discount: parseFloat(row[discountIdx]) || 0,
-                    gst: 18, // Default fallback
-                    status: (row[matStatIdx] || '').toLowerCase().includes('avail') ? POItemStatus.Available : POItemStatus.NotAvailable,
+                    partNumber: partIdx !== -1 ? row[partIdx] : 'N/A',
+                    itemDesc: descIdx !== -1 ? row[descIdx] : '',
+                    quantity: qtyIdx !== -1 ? parseFloat(row[qtyIdx]) || 0 : 0,
+                    rate: priceIdx !== -1 ? parseFloat(row[priceIdx]) || 0 : 0,
+                    discount: discountIdx !== -1 ? parseFloat(row[discountIdx]) || 0 : 0,
+                    gst: 18, 
+                    status: (matStatIdx !== -1 && row[matStatIdx].toLowerCase().includes('avail')) ? POItemStatus.Available : POItemStatus.NotAvailable,
                     allocatedQuantity: 0,
                     deliveryQuantity: 0,
                     invoicedQuantity: 0,
                 }));
 
                 return {
-                    poNumber: first[soNoIdx] || 'N/A', // Mapping SO to PO# for demo context
-                    salesOrderNumber: first[soNoIdx] || 'N/A',
-                    poDate: first[dateIdx] || new Date().toISOString().split('T')[0],
-                    customerName: first[accountIdx] || 'Unknown Customer',
-                    mainBranch: first[branchIdx] || '',
-                    subBranch: first[zoneIdx] || '',
+                    poNumber: soNumber === 'EMPTY-SO' ? 'MANUAL-' + Math.floor(Math.random()*1000) : soNumber,
+                    salesOrderNumber: soNumber === 'EMPTY-SO' ? '' : soNumber,
+                    poDate: dateIdx !== -1 ? first[dateIdx] : new Date().toISOString().split('T')[0],
+                    customerName: accountIdx !== -1 ? first[accountIdx] : 'Unknown Customer',
+                    mainBranch: branchIdx !== -1 ? first[branchIdx] : 'Unassigned',
+                    subBranch: zoneIdx !== -1 ? first[zoneIdx] : '',
+                    systemRemarks: remarksIdx !== -1 ? first[remarksIdx] : '',
                     items,
                     status,
                     fulfillmentStatus: fulfillment,
                     orderStatus: OrderStatus.OpenOrders,
                     saleType: 'Credit',
                     creditTerms: 30,
-                    billingAddress: first[billIdx] || '',
-                    billToGSTIN: first[billGstIdx] || '',
-                    shippingAddress: first[shipIdx] || '',
-                    shipToGSTIN: first[shipGstIdx] || '',
-                    quoteNumber: first[quoteIdx] || '',
-                    pfAvailable: (first[pfIdx] || '').toLowerCase() === 'true',
+                    billingAddress: billIdx !== -1 ? first[billIdx] : '',
+                    billToGSTIN: billGstIdx !== -1 ? first[billGstIdx] : '',
+                    shippingAddress: shipIdx !== -1 ? first[shipIdx] : '',
+                    shipToGSTIN: shipGstIdx !== -1 ? first[shipGstIdx] : '',
+                    quoteNumber: quoteIdx !== -1 ? first[quoteIdx] : '',
+                    pfAvailable: pfIdx !== -1 ? (first[pfIdx] || '').toLowerCase() === 'true' : false,
                     checklist: {
                         bCheck: false, cCheck: false, dCheck: false, battery: false,
                         spares: false, bd: false, radiatorDescaling: false, others: false,
