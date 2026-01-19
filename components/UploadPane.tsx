@@ -93,8 +93,9 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                 // Try Partial only if not a "dangerous" column
                 for (const term of searchTerms) {
                     const idx = headers.findIndex(h => {
-                        const isMatch = h.includes(term.toLowerCase());
-                        const isForbidden = forbiddenTerms.some(f => h.includes(f.toLowerCase()));
+                        const hStr = h || '';
+                        const isMatch = hStr.includes(term.toLowerCase());
+                        const isForbidden = forbiddenTerms.some(f => hStr.includes(f.toLowerCase()));
                         return isMatch && !isForbidden;
                     });
                     if (idx !== -1) return idx;
@@ -102,10 +103,10 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                 return -1;
             };
 
-            // STRICT MAPPING: 'Branch' must not be confused with 'Remarks'
-            const branchIdx = getColIdx(['branch'], ['remark', 'email', 'description', 'note']);
+            // STRICT MAPPING: Ensure no collision between Branch and Remarks
+            const branchIdx = getColIdx(['branch', 'main branch'], ['remark', 'email', 'description', 'note', 'zone']);
             const soNoIdx = getColIdx(['sale order number', 'so number', 'sales order']);
-            const dateIdx = getColIdx(['dates', 'po date', 'date']);
+            const dateIdx = getColIdx(['dates', 'po date', 'po_date', 'date']);
             const accountIdx = getColIdx(['account name', 'customer', 'customer name']);
             const zoneIdx = getColIdx(['zone', 'sub branch', 'sub-branch']);
             const poStatIdx = getColIdx(['po stat', 'po status', 'order status']);
@@ -121,9 +122,12 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
             const shipGstIdx = getColIdx(['ship to gstin', 'shipping gstin']);
             const quoteIdx = getColIdx(['quote number', 'quotation']);
             const pfIdx = getColIdx(['p & f', 'p&f']);
-            const matStatIdx = getColIdx(['material status']);
+            const matStatIdx = getColIdx(['material status', 'mat status']);
             const billStatIdx = getColIdx(['billing status', 'fulfillment status']);
-            const remarksIdx = getColIdx(['overall remarks', 'remarks', 'remark']);
+            const remarksIdx = getColIdx(['overall remarks', 'remarks', 'remark', 'notes']);
+            // Fix: Pre-calculate OA column indices to resolve 'idx' is not defined errors.
+            const oaNoIdx = getColIdx(['oa number', 'oa no']);
+            const oaDateIdx = getColIdx(['oa date']);
 
             const rows = lines.slice(1).map(line => {
                 const values: string[] = [];
@@ -149,10 +153,18 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                 return values;
             });
 
+            // Helper for safe row string access
+            const getStr = (row: string[], idx: number, fallback = '') => {
+                const val = row[idx];
+                return (val !== undefined && val !== null) ? String(val).trim() : fallback;
+            };
+
+            const getLower = (row: string[], idx: number) => getStr(row, idx).toLowerCase();
+
             // Group rows by Sale Order Number to handle multi-item POs correctly
             const poGroups: Record<string, any[]> = {};
             rows.forEach(row => {
-                const soNo = (soNoIdx !== -1 ? row[soNoIdx] : '') || 'EMPTY-SO';
+                const soNo = (soNoIdx !== -1 ? getStr(row, soNoIdx) : '') || 'EMPTY-SO';
                 if (!poGroups[soNo]) poGroups[soNo] = [];
                 poGroups[soNo].push(row);
             });
@@ -162,52 +174,56 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                 
                 // Dashboard Status Mapping
                 let status = OverallPOStatus.Open;
-                const rawStat = (poStatIdx !== -1 ? first[poStatIdx] : '').toLowerCase();
+                const rawStat = (poStatIdx !== -1 ? getLower(first, poStatIdx) : '');
                 if (rawStat.includes('cancel')) status = OverallPOStatus.Cancelled;
                 if (rawStat.includes('fulfill') || rawStat.includes('done') || rawStat.includes('complete')) status = OverallPOStatus.Fulfilled;
 
                 let fulfillment = FulfillmentStatus.Partial;
-                const rawFill = (billStatIdx !== -1 ? first[billStatIdx] : '').toLowerCase();
+                const rawFill = (billStatIdx !== -1 ? getLower(first, billStatIdx) : '');
                 if (rawFill.includes('fully') || rawFill.includes('fulfillment')) fulfillment = FulfillmentStatus.Fulfillment;
                 if (rawFill.includes('not')) fulfillment = FulfillmentStatus.NotAvailable;
 
                 const items = group.map(row => ({
-                    partNumber: partIdx !== -1 ? row[partIdx] : 'N/A',
-                    itemDesc: descIdx !== -1 ? row[descIdx] : '',
-                    quantity: qtyIdx !== -1 ? parseFloat(row[qtyIdx]) || 0 : 0,
-                    rate: priceIdx !== -1 ? parseFloat(row[priceIdx]) || 0 : 0,
-                    discount: discountIdx !== -1 ? parseFloat(row[discountIdx]) || 0 : 0,
-                    gst: 18, 
-                    status: (matStatIdx !== -1 && row[matStatIdx].toLowerCase().includes('avail')) ? POItemStatus.Available : POItemStatus.NotAvailable,
+                    partNumber: partIdx !== -1 ? getStr(row, partIdx, 'N/A') : 'N/A',
+                    itemDesc: descIdx !== -1 ? getStr(row, descIdx) : '',
+                    quantity: qtyIdx !== -1 ? parseFloat(getStr(row, qtyIdx)) || 0 : 0,
+                    rate: priceIdx !== -1 ? parseFloat(getStr(row, priceIdx)) || 0 : 0,
+                    discount: discountIdx !== -1 ? parseFloat(getStr(row, discountIdx)) || 0 : 0,
+                    gst: gstIdx !== -1 ? parseFloat(getStr(row, gstIdx)) || 18 : 18, 
+                    status: (matStatIdx !== -1 && getLower(row, matStatIdx).includes('avail')) ? POItemStatus.Available : POItemStatus.NotAvailable,
                     allocatedQuantity: 0,
                     deliveryQuantity: 0,
                     invoicedQuantity: 0,
+                    // Fix: Use pre-calculated indices instead of undefined 'idx' function.
+                    oaNo: oaNoIdx !== -1 ? getStr(row, oaNoIdx) : '',
+                    oaDate: oaDateIdx !== -1 ? getStr(row, oaDateIdx) : '',
                 }));
 
                 return {
                     poNumber: soNumber === 'EMPTY-SO' ? 'MANUAL-' + Math.floor(Math.random()*1000) : soNumber,
                     salesOrderNumber: soNumber === 'EMPTY-SO' ? '' : soNumber,
-                    poDate: dateIdx !== -1 ? first[dateIdx] : new Date().toISOString().split('T')[0],
-                    customerName: accountIdx !== -1 ? first[accountIdx] : 'Unknown Customer',
-                    mainBranch: branchIdx !== -1 ? first[branchIdx] : 'Unassigned',
-                    subBranch: zoneIdx !== -1 ? first[zoneIdx] : '',
-                    systemRemarks: remarksIdx !== -1 ? first[remarksIdx] : '',
+                    poDate: dateIdx !== -1 ? getStr(first, dateIdx) : new Date().toISOString().split('T')[0],
+                    customerName: accountIdx !== -1 ? getStr(first, accountIdx, 'Unknown Customer') : 'Unknown Customer',
+                    mainBranch: branchIdx !== -1 ? getStr(first, branchIdx, 'Unassigned') : 'Unassigned',
+                    subBranch: zoneIdx !== -1 ? getStr(first, zoneIdx) : '',
+                    systemRemarks: remarksIdx !== -1 ? getStr(first, remarksIdx) : '',
                     items,
                     status,
                     fulfillmentStatus: fulfillment,
                     orderStatus: OrderStatus.OpenOrders,
                     saleType: 'Credit',
                     creditTerms: 30,
-                    billingAddress: billIdx !== -1 ? first[billIdx] : '',
-                    billToGSTIN: billGstIdx !== -1 ? first[billGstIdx] : '',
-                    shippingAddress: shipIdx !== -1 ? first[shipIdx] : '',
-                    shipToGSTIN: shipGstIdx !== -1 ? first[shipGstIdx] : '',
-                    quoteNumber: quoteIdx !== -1 ? first[quoteIdx] : '',
-                    pfAvailable: pfIdx !== -1 ? (first[pfIdx] || '').toLowerCase() === 'true' : false,
+                    billingAddress: billIdx !== -1 ? getStr(first, billIdx) : '',
+                    billToGSTIN: billGstIdx !== -1 ? getStr(first, billGstIdx) : '',
+                    shippingAddress: shipIdx !== -1 ? getStr(first, shipIdx) : '',
+                    shipToGSTIN: shipGstIdx !== -1 ? getStr(first, shipGstIdx) : '',
+                    quoteNumber: quoteIdx !== -1 ? getStr(first, quoteIdx) : '',
+                    pfAvailable: pfIdx !== -1 ? (getLower(first, pfIdx) === 'true' || getLower(first, pfIdx) === 'yes') : false,
                     checklist: {
                         bCheck: false, cCheck: false, dCheck: false, battery: false,
                         spares: false, bd: false, radiatorDescaling: false, others: false,
-                    }
+                    },
+                    createdAt: new Date().toISOString()
                 };
             });
 
@@ -464,82 +480,4 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                                 <div className="flex items-center gap-4"><label className="flex items-center gap-2 font-medium"><input type="checkbox" name="pfAvailable" checked={order.pfAvailable} onChange={handleOrderChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> P & F Available</label></div>
                                 <div>
                                     <label className="block text-sm font-medium">Checklist</label>
-                                    <div className="flex flex-wrap gap-x-4 gap-y-2 mt-1">
-                                        <label className="flex items-center gap-2"><input type="checkbox" name="bCheck" checked={order.checklist.bCheck} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> B-Check</label>
-                                        <label className="flex items-center gap-2"><input type="checkbox" name="cCheck" checked={order.checklist.cCheck} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> C-Check</label>
-                                        <label className="flex items-center gap-2"><input type="checkbox" name="dCheck" checked={order.checklist.dCheck} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> D-Check</label>
-                                        <label className="flex items-center gap-2"><input type="checkbox" name="battery" checked={order.checklist.battery} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> Battery</label>
-                                        <label className="flex items-center gap-2"><input type="checkbox" name="spares" checked={order.checklist.spares} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> Spares</label>
-                                        <label className="flex items-center gap-2"><input type="checkbox" name="bd" checked={order.checklist.bd} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> BD</label>
-                                        <label className="flex items-center gap-2"><input type="checkbox" name="radiatorDescaling" checked={order.checklist.radiatorDescaling} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> Radiator Descaling</label>
-                                        <label className="flex items-center gap-2"><input type="checkbox" name="others" checked={order.checklist.others} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> Others</label>
-                                    </div>
-                                    {order.checklist.others && (
-                                        <div className="mt-3">
-                                            <label htmlFor="checklistRemarks" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Remarks for "Others"</label>
-                                            <input
-                                                type="text"
-                                                id="checklistRemarks"
-                                                name="checklistRemarks"
-                                                value={order.checklistRemarks || ''}
-                                                onChange={handleOrderChange}
-                                                placeholder="Enter remarks..."
-                                                className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500"
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                           </div>
-                        </div>
-
-                        <div className="pt-4 border-t dark:border-slate-700">
-                             <button type="submit" className="w-full flex items-center justify-center gap-2 px-4 py-3 text-base font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                <PlusIcon className="w-5 h-5" />
-                                Save Order
-                            </button>
-                        </div>
-
-                    </form>
-                </div>
-
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg">
-                    <h2 className="text-2xl font-semibold mb-4 flex items-center gap-3">
-                        <ArrowUpTrayIcon className="w-7 h-7 text-red-500" />
-                        <span>Bulk Upload POs</span>
-                    </h2>
-                    <p className="text-base text-slate-600 dark:text-slate-400 mb-4">
-                        Upload your CSV file. The system will group multiple rows with the same Sale Order Number into single Purchase Orders.
-                    </p>
-                    <div className="mb-6">
-                        <button
-                            onClick={downloadTemplate}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-100 dark:bg-red-900/50 dark:text-red-300 rounded-md hover:bg-red-200 dark:hover:bg-red-900"
-                        >
-                            <ArrowDownTrayIcon className="w-5 h-5" />
-                            Download Template
-                        </button>
-                    </div>
-                    <div
-                        onDragEnter={handleDragEnter}
-                        onDragLeave={handleDragLeave}
-                        onDragOver={handleDragOver}
-                        onDrop={handleDrop}
-                        className={`relative border-2 border-dashed rounded-lg p-12 text-center transition-colors ${dragging ? 'border-red-500 bg-red-50 dark:bg-red-900/20' : 'border-slate-300 dark:border-slate-600 hover:border-slate-400'}`}
-                    >
-                        <ArrowUpTrayIcon className="mx-auto h-12 w-12 text-slate-400"/>
-                        <p className="mt-2 block text-base font-medium text-slate-900 dark:text-white">
-                            Drag & drop CSV files here
-                        </p>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">or</p>
-                         <label htmlFor="file-upload" className="relative cursor-pointer rounded-md font-medium text-red-600 hover:text-red-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-red-500">
-                           <span>Select files</span>
-                           <input id="file-upload" name="file-upload" type="file" className="sr-only" onChange={handleFileSelect} accept=".csv" />
-                        </label>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-export default UploadPane;
+                                    <div className="flex flex-wrap gap-x-4 gap-y-2 mt

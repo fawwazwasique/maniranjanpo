@@ -27,6 +27,30 @@ type ModalType = 'none' | 'poDetail' | 'suggestion';
 type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'stockManagement';
 type Theme = 'light' | 'dark';
 
+/**
+ * Recursively sanitizes an object, specifically converting Firestore Timestamp objects
+ * into ISO strings to ensure the state remains purely JSON-serializable.
+ */
+const sanitizeData = (data: any): any => {
+    if (data === null || typeof data !== 'object') return data;
+
+    if (data instanceof Timestamp) {
+        return data.toDate().toISOString();
+    }
+
+    if (Array.isArray(data)) {
+        return data.map(sanitizeData);
+    }
+
+    const sanitized: any = {};
+    for (const key in data) {
+        if (Object.prototype.hasOwnProperty.call(data, key)) {
+            sanitized[key] = sanitizeData(data[key]);
+        }
+    }
+    return sanitized;
+};
+
 function App() {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [stock, setStock] = useState<StockItem[]>([]);
@@ -78,27 +102,27 @@ function App() {
     };
     
     const unsubPO = onSnapshot(query(collection(db, "purchaseOrders"), orderBy("createdAt", "desc")), (snapshot) => {
-        const pos = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as PurchaseOrder));
+        const pos = snapshot.docs.map(doc => sanitizeData({ ...doc.data(), id: doc.id }) as PurchaseOrder);
         setPurchaseOrders(pos);
     }, handleError);
 
     const unsubStock = onSnapshot(collection(db, "stock"), (snapshot) => {
-        const stocks = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as StockItem));
+        const stocks = snapshot.docs.map(doc => sanitizeData({ ...doc.data(), id: doc.id }) as StockItem);
         setStock(stocks);
     }, handleError);
 
     const unsubMovements = onSnapshot(query(collection(db, "stockMovements"), orderBy("timestamp", "desc")), (snapshot) => {
-        const mvts = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as StockMovement));
+        const mvts = snapshot.docs.map(doc => sanitizeData({ ...doc.data(), id: doc.id }) as StockMovement);
         setStockMovements(mvts);
     }, handleError);
 
     const unsubLogs = onSnapshot(query(collection(db, "logs"), orderBy("timestamp", "desc")), (snapshot) => {
-        const logsData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as LogEntry));
+        const logsData = snapshot.docs.map(doc => sanitizeData({ ...doc.data(), id: doc.id }) as LogEntry);
         setLogs(logsData);
     }, handleError);
 
     const unsubNotifs = onSnapshot(query(collection(db, "notifications"), orderBy("createdAt", "desc")), (snapshot) => {
-        const notifs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Notification));
+        const notifs = snapshot.docs.map(doc => sanitizeData({ ...doc.data(), id: doc.id }) as Notification);
         setNotifications(notifs);
     }, handleError);
 
