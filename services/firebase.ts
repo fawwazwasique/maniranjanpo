@@ -3,20 +3,19 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// Web app's Firebase configuration for ethenpo-3afb3
 const firebaseConfig = {
-  apiKey: "AIzaSyAzjiIzSqCK85EnnyWmYhT6gYRB6MgXmck",
-  authDomain: "maniranjanpo.firebaseapp.com",
-  projectId: "maniranjanpo",
-  storageBucket: "maniranjanpo.firebasestorage.app",
-  messagingSenderId: "72268852274",
-  appId: "1:72268852274:web:33919d281e5519d609a02b"
+  apiKey: "AIzaSyAChppSkKwwbWk3Pmc23xXMcEKgvc1MpI0",
+  authDomain: "ethenpo-3afb3.firebaseapp.com",
+  projectId: "ethenpo-3afb3",
+  storageBucket: "ethenpo-3afb3.firebasestorage.app",
+  messagingSenderId: "27456690712",
+  appId: "1:27456690712:web:6e8a5755ab3042a4c9016d"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-// Initialize Firestore
+
+// Initialize and export Firestore and Auth services
 export const db = getFirestore(app);
-// Initialize Auth
 export const auth = getAuth(app);

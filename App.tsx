@@ -28,27 +28,50 @@ type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement'
 type Theme = 'light' | 'dark';
 
 /**
- * Recursively sanitizes an object, specifically converting Firestore Timestamp objects
- * into ISO strings to ensure the state remains purely JSON-serializable.
+ * Strict data sanitizer. 
+ * Ensures state only contains serializable JSON-friendly data.
+ * Prevents internal Firestore/Firebase objects from causing circular reference errors.
  */
 const sanitizeData = (data: any): any => {
-    if (data === null || typeof data !== 'object') return data;
-
-    if (data instanceof Timestamp) {
-        return data.toDate().toISOString();
+    // Handle primitives immediately
+    if (data === null || typeof data !== 'object') {
+        return data;
     }
 
+    // Handle Firestore Timestamp
+    if (data instanceof Timestamp || (data && typeof data.toDate === 'function')) {
+        try {
+            return data.toDate().toISOString();
+        } catch {
+            return String(data);
+        }
+    }
+
+    // Handle Firestore DocumentReference / CollectionReference
+    // These contain references to the Firestore instance ('db'), which is circular.
+    if (data && data.path && typeof data.path === 'string' && (data._firestore || data.firestore)) {
+        return data.path;
+    }
+
+    // Handle Arrays
     if (Array.isArray(data)) {
         return data.map(sanitizeData);
     }
 
-    const sanitized: any = {};
-    for (const key in data) {
-        if (Object.prototype.hasOwnProperty.call(data, key)) {
-            sanitized[key] = sanitizeData(data[key]);
+    // Handle Plain Objects
+    // Only recurse if it's a plain object to avoid walking class instances (Firestore, Auth, etc.)
+    if (Object.getPrototypeOf(data) === Object.prototype || data.constructor.name === 'Object') {
+        const sanitized: any = {};
+        for (const key in data) {
+            if (Object.prototype.hasOwnProperty.call(data, key)) {
+                sanitized[key] = sanitizeData(data[key]);
+            }
         }
+        return sanitized;
     }
-    return sanitized;
+
+    // Fallback for unknown complex objects: convert to string to break circularity
+    return String(data);
 };
 
 function App() {
@@ -140,9 +163,11 @@ function App() {
   };
 
   const handleUpdatePO = useCallback(async (updatedPO: PurchaseOrder) => {
-    const poRef = doc(db, "purchaseOrders", updatedPO.id);
-    await updateDoc(poRef, { ...updatedPO });
-    addLog(updatedPO.id, "PO updated.");
+    // Sanitize data before sending to Firestore just in case
+    const cleanPO = sanitizeData(updatedPO);
+    const poRef = doc(db, "purchaseOrders", cleanPO.id);
+    await updateDoc(poRef, { ...cleanPO });
+    addLog(cleanPO.id, "PO updated.");
   }, []);
 
   const handleRegisterPart = async (partNumber: string, description: string, initialQty: number) => {
@@ -299,7 +324,7 @@ function App() {
 
   const handleSaveSingleOrder = async (order: any) => {
       try {
-          const poData = {
+          const poData = sanitizeData({
               poNumber: order.poNo,
               salesOrderNumber: order.soNo,
               poDate: order.poDate,
@@ -326,7 +351,7 @@ function App() {
               createdAt: new Date().toISOString(),
               paymentStatus: order.saleType === 'Cash' ? 'Pending' : null,
               paymentNotes: '',
-          };
+          });
           await addDoc(collection(db, "purchaseOrders"), poData);
           alert("Order saved successfully.");
       } catch (e) {
@@ -340,11 +365,11 @@ function App() {
       try {
           for (const order of parsedOrders) {
               const newRef = doc(collection(db, "purchaseOrders"));
-              batch.set(newRef, {
+              batch.set(newRef, sanitizeData({
                   ...order,
                   createdAt: new Date().toISOString(),
                   paymentNotes: '',
-              });
+              }));
           }
           await batch.commit();
           alert(`Successfully uploaded ${parsedOrders.length} orders.`);
@@ -377,7 +402,7 @@ function App() {
 
   return (
     <div className="flex h-screen bg-slate-100 dark:bg-gray-900 text-slate-900 dark:text-slate-100 overflow-hidden">
-       {firestoreError && <ErrorBanner projectId="ethen-power-po" message={firestoreError} onDismiss={() => setFirestoreError(null)} />}
+       {firestoreError && <ErrorBanner projectId="ethenpo-3afb3" message={firestoreError} onDismiss={() => setFirestoreError(null)} />}
       <Sidebar activePane={activePane} setActivePane={setActivePane} />
        <div className="flex-1 flex flex-col">
         <Header notifications={notifications} onMarkNotificationsAsRead={() => {}} theme={theme} setTheme={setTheme} />

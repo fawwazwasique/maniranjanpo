@@ -11,10 +11,11 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<Re
       if (item === null) return initialValue;
       
       try {
-          // Attempt to parse JSON. If it's a naked string, parse will fail.
+          // Attempt to parse JSON.
           return JSON.parse(item);
       } catch {
-          // If JSON parse fails, return the raw string (for simple string values)
+          // If JSON parse fails, it's likely a naked string or corrupted.
+          // Return the raw string (for simple string values stored without quotes).
           return item as unknown as T;
       }
     } catch (error) {
@@ -41,8 +42,8 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<Re
               try {
                   stringifiedValue = JSON.stringify(valueToStore);
               } catch (stringifyError) {
-                  // If stringify fails (e.g. circular structure), log error and don't persist
-                  console.error(`useLocalStorage: Attempted to save non-serializable object to "${key}".`, stringifyError);
+                  // If stringify fails (circular structure, non-serializable), log it but don't crash.
+                  console.error(`useLocalStorage: Could not persist "${key}" due to circular structure or non-serializable data.`, stringifyError);
                   return;
               }
           }
@@ -50,7 +51,8 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<Re
           window.localStorage.setItem(key, stringifiedValue);
       }
     } catch (error) {
-      console.error(`useLocalStorage: Error setting key "${key}":`, error);
+      // Final catch-all to prevent app crashes from localStorage issues
+      console.error(`useLocalStorage: Unhandled error setting key "${key}":`, error);
     }
   };
   
