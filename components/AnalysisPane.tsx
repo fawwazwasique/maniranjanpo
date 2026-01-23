@@ -207,7 +207,8 @@ const AnalysisPane: React.FC<AnalysisPaneProps> = ({ purchaseOrders, onSelectPO 
         let valvolineRecoveryValue = 0;
 
         purchaseOrders.forEach(po => {
-            const isPending = po.fulfillmentStatus === FulfillmentStatus.Partial || po.fulfillmentStatus === FulfillmentStatus.NotAvailable;
+            // Fix: FulfillmentStatus.Partial does not exist. Replaced with FulfillmentStatus.PartiallyAvailable.
+            const isPending = po.fulfillmentStatus === FulfillmentStatus.PartiallyAvailable || po.fulfillmentStatus === FulfillmentStatus.NotAvailable;
             if (!isPending) return;
 
             const valvolineItems = po.items.filter(i => (i.itemDesc || '').toLowerCase().includes('valvoline'));

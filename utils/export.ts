@@ -1,44 +1,9 @@
 
 import { PurchaseOrder } from '../types';
+import { BULK_UPLOAD_HEADERS } from '../constants';
 
 const convertToCSV = (data: PurchaseOrder[]): string => {
-    const headers = [
-        'Main Branch',
-        'Sub Branch',
-        'Account Name',
-        'PO Number',
-        'PO Date',
-        'SO Number',
-        'SO Date',
-        'Quote Number',
-        'Billing Address',
-        'Bill To GSTIN',
-        'Shipping Address',
-        'Ship To GSTIN',
-        'Sale Type',
-        'Credit Terms',
-        'P & F Available',
-        'B-Check',
-        'C-Check',
-        'D-Check',
-        'Battery',
-        'Spares',
-        'BD',
-        'Radiator Descaling',
-        'Others',
-        'Checklist Remarks',
-        'Item Name',
-        'Item Type',
-        'Item Description',
-        'Quantity',
-        'Unit Price',
-        'Discount',
-        'GST',
-        'Stock Status',
-        'OA Number',
-        'OA Date'
-    ];
-
+    const headers = BULK_UPLOAD_HEADERS;
     const rows: string[] = [];
 
     const safe = (str: any) => {
@@ -48,54 +13,47 @@ const convertToCSV = (data: PurchaseOrder[]): string => {
     };
 
     data.forEach(po => {
-        const checklist = po.checklist || {
-            bCheck: false,
-            cCheck: false,
-            dCheck: false,
-            battery: false,
-            spares: false,
-            bd: false,
-            radiatorDescaling: false,
-            others: false,
-        };
         const items = po.items && po.items.length > 0 ? po.items : [{} as any];
 
         items.forEach(item => {
             const row = [
-                safe(po.mainBranch),
-                safe(po.subBranch),
-                safe(po.customerName),
-                safe(po.poNumber),
-                safe(po.poDate),
-                safe(po.salesOrderNumber),
-                safe(po.soDate),
-                safe(po.quoteNumber),
-                safe(po.billingAddress),
-                safe(po.billToGSTIN),
-                safe(po.shippingAddress),
-                safe(po.shipToGSTIN),
-                safe(po.saleType),
-                safe(po.creditTerms),
-                safe(po.pfAvailable ? 'TRUE' : 'FALSE'),
-                safe(checklist.bCheck ? 'TRUE' : 'FALSE'),
-                safe(checklist.cCheck ? 'TRUE' : 'FALSE'),
-                safe(checklist.dCheck ? 'TRUE' : 'FALSE'),
-                safe(checklist.battery ? 'TRUE' : 'FALSE'),
-                safe(checklist.spares ? 'TRUE' : 'FALSE'),
-                safe(checklist.bd ? 'TRUE' : 'FALSE'),
-                safe(checklist.radiatorDescaling ? 'TRUE' : 'FALSE'),
-                safe(checklist.others ? 'TRUE' : 'FALSE'),
-                safe(po.checklistRemarks),
-                safe(item.partNumber),
-                safe(item.itemType),
-                safe(item.itemDesc),
-                safe(item.quantity),
-                safe(item.rate),
-                safe(item.discount),
-                safe(item.gst),
-                safe(item.status),
-                safe(item.oaNo),
-                safe(item.oaDate)
+                safe(po.mainBranch),        // 1
+                safe(po.subBranch),         // 2
+                safe(po.customerName),       // 3
+                safe(po.salesOrderNumber),   // 4
+                safe(po.soDate),             // 5
+                safe(po.poNumber),           // 6
+                safe(po.poDate),             // 7
+                safe(po.status),             // 8
+                safe(po.saleType),           // 9
+                safe(po.creditTerms),        // 10
+                safe(po.billingPlan),        // 11
+                safe(po.materials),          // 12
+                safe(po.etaAvailable),       // 13
+                safe(po.generalRemarks),     // 14
+                safe(po.invoiceNumber),      // 15
+                safe(po.invoiceDate),        // 16
+                safe(item.partNumber),       // 17
+                safe(item.itemType),         // 18
+                safe(item.category),         // 19
+                safe(item.itemDesc),         // 20
+                safe(item.quantity),         // 21
+                safe(item.rate),             // 22
+                safe(item.discount),         // 23
+                safe(item.baseAmount),       // 24
+                safe(item.taxAmount),        // 25
+                safe(item.grossAmount),      // 26
+                safe(item.stockAvailable),    // 27
+                safe(item.stockInHand),      // 28
+                safe(item.status),           // 29
+                safe(item.oaNo),             // 30
+                safe(item.oaDate),           // 31
+                safe(item.itemRemarks),      // 32
+                safe(po.billingAddress),     // 33
+                safe(po.billToGSTIN),        // 34
+                safe(po.shippingAddress),    // 35
+                safe(po.shipToGSTIN),        // 36
+                safe(po.quoteNumber)         // 37
             ];
             rows.push(row.join(','));
         });
@@ -120,78 +78,45 @@ export const exportToCSV = (data: PurchaseOrder[], filename: string = 'purchase_
 };
 
 export const downloadTemplate = (): void => {
-    const headers = [
-        'Main Branch',
-        'Sub Branch',
-        'Account Name',
-        'PO Number',
-        'PO Date',
-        'SO Number',
-        'SO Date',
-        'Quote Number',
-        'Billing Address',
-        'Bill To GSTIN',
-        'Shipping Address',
-        'Ship To GSTIN',
-        'Sale Type',
-        'Credit Terms',
-        'P & F Available (TRUE/FALSE)',
-        'B-Check (TRUE/FALSE)',
-        'C-Check (TRUE/FALSE)',
-        'D-Check (TRUE/FALSE)',
-        'Battery (TRUE/FALSE)',
-        'Spares (TRUE/FALSE)',
-        'BD (TRUE/FALSE)',
-        'Radiator Descaling (TRUE/FALSE)',
-        'Others (TRUE/FALSE)',
-        'Checklist Remarks',
-        'Item Name',
-        'Item Type',
-        'Item Description',
-        'Quantity',
-        'Unit Price',
-        'Discount',
-        'GST',
-        'Stock Status (Available/Unavailable)',
-        'OA Number',
-        'OA Date'
-    ];
-    
+    const headers = BULK_UPLOAD_HEADERS;
     const exampleRow = [
-        'Bengaluru',
-        'Peenya',
+        'Bengaluru',          // Main Branch
+        'Peenya',             // Sub Branch
         'Innovate Inc.',
+        'SO-9912',
+        '2024-03-20',
         'PO-2024-001',
         '2024-03-15',
-        'SO-2024-001',
-        '2024-03-16',
-        'QT-2024-100',
-        '123 Industrial Area, Bengaluru',
-        '29ABCDE1234F1Z5',
-        '456 Warehouse Rd, Peenya',
-        '29ABCDE1234F1Z5',
+        'Available',
         'Credit',
         '30',
-        'TRUE',
-        'TRUE',
-        'FALSE',
-        'FALSE',
-        'FALSE',
-        'TRUE',
-        'FALSE',
-        'FALSE',
-        'FALSE',
-        '',
-        'VALV-5W30-4L',
+        'Monthly',
+        'Available',
+        '2024-04-01',
+        'Urgent requirement',
+        'INV-5501',           // Invoice Number
+        '2024-03-25',         // Invoice Date
+        'VALV-5W30-4L',       // Item Name
         'Lubricant',
+        'Oil',
         'Valvoline 5W30 Motor Oil 4L',
         '10',
         '1200.00',
         '100.00',
-        '18',
-        'Available',
-        'OA-9912',
-        '2024-03-20'
+        '12000.00',
+        '2160.00',
+        '14060.00',
+        '5',
+        '100',
+        'Not Available',
+        'OA-123',
+        '2024-03-21',
+        'First batch',
+        '123 Industrial Area, Bengaluru', // Billing Address
+        '29ABCDE1234F1Z5',                // Bill To GSTIN
+        '456 Warehouse Rd, Peenya',       // Shipping Address
+        '29ABCDE1234F1Z5',                // Ship To GSTIN
+        'QT-2024-100'                     // Quote Number
     ];
 
     const csvContent = [

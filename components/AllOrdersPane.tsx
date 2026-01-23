@@ -35,7 +35,8 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
         // Apply external filter
         if (filter) {
             if (filter.status) {
-                 sortableItems = sortableItems.filter(po => po.status === filter.status || (filter.status === 'Open' && po.status === 'Partially Dispatched'));
+                // Fix: Removed reference to 'Open' and 'Partially Dispatched' as they are not in OverallPOStatus enum
+                sortableItems = sortableItems.filter(po => po.status === filter.status);
             }
             if (filter.fulfillmentStatus) {
                 sortableItems = sortableItems.filter(po => po.fulfillmentStatus === filter.fulfillmentStatus);

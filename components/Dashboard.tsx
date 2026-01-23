@@ -192,7 +192,6 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         valueFn: (pos: PurchaseOrder[]) => number,
         isPositiveGood: boolean = true
     ): TrendData | null => {
-        // Filter context
         const contextPOs = allPOs.filter(po => {
             if (currentFilters.customer && !(po.customerName || '').toLowerCase().includes(currentFilters.customer.toLowerCase())) return false;
             if (currentFilters.mainBranch && po.mainBranch !== currentFilters.mainBranch) return false;
@@ -248,31 +247,30 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
 
     const dashboardData = useMemo(() => {
-        // Helper to calculate value
         const calculateValue = (pos: PurchaseOrder[]) => pos.reduce((acc, po) => acc + (po.items || []).reduce((itemAcc, item) => itemAcc + (Number(item.quantity || 0) * Number(item.rate || 0)), 0), 0);
 
-        const openPOs = filteredPOs.filter(po => po.status === OverallPOStatus.Open || po.status === OverallPOStatus.PartiallyDispatched);
+        const openPOs = filteredPOs;
         const totalOpenPOs = openPOs.length;
         const openPOValue = calculateValue(openPOs);
         
-        const fullyAvailablePOsList = filteredPOs.filter(po => po.fulfillmentStatus === FulfillmentStatus.Fulfillment);
+        const fullyAvailablePOsList = filteredPOs.filter(po => po.materials === FulfillmentStatus.Available);
         const fullyAvailablePOs = fullyAvailablePOsList.length;
         const fullyAvailableValue = calculateValue(fullyAvailablePOsList);
 
-        const partiallyAvailablePOsList = filteredPOs.filter(po => po.fulfillmentStatus === FulfillmentStatus.Partial);
+        const partiallyAvailablePOsList = filteredPOs.filter(po => po.materials === FulfillmentStatus.PartiallyAvailable);
         const partiallyAvailablePOs = partiallyAvailablePOsList.length;
         const partiallyAvailableValue = calculateValue(partiallyAvailablePOsList);
 
-        const notAvailablePOsList = filteredPOs.filter(po => po.fulfillmentStatus === FulfillmentStatus.NotAvailable);
+        const notAvailablePOsList = filteredPOs.filter(po => po.materials === FulfillmentStatus.NotAvailable);
         const notAvailablePOs = notAvailablePOsList.length;
         const notAvailableValue = calculateValue(notAvailablePOsList);
 
         // Trends
-        const openTrend = getTrend(purchaseOrders, filters, p => p.status === OverallPOStatus.Open || p.status === OverallPOStatus.PartiallyDispatched, p => p.length, true);
-        const valueTrend = getTrend(purchaseOrders, filters, p => p.status === OverallPOStatus.Open || p.status === OverallPOStatus.PartiallyDispatched, p => calculateValue(p), true);
-        const fullyTrend = getTrend(purchaseOrders, filters, p => p.fulfillmentStatus === FulfillmentStatus.Fulfillment, p => p.length, true);
-        const partialTrend = getTrend(purchaseOrders, filters, p => p.fulfillmentStatus === FulfillmentStatus.Partial, p => p.length, true);
-        const notAvailableTrend = getTrend(purchaseOrders, filters, p => p.fulfillmentStatus === FulfillmentStatus.NotAvailable, p => p.length, false);
+        const openTrend = getTrend(purchaseOrders, filters, p => true, p => p.length, true);
+        const valueTrend = getTrend(purchaseOrders, filters, p => true, p => calculateValue(p), true);
+        const fullyTrend = getTrend(purchaseOrders, filters, p => p.materials === FulfillmentStatus.Available, p => p.length, true);
+        const partialTrend = getTrend(purchaseOrders, filters, p => p.materials === FulfillmentStatus.PartiallyAvailable, p => p.length, true);
+        const notAvailableTrend = getTrend(purchaseOrders, filters, p => p.materials === FulfillmentStatus.NotAvailable, p => p.length, false);
 
         const checklistDataRaw = {
             'B-Check': filteredPOs.filter(po => po.checklist?.bCheck).length,
@@ -297,19 +295,15 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         const checklistChartData = Object.entries(checklistDataRaw).map(([label, value]) => ({ label, value, color: checklistColors[label as keyof typeof checklistColors] || '#9ca3af' }));
 
         const valueByFulfillment = filteredPOs.reduce((acc, po) => {
-            const status = po.fulfillmentStatus || 'N/A';
+            const status = po.materials || 'N/A';
             const value = (po.items || []).reduce((iAcc, i) => iAcc + (Number(i.quantity || 0) * Number(i.rate || 0)), 0);
             acc[status] = (acc[status] || 0) + value;
             return acc;
         }, {} as Record<string, number>);
         const fulfillmentColors: Record<string, string> = { 
-            [FulfillmentStatus.New]: '#6b7280', 
-            [FulfillmentStatus.Partial]: '#f59e0b', 
-            [FulfillmentStatus.Fulfillment]: '#22c55e', 
+            [FulfillmentStatus.Available]: '#22c55e', 
+            [FulfillmentStatus.PartiallyAvailable]: '#f59e0b', 
             [FulfillmentStatus.NotAvailable]: '#ef4444',
-            [FulfillmentStatus.Release]: '#3b82f6', 
-            [FulfillmentStatus.Invoiced]: '#ef4444', 
-            [FulfillmentStatus.Shipped]: '#14b8a6' 
         };
         const fulfillmentChartData = Object.entries(valueByFulfillment).map(([label, value]) => ({ label, value, color: fulfillmentColors[label] || '#9ca3af' }));
 
@@ -439,7 +433,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-6">
                 <DashboardStatCard 
-                    title="Total Open POs" 
+                    title="Total Active POs" 
                     value={dashboardData.totalOpenPOs} 
                     icon={<ClockIcon className="w-6 h-6 text-amber-500" />} 
                     indicatorColor="bg-amber-500"
@@ -447,7 +441,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     onClick={() => onCardClick?.('OPEN')}
                 />
                 <DashboardStatCard 
-                    title="Open PO Value" 
+                    title="Active PO Value" 
                     value={dashboardData.openPOValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })} 
                     icon={<CurrencyRupeeIcon className="w-6 h-6 text-red-500" />} 
                     indicatorColor="bg-red-500"
@@ -468,7 +462,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     value={dashboardData.partiallyAvailablePOs} 
                     subValue={dashboardData.partiallyAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })}
                     icon={<TruckIcon className="w-6 h-6 text-blue-500" />} 
-                    indicatorColor="bg-blue-500"
+                    indicatorColor="bg-blue-50"
                     trend={dashboardData.partialTrend}
                     onClick={() => onCardClick?.('PARTIALLY_AVAILABLE')}
                 />
@@ -517,10 +511,10 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             </div>
             
              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                 <ChartContainer title="Open PO Ageing (by PO Count)">
+                 <ChartContainer title="Active PO Ageing (by PO Count)">
                     <HorizontalBarChart data={dashboardData.poAgeingChartData} />
                  </ChartContainer>
-                 <ChartContainer title="Open PO Ageing (by Value)">
+                 <ChartContainer title="Active PO Ageing (by Value)">
                     <HorizontalBarChart data={dashboardData.poAgeingValueChartData} isCurrency />
                  </ChartContainer>
                  <ChartContainer title="Branch Performance (by Value)">

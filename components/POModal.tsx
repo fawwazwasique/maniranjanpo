@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import type { PurchaseOrder, POItem, LogEntry } from '../types';
 import { POItemStatus, OrderStatus, FulfillmentStatus } from '../types';
-import { MAIN_BRANCHES, BRANCH_STRUCTURE } from '../constants';
+import { MAIN_BRANCHES, BRANCH_STRUCTURE, ITEM_CATEGORIES } from '../constants';
 import { PlusIcon, XMarkIcon, SparklesIcon, ChevronDownIcon } from './icons';
 
 interface POModalProps {
@@ -32,6 +32,7 @@ const initialItemState: POItem = {
     itemType: '',
     oaNo: '',
     oaDate: '',
+    category: '',
 };
 
 const initialPOState: Omit<PurchaseOrder, 'id' | 'createdAt' | 'status'> = {
@@ -48,7 +49,7 @@ const initialPOState: Omit<PurchaseOrder, 'id' | 'createdAt' | 'status'> = {
     salesOrderNumber: '',
     systemRemarks: '',
     orderStatus: OrderStatus.OpenOrders,
-    fulfillmentStatus: FulfillmentStatus.New,
+    fulfillmentStatus: FulfillmentStatus.NotAvailable,
     invoiceNumber: '',
     invoiceDate: '',
     billingAddress: '',
@@ -82,7 +83,6 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
     if (isOpen && existingPO) {
         setFormData({ 
             ...existingPO,
-            // Ensure nested objects are initialized even if missing in old data
             checklist: {
                 bCheck: existingPO.checklist?.bCheck || false,
                 cCheck: existingPO.checklist?.cCheck || false,
@@ -98,7 +98,6 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
     } else if (isOpen && !existingPO) {
         setFormData(initialPOState);
     }
-    // Reset dropdown state when modal opens/closes
     setActiveDropdownIndex(null);
   }, [isOpen, existingPO]);
 
@@ -111,6 +110,14 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
         setFormData(prev => ({ ...prev, mainBranch: value, subBranch: '' }));
     } else if (name === 'pfAvailable') {
         setFormData(prev => ({ ...prev, pfAvailable: checkedValue }));
+    } else if (name === 'saleType') {
+        const saleType = value as 'Cash' | 'Credit';
+        setFormData(prev => ({
+            ...prev,
+            saleType,
+            paymentStatus: saleType === 'Cash' ? 'Pending' : null,
+            creditTerms: saleType === 'Credit' ? 30 : 0
+        }));
     } else {
         setFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -124,16 +131,6 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
     }));
   };
   
-  const handleSaleTypeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const saleType = e.target.value as 'Cash' | 'Credit';
-    setFormData(prev => ({
-        ...prev,
-        saleType,
-        paymentStatus: saleType === 'Cash' ? 'Pending' : null,
-        creditTerms: saleType === 'Credit' ? 30 : 0
-    }));
-  };
-
   const handleItemChange = (index: number, field: keyof POItem, value: string | number) => {
     setFormData(prev => {
         const newItems = prev.items.map((item, i) => {
@@ -251,7 +248,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                                 <input type="text" id="salesOrderNumber" name="salesOrderNumber" value={formData.salesOrderNumber} onChange={handleInputChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
                             </div>
                             <div>
-                                <label htmlFor="fulfillmentStatus" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Fulfillment Status</label>
+                                <label htmlFor="fulfillmentStatus" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Materials / Fulfillment</label>
                                 <select id="fulfillmentStatus" name="fulfillmentStatus" value={formData.fulfillmentStatus} onChange={handleInputChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500">
                                     {Object.values(FulfillmentStatus).map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
@@ -274,9 +271,17 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                                {formData.items.length > 1 && (<button type="button" onClick={() => removeItem(index)} className="ml-2 text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50"><XMarkIcon className="w-5 h-5"/></button>)}
                             </div>
                             <div className="grid grid-cols-2 gap-2">
+                                <select 
+                                    value={item.category || ''} 
+                                    onChange={e => handleItemChange(index, 'category', e.target.value)} 
+                                    className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"
+                                >
+                                    <option value="">Select Category</option>
+                                    {ITEM_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                </select>
                                 <input type="text" placeholder="Item Type" value={item.itemType || ''} onChange={e => handleItemChange(index, 'itemType', e.target.value)} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
-                                <textarea placeholder="Item Description" value={item.itemDesc} onChange={e => handleItemChange(index, 'itemDesc', e.target.value)} rows={1} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500" />
                             </div>
+                            <textarea placeholder="Item Description" value={item.itemDesc} onChange={e => handleItemChange(index, 'itemDesc', e.target.value)} rows={1} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500" />
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                 <input type="number" placeholder="Qty" min="1" value={item.quantity} onChange={e => handleItemChange(index, 'quantity', parseInt(e.target.value, 10))} required className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
                                 <input type="number" placeholder="Rate" min="0.01" step="0.01" value={item.rate} onChange={e => handleItemChange(index, 'rate', parseFloat(e.target.value))} required className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
@@ -332,9 +337,12 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                 <div className="space-y-6 mt-6 md:mt-0">
                     <div className="space-y-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                         <h3 className="text-lg font-medium text-slate-800 dark:text-white">Payment & Sale Type</h3>
-                        <div role="radiogroup" className="flex gap-4">
-                            <label className="flex items-center gap-2"><input type="radio" name="saleType" value="Credit" checked={formData.saleType === 'Credit'} onChange={handleSaleTypeChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300"/> Credit</label>
-                            <label className="flex items-center gap-2"><input type="radio" name="saleType" value="Cash" checked={formData.saleType === 'Cash'} onChange={handleSaleTypeChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300"/> Cash</label>
+                        <div>
+                            <label htmlFor="saleType" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Payment Type (Cash / Credit)</label>
+                            <select id="saleType" name="saleType" value={formData.saleType} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500">
+                                <option value="Cash">Cash</option>
+                                <option value="Credit">Credit</option>
+                            </select>
                         </div>
                         {formData.saleType === 'Credit' && (
                            <div><label htmlFor="creditTerms" className="block text-sm font-medium">Credit Terms (days)</label><input type="number" id="creditTerms" name="creditTerms" value={formData.creditTerms} onChange={handleInputChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/></div>
@@ -379,7 +387,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                                 <label className="flex items-center gap-2"><input type="checkbox" name="cCheck" checked={formData.checklist?.cCheck || false} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> C-Check</label>
                                 <label className="flex items-center gap-2"><input type="checkbox" name="dCheck" checked={formData.checklist?.dCheck || false} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> D-Check</label>
                                 <label className="flex items-center gap-2"><input type="checkbox" name="battery" checked={formData.checklist?.battery || false} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> Battery</label>
-                                <label className="flex items-center gap-2"><input type="checkbox" name="spares" checked={formData.checklist?.spares || false} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> Spares</label>
+                                <label className="flex items-center gap-2"><input type="checkbox" name="spares" checked={formData.checklist?.battery || false} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> Spares</label>
                                 <label className="flex items-center gap-2"><input type="checkbox" name="bd" checked={formData.checklist?.bd || false} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> BD</label>
                                 <label className="flex items-center gap-2"><input type="checkbox" name="radiatorDescaling" checked={formData.checklist?.radiatorDescaling || false} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> Radiator Descaling</label>
                                 <label className="flex items-center gap-2"><input type="checkbox" name="others" checked={formData.checklist?.others || false} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> Others</label>

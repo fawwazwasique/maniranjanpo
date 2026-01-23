@@ -337,8 +337,9 @@ function App() {
               })),
               saleType: order.saleType,
               creditTerms: order.creditTerms,
-              status: OverallPOStatus.Open,
-              fulfillmentStatus: order.fulfillmentStatus === 'Fully Available' ? FulfillmentStatus.Fulfillment : FulfillmentStatus.Partial,
+              status: OverallPOStatus.Available,
+              materials: order.materials,
+              fulfillmentStatus: order.materials,
               orderStatus: order.orderStatus,
               billingAddress: order.billingAddress,
               billToGSTIN: order.billToGSTIN,
@@ -393,9 +394,9 @@ function App() {
   }, []);
 
   const handleDashboardCardClick = useCallback((type: string) => {
-    if (type === 'OPEN') setOrdersFilter({ status: OverallPOStatus.Open });
-    else if (type === 'FULLY_AVAILABLE') setOrdersFilter({ fulfillmentStatus: FulfillmentStatus.Fulfillment });
-    else if (type === 'PARTIALLY_AVAILABLE') setOrdersFilter({ fulfillmentStatus: FulfillmentStatus.Partial });
+    if (type === 'OPEN') setOrdersFilter(null);
+    else if (type === 'FULLY_AVAILABLE') setOrdersFilter({ fulfillmentStatus: FulfillmentStatus.Available });
+    else if (type === 'PARTIALLY_AVAILABLE') setOrdersFilter({ fulfillmentStatus: FulfillmentStatus.PartiallyAvailable });
     else if (type === 'NOT_AVAILABLE') setOrdersFilter({ fulfillmentStatus: FulfillmentStatus.NotAvailable });
     setActivePane('allOrders');
   }, []);

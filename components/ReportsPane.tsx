@@ -33,7 +33,8 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
     const missingOAData = useMemo(() => {
         const results: { po: PurchaseOrder, items: any[] }[] = [];
         purchaseOrders.forEach(po => {
-            if (po.fulfillmentStatus === FulfillmentStatus.Partial || po.fulfillmentStatus === FulfillmentStatus.NotAvailable) {
+            // Fix: FulfillmentStatus.Partial does not exist. Replaced with FulfillmentStatus.PartiallyAvailable.
+            if (po.fulfillmentStatus === FulfillmentStatus.PartiallyAvailable || po.fulfillmentStatus === FulfillmentStatus.NotAvailable) {
                 const missingItems = po.items.filter(item => {
                     const isUnavailable = item.status === POItemStatus.NotAvailable || item.stockStatus === 'Unavailable';
                     return isUnavailable && (!item.oaNo || !item.oaDate);
@@ -72,7 +73,8 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
     // Dispatch Pending Logic (Fully Available but Not Shipped)
     const dispatchPendingPOs = useMemo(() => {
         return purchaseOrders.filter(po => {
-            const isFullyAvailable = po.fulfillmentStatus === FulfillmentStatus.Fulfillment;
+            // Fix: FulfillmentStatus.Fulfillment does not exist. Replaced with FulfillmentStatus.Available.
+            const isFullyAvailable = po.fulfillmentStatus === FulfillmentStatus.Available;
             const isNotShipped = po.orderStatus !== OrderStatus.ShippedInSystemDC && po.orderStatus !== OrderStatus.Invoiced;
             return isFullyAvailable && isNotShipped;
         });

@@ -7,10 +7,13 @@ export enum POItemStatus {
 }
 
 export enum OverallPOStatus {
-    Open = 'Open',
-    PartiallyDispatched = 'Partially Dispatched',
-    Fulfilled = 'Fulfilled',
-    Cancelled = 'Cancelled'
+    Amendment = 'Amendment',
+    Available = 'Available',
+    NotAvailable = 'Not Available',
+    NeedToVisit = 'Need to visit',
+    OilRequired = 'Oil Required',
+    ServicePending = 'Service Pending',
+    SuppliedThrough = 'Supplied through'
 }
 
 export enum OrderStatus {
@@ -22,56 +25,69 @@ export enum OrderStatus {
 }
 
 export enum FulfillmentStatus {
-  New = 'New',
-  Partial = 'Partial',
-  Fulfillment = 'Fulfillment',
+  Available = 'Available',
   NotAvailable = 'Not Available',
-  Release = 'Release',
-  Invoiced = 'Invoiced',
-  Shipped = 'Shipped',
+  PartiallyAvailable = 'Partially Available',
 }
 
 export interface POItem {
-  partNumber: string;
+  partNumber: string; // Maps to Item: Item Name
   quantity: number;
-  rate: number;
+  rate: number; // Maps to Unit Price
   status: POItemStatus;
-  itemDesc?: string;
-  discount?: number;
-  gst?: number;
-  stockAvailable?: number;
-  stockInHand?: number;
+  itemDesc?: string; // Maps to Item: Item Description
+  discount?: number; // Maps to Discount Amount
+  gst?: number; // Maps to Tax % (derived from Tax Amount if needed)
+  stockAvailable?: number; // Maps to Stock Available
+  stockInHand?: number; // Maps to Stock In Hand
   allocatedQuantity?: number;
   deliveryQuantity?: number;
   invoicedQuantity?: number;
   stockStatus?: 'Available' | 'Unavailable';
   oaDate?: string;
   oaNo?: string;
-  itemType?: string;
+  itemType?: string; // Maps to Item: Item Type
+  baseAmount?: number;
+  taxAmount?: number;
+  grossAmount?: number;
+  category?: string;
+  itemRemarks?: string;
 }
 
 export interface PurchaseOrder {
   id: string;
-  poNumber: string;
-  customerName: string;
-  poDate: string;
+  poNumber: string; // Maps to PO.NO
+  customerName: string; // Maps to Account Name
+  poDate: string; // Maps to PO DATE
   items: POItem[];
-  status: OverallPOStatus;
+  status: OverallPOStatus; // Maps to Po Status
   createdAt: string;
   saleType: 'Cash' | 'Credit';
   paymentStatus: 'Received' | 'Pending' | null;
   paymentNotes: string;
   creditTerms: number;
-  mainBranch?: string;
-  subBranch?: string;
-  salesOrderNumber?: string;
-  systemRemarks?: string;
+  mainBranch?: string; // Maps to Main -Branch
+  subBranch?: string; // Maps to Sub - branch
+  salesOrderNumber?: string; // Maps to SO.NO
+  soDate?: string; // Maps to SO DATE
+  generalRemarks?: string; // Maps to Remarks (Header)
+  oaNo?: string;
+  oaDate?: string;
+  etaAvailable?: string; // Maps to Eta Available
+  billingPlan?: string; // Maps to Billing Plan
+  materials?: FulfillmentStatus; // Maps to Materials column
+  quoteNumber?: string; // Maps to Quote Number
+  billingAddress?: string;
+  billToGSTIN?: string;
+  shippingAddress?: string;
+  shipToGSTIN?: string;
   orderStatus?: OrderStatus;
-  fulfillmentStatus?: FulfillmentStatus;
-  soDate?: string;
+  fulfillmentStatus?: FulfillmentStatus; // Legacy reference kept for compatibility
+  dispatchRemarks?: string;
+  pfAvailable?: boolean;
   invoiceDate?: string;
   invoiceNumber?: string;
-  pfAvailable?: boolean;
+  systemRemarks?: string;
   checklist?: {
     bCheck: boolean;
     cCheck: boolean;
@@ -83,12 +99,6 @@ export interface PurchaseOrder {
     others: boolean;
   };
   checklistRemarks?: string;
-  billingAddress?: string;
-  billToGSTIN?: string;
-  shippingAddress?: string;
-  shipToGSTIN?: string;
-  quoteNumber?: string;
-  dispatchRemarks?: string;
 }
 
 export interface StockItem {
@@ -105,7 +115,7 @@ export interface StockMovement {
   partNumber: string;
   type: 'INWARD' | 'OUTWARD_WALKING' | 'ALLOCATION' | 'TRANSFER' | 'DEALLOCATION';
   quantity: number;
-  referenceId?: string; // PO ID or Invoice Number
+  referenceId?: string;
   remarks: string;
   timestamp: string;
 }
