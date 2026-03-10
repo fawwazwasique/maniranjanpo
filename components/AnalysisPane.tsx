@@ -1,6 +1,7 @@
 
 import React, { useMemo, useState } from 'react';
-import { PurchaseOrder, OverallPOStatus, FulfillmentStatus, POItemStatus } from '../types';
+import type { PurchaseOrder } from '../types';
+import { OverallPOStatus, FulfillmentStatus, POItemStatus } from '../types';
 import { ChartBarIcon, CheckCircleIcon, ClockIcon, TruckIcon, ChartPieIcon, SparklesIcon, XMarkIcon, MagnifyingGlassIcon, ArrowDownTrayIcon } from './icons';
 
 interface AnalysisPaneProps {

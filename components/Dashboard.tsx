@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import type { PurchaseOrder } from '../types';
-import { OverallPOStatus, FulfillmentStatus, OrderStatus } from '../types';
+import { OverallPOStatus, FulfillmentStatus, OrderStatus, POItemStatus } from '../types';
 import { CheckCircleIcon, ClockIcon, MagnifyingGlassIcon, TruckIcon, UserGroupIcon, XMarkIcon, ChartPieIcon, CalendarDaysIcon, CurrencyRupeeIcon, NoSymbolIcon, ArrowUpIcon, ArrowDownIcon } from './icons';
 import { MAIN_BRANCHES, BRANCH_STRUCTURE, ITEM_CATEGORIES } from '../constants';
 
@@ -168,6 +168,28 @@ const HorizontalBarChart: React.FC<{ data: { label: string; value: number }[], i
 }
 
 
+const getPOFulfillmentStatus = (po: PurchaseOrder, selectedCategories: string[]) => {
+    const relevantItems = (po.items || []).filter(item => 
+        selectedCategories.length === 0 || selectedCategories.includes(item.category)
+    );
+    
+    if (relevantItems.length === 0) return FulfillmentStatus.NotAvailable;
+
+    const fullyAvailableCount = relevantItems.filter(i => i.status === POItemStatus.Available || i.status === POItemStatus.Dispatched).length;
+    const notAvailableCount = relevantItems.filter(i => i.status === POItemStatus.NotAvailable).length;
+    
+    if (fullyAvailableCount === relevantItems.length) return FulfillmentStatus.Available;
+    if (notAvailableCount === relevantItems.length) return FulfillmentStatus.NotAvailable;
+    return FulfillmentStatus.PartiallyAvailable;
+};
+
+const getPOValue = (po: PurchaseOrder, selectedCategories: string[]) => {
+    const relevantItems = (po.items || []).filter(item => 
+        selectedCategories.length === 0 || selectedCategories.includes(item.category)
+    );
+    return relevantItems.reduce((itemAcc, item) => itemAcc + (Number(item.quantity || 0) * Number(item.rate || 0)), 0);
+};
+
 const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilters, customers, onCardClick }) => {
     const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -212,6 +234,9 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             if (currentFilters.customer && !(po.customerName || '').toLowerCase().includes(currentFilters.customer.toLowerCase())) return false;
             if (currentFilters.mainBranch && po.mainBranch !== currentFilters.mainBranch) return false;
             if (currentFilters.subBranch && po.subBranch !== currentFilters.subBranch) return false;
+            if (currentFilters.categories && currentFilters.categories.length > 0) {
+                if (!(po.items || []).some(item => currentFilters.categories.includes(item.category))) return false;
+            }
             return true;
         });
 
@@ -263,30 +288,30 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
 
     const dashboardData = useMemo(() => {
-        const calculateValue = (pos: PurchaseOrder[]) => pos.reduce((acc, po) => acc + (po.items || []).reduce((itemAcc, item) => itemAcc + (Number(item.quantity || 0) * Number(item.rate || 0)), 0), 0);
+        const calculateValue = (pos: PurchaseOrder[]) => pos.reduce((acc, po) => acc + getPOValue(po, filters.categories), 0);
 
         const openPOs = filteredPOs;
         const totalOpenPOs = openPOs.length;
         const openPOValue = calculateValue(openPOs);
         
-        const fullyAvailablePOsList = filteredPOs.filter(po => po.materials === FulfillmentStatus.Available);
+        const fullyAvailablePOsList = filteredPOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.Available);
         const fullyAvailablePOs = fullyAvailablePOsList.length;
         const fullyAvailableValue = calculateValue(fullyAvailablePOsList);
 
-        const partiallyAvailablePOsList = filteredPOs.filter(po => po.materials === FulfillmentStatus.PartiallyAvailable);
+        const partiallyAvailablePOsList = filteredPOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.PartiallyAvailable);
         const partiallyAvailablePOs = partiallyAvailablePOsList.length;
         const partiallyAvailableValue = calculateValue(partiallyAvailablePOsList);
 
-        const notAvailablePOsList = filteredPOs.filter(po => po.materials === FulfillmentStatus.NotAvailable);
+        const notAvailablePOsList = filteredPOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.NotAvailable);
         const notAvailablePOs = notAvailablePOsList.length;
         const notAvailableValue = calculateValue(notAvailablePOsList);
 
         // Trends
         const openTrend = getTrend(purchaseOrders, filters, p => true, p => p.length, true);
         const valueTrend = getTrend(purchaseOrders, filters, p => true, p => calculateValue(p), true);
-        const fullyTrend = getTrend(purchaseOrders, filters, p => p.materials === FulfillmentStatus.Available, p => p.length, true);
-        const partialTrend = getTrend(purchaseOrders, filters, p => p.materials === FulfillmentStatus.PartiallyAvailable, p => p.length, true);
-        const notAvailableTrend = getTrend(purchaseOrders, filters, p => p.materials === FulfillmentStatus.NotAvailable, p => p.length, false);
+        const fullyTrend = getTrend(purchaseOrders, filters, p => getPOFulfillmentStatus(p, filters.categories) === FulfillmentStatus.Available, p => p.length, true);
+        const partialTrend = getTrend(purchaseOrders, filters, p => getPOFulfillmentStatus(p, filters.categories) === FulfillmentStatus.PartiallyAvailable, p => p.length, true);
+        const notAvailableTrend = getTrend(purchaseOrders, filters, p => getPOFulfillmentStatus(p, filters.categories) === FulfillmentStatus.NotAvailable, p => p.length, false);
 
         const checklistDataRaw = {
             'B-Check': filteredPOs.filter(po => po.checklist?.bCheck).length,
@@ -311,8 +336,8 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         const checklistChartData = Object.entries(checklistDataRaw).map(([label, value]) => ({ label, value, color: checklistColors[label as keyof typeof checklistColors] || '#9ca3af' }));
 
         const valueByFulfillment = filteredPOs.reduce((acc, po) => {
-            const status = po.materials || 'N/A';
-            const value = (po.items || []).reduce((iAcc, i) => iAcc + (Number(i.quantity || 0) * Number(i.rate || 0)), 0);
+            const status = getPOFulfillmentStatus(po, filters.categories);
+            const value = getPOValue(po, filters.categories);
             acc[status] = (acc[status] || 0) + value;
             return acc;
         }, {} as Record<string, number>);
@@ -324,7 +349,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         const fulfillmentChartData = Object.entries(valueByFulfillment).map(([label, value]) => ({ label, value, color: fulfillmentColors[label] || '#9ca3af' }));
 
         const customerValue = filteredPOs.reduce((acc, po) => {
-            const value = (po.items || []).reduce((itemAcc, item) => itemAcc + (Number(item.quantity || 0) * Number(item.rate || 0)), 0);
+            const value = getPOValue(po, filters.categories);
             acc[po.customerName] = (acc[po.customerName] || 0) + value;
             return acc;
         }, {} as { [key: string]: number });
@@ -332,7 +357,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
         const valueByPayment = filteredPOs.reduce((acc, po) => {
             const type = po.saleType || 'N/A';
-            const value = (po.items || []).reduce((iAcc, i) => iAcc + (Number(i.quantity || 0) * Number(i.rate || 0)), 0);
+            const value = getPOValue(po, filters.categories);
             acc[type] = (acc[type] || 0) + value;
             return acc;
         }, {} as Record<string, number>);
@@ -347,7 +372,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             const poDate = new Date(po.poDate);
             if (isNaN(poDate.getTime())) return;
             const diffDays = Math.floor((today.getTime() - poDate.getTime()) / (1000 * 3600 * 24));
-            const poValue = (po.items || []).reduce((iAcc, i) => iAcc + (Number(i.quantity || 0) * Number(i.rate || 0)), 0);
+            const poValue = getPOValue(po, filters.categories);
 
             if (diffDays <= 30) {
                 ageing['0-30 Days']++;
@@ -371,7 +396,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
         const valueByBranch = filteredPOs.reduce((acc, po) => {
             const branch = po.mainBranch || 'Unassigned';
-            const value = (po.items || []).reduce((iAcc, i) => iAcc + (Number(i.quantity || 0) * Number(i.rate || 0)), 0);
+            const value = getPOValue(po, filters.categories);
             acc[branch] = (acc[branch] || 0) + value;
             return acc;
         }, {} as Record<string, number>);
@@ -438,28 +463,39 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                         <label htmlFor="date" className="block text-sm font-medium text-slate-700 dark:text-slate-300">PO Date</label>
                         <input type="date" id="date" name="date" value={filters.date} onChange={handleFilterChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500" />
                     </div>
-                    <div className="lg:col-span-1">
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Categories (Multi-select)</label>
-                        <div className="flex flex-wrap gap-2 max-h-[100px] overflow-y-auto p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700/50">
-                            {ITEM_CATEGORIES.map(cat => (
-                                <button
-                                    key={cat}
-                                    onClick={() => toggleCategory(cat)}
-                                    className={`px-2 py-1 text-xs font-medium rounded-full border transition-colors ${
-                                        filters.categories.includes(cat)
-                                            ? 'bg-red-500 text-white border-red-500'
-                                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700'
-                                    }`}
+                    <div className="lg:col-span-2">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Filter by Categories</label>
+                        <div className="flex flex-wrap gap-1.5 p-1.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700/30 min-h-[46px]">
+                            {ITEM_CATEGORIES.map(cat => {
+                                const isSelected = filters.categories.includes(cat);
+                                return (
+                                    <button
+                                        key={cat}
+                                        onClick={() => toggleCategory(cat)}
+                                        className={`px-3 py-1 rounded-md text-xs font-semibold transition-all duration-200 border ${
+                                            isSelected
+                                                ? 'bg-red-500 text-white border-red-500 shadow-sm scale-105'
+                                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-red-300 dark:hover:border-red-900 hover:bg-red-50 dark:hover:bg-red-900/20'
+                                        }`}
+                                    >
+                                        {cat}
+                                    </button>
+                                );
+                            })}
+                            {filters.categories.length > 0 && (
+                                <button 
+                                    onClick={() => setFilters(prev => ({ ...prev, categories: [] }))}
+                                    className="px-2 py-1 text-[10px] uppercase tracking-wider font-bold text-slate-400 hover:text-red-500 transition-colors"
                                 >
-                                    {cat}
+                                    Reset
                                 </button>
-                            ))}
+                            )}
                         </div>
                     </div>
                      <div className="flex items-end">
                         <button onClick={() => setFilters({status: '', customer: '', date: '', mainBranch: '', subBranch: '', categories: []})} className="w-full justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-slate-600 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 flex items-center gap-2">
                            <XMarkIcon className="w-4 h-4" />
-                           Clear
+                           Clear All
                         </button>
                     </div>
                 </div>

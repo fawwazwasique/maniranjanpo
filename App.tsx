@@ -416,7 +416,7 @@ function App() {
         <Header notifications={notifications} onMarkNotificationsAsRead={() => {}} theme={theme} setTheme={setTheme} />
         <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900">
             {activePane === 'dashboard' && <Dashboard purchaseOrders={purchaseOrders} filters={filters} setFilters={setFilters} customers={[]} onCardClick={handleDashboardCardClick} />}
-            {activePane === 'allOrders' && <AllOrdersPane purchaseOrders={purchaseOrders} onSelectPO={handleSelectPO} onDeletePO={() => {}} filter={ordersFilter} onClearFilter={() => setOrdersFilter(null)} />}
+            {activePane === 'allOrders' && <AllOrdersPane purchaseOrders={purchaseOrders} onSelectPO={handleSelectPO} onDeletePO={() => {}} filter={ordersFilter} onClearFilter={() => setOrdersFilter(null)} selectedCategories={filters.categories} />}
             {activePane === 'stockManagement' && (
                 <StockManagementPane 
                     stock={stock} 

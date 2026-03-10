@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
-import type { PurchaseOrder, OverallPOStatus, FulfillmentStatus, POItem } from '../types';
-import { POItemStatus } from '../types';
+import type { PurchaseOrder, OverallPOStatus, POItem } from '../types';
+import { POItemStatus, FulfillmentStatus } from '../types';
 import { MagnifyingGlassIcon, ArrowDownTrayIcon, TrashIcon, XMarkIcon, ChevronDownIcon } from './icons';
 import { exportToCSV } from '../utils/export';
 
@@ -11,23 +11,43 @@ interface AllOrdersPaneProps {
   onDeletePO: (poId: string) => void;
   filter?: { status?: OverallPOStatus, fulfillmentStatus?: FulfillmentStatus } | null;
   onClearFilter?: () => void;
+  selectedCategories?: string[];
 }
 
 type SortKeys = 'poNumber' | 'customerName' | 'poDate' | 'totalValue' | 'status' | 'fulfillmentStatus' | 'orderStatus';
 
-const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectPO, onDeletePO, filter, onClearFilter }) => {
+const getDynamicFulfillmentStatus = (items: POItem[]) => {
+    if (items.length === 0) return FulfillmentStatus.NotAvailable;
+    const fullyAvailableCount = items.filter(i => i.status === POItemStatus.Available || i.status === POItemStatus.Dispatched).length;
+    const notAvailableCount = items.filter(i => i.status === POItemStatus.NotAvailable).length;
+    
+    if (fullyAvailableCount === items.length) return FulfillmentStatus.Available;
+    if (notAvailableCount === items.length) return FulfillmentStatus.NotAvailable;
+    return FulfillmentStatus.PartiallyAvailable;
+};
+
+const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectPO, onDeletePO, filter, onClearFilter, selectedCategories = [] }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: SortKeys; direction: 'ascending' | 'descending' } | null>({ key: 'poDate', direction: 'descending' });
 
     const posWithValues = useMemo(() => {
-        return purchaseOrders.map(po => ({
-            ...po,
-            totalValue: (po.items || []).reduce((acc, item) => {
+        return purchaseOrders.map(po => {
+            const relevantItems = (po.items || []).filter(item => 
+                selectedCategories.length === 0 || selectedCategories.includes(item.category)
+            );
+            
+            const totalValue = relevantItems.reduce((acc, item) => {
                 const val = Number(item.quantity || 0) * Number(item.rate || 0);
                 return acc + (isNaN(val) ? 0 : val);
-            }, 0)
-        }));
-    }, [purchaseOrders]);
+            }, 0);
+
+            return {
+                ...po,
+                filteredItems: relevantItems,
+                totalValue
+            };
+        }).filter(po => po.filteredItems.length > 0 || selectedCategories.length === 0);
+    }, [purchaseOrders, selectedCategories]);
     
     const filteredAndSortedPOs = useMemo(() => {
         let sortableItems = [...posWithValues];
@@ -35,11 +55,10 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
         // Apply external filter
         if (filter) {
             if (filter.status) {
-                // Fix: Removed reference to 'Open' and 'Partially Dispatched' as they are not in OverallPOStatus enum
                 sortableItems = sortableItems.filter(po => po.status === filter.status);
             }
             if (filter.fulfillmentStatus) {
-                sortableItems = sortableItems.filter(po => po.fulfillmentStatus === filter.fulfillmentStatus);
+                sortableItems = sortableItems.filter(po => getDynamicFulfillmentStatus(po.filteredItems) === filter.fulfillmentStatus);
             }
         }
 
@@ -153,8 +172,8 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                     </thead>
                     <tbody className="bg-white dark:bg-slate-800/50">
                         {filteredAndSortedPOs.map(po => {
-                            const stats = getItemStats(po.items);
-                            const totalItems = (po.items || []).length;
+                            const stats = getItemStats(po.filteredItems);
+                            const totalItems = po.filteredItems.length;
                             return (
                                 <tr key={po.id} className="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50">
                                     <td className="p-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">{po.poNumber}</td>

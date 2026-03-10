@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
-import { PurchaseOrder, OverallPOStatus, FulfillmentStatus, OrderStatus, POItemStatus } from '../types';
+import type { PurchaseOrder } from '../types';
+import { OverallPOStatus, FulfillmentStatus, OrderStatus, POItemStatus } from '../types';
 import { exportToCSV } from '../utils/export';
 import { ArrowDownTrayIcon, ClipboardDocumentListIcon, ExclamationTriangleIcon, TruckIcon, CheckCircleIcon, DatabaseIcon } from './icons';
 
