@@ -32,6 +32,17 @@ export const ITEM_CATEGORIES = [
     'Growth Parts'
 ];
 
+export const SALE_TYPES = [
+    'Cash',
+    'Credit',
+    'PI Sent',
+    'Advance Payment',
+    'Received',
+    'Cheque',
+    'RTGS/NEFT',
+    'Payment is Ready with Customer'
+];
+
 export const BULK_UPLOAD_HEADERS = [
     'Main -Branch',
     'Sub - branch',

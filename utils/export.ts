@@ -108,8 +108,8 @@ export const downloadTemplate = (): void => {
         '2024-03-15',
         'Available',          // Po Status
         'Open Orders',        // Order Status
-        'Credit',
-        '30',
+        'Advance Payment',    // Sale Type
+        '0',                  // Credit Days
         'Monthly',
         'Available',
         '2024-04-01',

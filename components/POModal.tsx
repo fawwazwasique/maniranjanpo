@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import type { PurchaseOrder, POItem, LogEntry } from '../types';
 import { POItemStatus, OrderStatus, FulfillmentStatus } from '../types';
-import { MAIN_BRANCHES, BRANCH_STRUCTURE, ITEM_CATEGORIES } from '../constants';
+import { MAIN_BRANCHES, BRANCH_STRUCTURE, ITEM_CATEGORIES, SALE_TYPES } from '../constants';
 import { PlusIcon, XMarkIcon, SparklesIcon, ChevronDownIcon } from './icons';
 
 interface POModalProps {
@@ -40,7 +40,7 @@ const initialPOState: Omit<PurchaseOrder, 'id' | 'createdAt' | 'status'> = {
     customerName: '',
     poDate: new Date().toISOString().split('T')[0],
     items: [initialItemState],
-    saleType: 'Credit',
+    saleType: 'Credit' as any,
     paymentStatus: null,
     paymentNotes: '',
     creditTerms: 30,
@@ -111,7 +111,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
     } else if (name === 'pfAvailable') {
         setFormData(prev => ({ ...prev, pfAvailable: checkedValue }));
     } else if (name === 'saleType') {
-        const saleType = value as 'Cash' | 'Credit';
+        const saleType = value as any;
         setFormData(prev => ({
             ...prev,
             saleType,
@@ -338,10 +338,9 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                     <div className="space-y-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                         <h3 className="text-lg font-medium text-slate-800 dark:text-white">Payment & Sale Type</h3>
                         <div>
-                            <label htmlFor="saleType" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Payment Type (Cash / Credit)</label>
+                            <label htmlFor="saleType" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Payment Type</label>
                             <select id="saleType" name="saleType" value={formData.saleType} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500">
-                                <option value="Cash">Cash</option>
-                                <option value="Credit">Credit</option>
+                                {SALE_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
                             </select>
                         </div>
                         {formData.saleType === 'Credit' && (

@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { ArrowUpTrayIcon, DocumentPlusIcon, PlusIcon, XMarkIcon, ArrowDownTrayIcon } from './icons';
-import { MAIN_BRANCHES, BRANCH_STRUCTURE, BULK_UPLOAD_HEADERS, ITEM_CATEGORIES } from '../constants';
+import { MAIN_BRANCHES, BRANCH_STRUCTURE, BULK_UPLOAD_HEADERS, ITEM_CATEGORIES, SALE_TYPES } from '../constants';
 import { downloadTemplate } from '../utils/export';
 import { OrderStatus, OverallPOStatus, FulfillmentStatus, POItemStatus } from '../types';
 
@@ -52,7 +52,7 @@ const initialOrderState = {
     shippingAddress: '',
     shipToGSTIN: '',
     quoteNumber: '',
-    saleType: 'Credit' as 'Cash' | 'Credit',
+    saleType: 'Credit' as any,
     creditTerms: 30,
     pfAvailable: false,
     checklist: {
@@ -206,7 +206,7 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                     status: getStr(first, poStatusIdx) as OverallPOStatus || OverallPOStatus.Available,
                     poStatus: getStr(first, poStatusIdx) as OverallPOStatus || OverallPOStatus.Available,
                     orderStatus: getStr(first, orderStatusIdx) as OrderStatus || OrderStatus.OpenOrders,
-                    saleType: getStr(first, saleTypeIdx, 'Credit') as 'Cash' | 'Credit',
+                    saleType: getStr(first, saleTypeIdx, 'Credit') as any,
                     creditTerms: getNum(first, creditDaysIdx, 30),
                     billingPlan: getStr(first, billPlanIdx),
                     materials: getStr(first, materialsIdx) as FulfillmentStatus || FulfillmentStatus.Available,
@@ -250,7 +250,7 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
         } else if (name === 'saleType') {
             setOrder(prev => ({ 
                 ...prev, 
-                saleType: value as 'Cash' | 'Credit',
+                saleType: value as any,
                 creditTerms: value === 'Credit' ? 30 : 0 
             }));
         } else {
@@ -341,10 +341,9 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                             {renderField("Order Status", "orderStatus", "select", Object.values(OrderStatus).map(s => ({value: s, label: s})))}
                             
                             <div>
-                                <label htmlFor="saleType" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Sale Type (Cash / Credit)</label>
+                                <label htmlFor="saleType" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Sale Type</label>
                                 <select id="saleType" name="saleType" value={order.saleType} onChange={handleOrderChange} className="mt-1 block w-full px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500">
-                                    <option value="Cash">Cash</option>
-                                    <option value="Credit">Credit</option>
+                                    {SALE_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
                                 </select>
                             </div>
                             {order.saleType === 'Credit' && (
