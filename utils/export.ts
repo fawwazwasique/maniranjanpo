@@ -25,35 +25,47 @@ const convertToCSV = (data: PurchaseOrder[]): string => {
                 safe(po.poNumber),           // 6
                 safe(po.poDate),             // 7
                 safe(po.status),             // 8
-                safe(po.saleType),           // 9
-                safe(po.creditTerms),        // 10
-                safe(po.billingPlan),        // 11
-                safe(po.materials),          // 12
-                safe(po.etaAvailable),       // 13
-                safe(po.generalRemarks),     // 14
-                safe(po.invoiceNumber),      // 15
-                safe(po.invoiceDate),        // 16
-                safe(item.partNumber),       // 17
-                safe(item.itemType),         // 18
-                safe(item.category),         // 19
-                safe(item.itemDesc),         // 20
-                safe(item.quantity),         // 21
-                safe(item.rate),             // 22
-                safe(item.discount),         // 23
-                safe(item.baseAmount),       // 24
-                safe(item.taxAmount),        // 25
-                safe(item.grossAmount),      // 26
-                safe(item.stockAvailable),    // 27
-                safe(item.stockInHand),      // 28
-                safe(item.status),           // 29
-                safe(item.oaNo),             // 30
-                safe(item.oaDate),           // 31
-                safe(item.itemRemarks),      // 32
-                safe(po.billingAddress),     // 33
-                safe(po.billToGSTIN),        // 34
-                safe(po.shippingAddress),    // 35
-                safe(po.shipToGSTIN),        // 36
-                safe(po.quoteNumber)         // 37
+                safe(po.orderStatus),        // 9
+                safe(po.saleType),           // 10
+                safe(po.creditTerms),        // 11
+                safe(po.billingPlan),        // 12
+                safe(po.materials),          // 13
+                safe(po.etaAvailable),       // 14
+                safe(po.generalRemarks),     // 15
+                safe(po.invoiceNumber),      // 16
+                safe(po.invoiceDate),        // 17
+                safe(po.pfAvailable),        // 18
+                safe(po.checklist?.bCheck),  // 19
+                safe(po.checklist?.cCheck),  // 20
+                safe(po.checklist?.dCheck),  // 21
+                safe(po.checklist?.battery), // 22
+                safe(po.checklist?.spares),  // 23
+                safe(po.checklist?.bd),      // 24
+                safe(po.checklist?.radiatorDescaling), // 25
+                safe(po.checklist?.others),  // 26
+                safe(po.checklistRemarks),   // 27
+                safe(po.dispatchRemarks),    // 28
+                safe(item.partNumber),       // 29
+                safe(item.itemType),         // 30
+                safe(item.category),         // 31
+                safe(item.itemDesc),         // 32
+                safe(item.quantity),         // 33
+                safe(item.rate),             // 34
+                safe(item.discount),         // 35
+                safe(item.baseAmount),       // 36
+                safe(item.taxAmount),        // 37
+                safe(item.grossAmount),      // 38
+                safe(item.stockAvailable),    // 39
+                safe(item.stockInHand),      // 40
+                safe(item.status),           // 41
+                safe(item.oaNo),             // 42
+                safe(item.oaDate),           // 43
+                safe(item.itemRemarks),      // 44
+                safe(po.billingAddress),     // 45
+                safe(po.billToGSTIN),        // 46
+                safe(po.shippingAddress),    // 47
+                safe(po.shipToGSTIN),        // 48
+                safe(po.quoteNumber)         // 49
             ];
             rows.push(row.join(','));
         });
@@ -79,6 +91,13 @@ export const exportToCSV = (data: PurchaseOrder[], filename: string = 'purchase_
 
 export const downloadTemplate = (): void => {
     const headers = BULK_UPLOAD_HEADERS;
+    
+    const safe = (str: any) => {
+        if (str === undefined || str === null) return '""';
+        const s = String(str).replace(/"/g, '""');
+        return `"${s}"`;
+    };
+
     const exampleRow = [
         'Bengaluru',          // Main Branch
         'Peenya',             // Sub Branch
@@ -87,7 +106,8 @@ export const downloadTemplate = (): void => {
         '2024-03-20',
         'PO-2024-001',
         '2024-03-15',
-        'Available',
+        'Available',          // Po Status
+        'Open Orders',        // Order Status
         'Credit',
         '30',
         'Monthly',
@@ -96,6 +116,17 @@ export const downloadTemplate = (): void => {
         'Urgent requirement',
         'INV-5501',           // Invoice Number
         '2024-03-25',         // Invoice Date
+        'TRUE',               // P & F Available
+        'TRUE',               // B-Check
+        'FALSE',              // C-Check
+        'FALSE',              // D-Check
+        'TRUE',               // Battery
+        'FALSE',              // Spares
+        'FALSE',              // BD
+        'FALSE',              // Radiator Descaling
+        'FALSE',              // Others
+        '',                   // Checklist Remarks
+        '',                   // Dispatch Remarks
         'VALV-5W30-4L',       // Item Name
         'Lubricant',
         'Oil',
@@ -117,7 +148,7 @@ export const downloadTemplate = (): void => {
         '456 Warehouse Rd, Peenya',       // Shipping Address
         '29ABCDE1234F1Z5',                // Ship To GSTIN
         'QT-2024-100'                     // Quote Number
-    ];
+    ].map(safe);
 
     const csvContent = [
         headers.join(','), 

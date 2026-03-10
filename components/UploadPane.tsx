@@ -39,6 +39,7 @@ const initialOrderState = {
     soNo: '',
     soDate: new Date().toISOString().split('T')[0],
     poStatus: OverallPOStatus.Available,
+    orderStatus: OrderStatus.OpenOrders,
     generalRemarks: '',
     etaAvailable: '',
     billingPlan: '',
@@ -53,6 +54,19 @@ const initialOrderState = {
     quoteNumber: '',
     saleType: 'Credit' as 'Cash' | 'Credit',
     creditTerms: 30,
+    pfAvailable: false,
+    checklist: {
+        bCheck: false,
+        cCheck: false,
+        dCheck: false,
+        battery: false,
+        spares: false,
+        bd: false,
+        radiatorDescaling: false,
+        others: false,
+    },
+    checklistRemarks: '',
+    dispatchRemarks: '',
 };
 
 const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload }) => {
@@ -81,6 +95,7 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
             const poNoIdx = getColIdx('PO.NO');
             const poDateIdx = getColIdx('PO DATE');
             const poStatusIdx = getColIdx('Po Status');
+            const orderStatusIdx = getColIdx('Order Status');
             const saleTypeIdx = getColIdx('Sale Type');
             const creditDaysIdx = getColIdx('Credit Days');
             const billPlanIdx = getColIdx('Billing Plan');
@@ -89,6 +104,18 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
             const genRemIdx = getColIdx('General Remarks');
             const invNoIdx = getColIdx('Invoice Number');
             const invDateIdx = getColIdx('Invoice Date');
+            
+            const pfIdx = getColIdx('P & F Available');
+            const bCheckIdx = getColIdx('B-Check');
+            const cCheckIdx = getColIdx('C-Check');
+            const dCheckIdx = getColIdx('D-Check');
+            const batteryIdx = getColIdx('Battery');
+            const sparesIdx = getColIdx('Spares');
+            const bdIdx = getColIdx('BD');
+            const radIdx = getColIdx('Radiator Descaling');
+            const othersIdx = getColIdx('Others');
+            const checkRemIdx = getColIdx('Checklist Remarks');
+            const dispatchRemIdx = getColIdx('Dispatch Remarks');
             
             const nameIdx = getColIdx('Item: Item Name');
             const typeIdx = getColIdx('Item: Item Type');
@@ -133,6 +160,11 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
 
             const getStr = (row: string[], idx: number, fallback = '') => (idx !== -1 && row[idx]) ? row[idx].trim() : fallback;
             const getNum = (row: string[], idx: number, fallback = 0) => (idx !== -1 && row[idx]) ? parseFloat(row[idx].replace(/[^0-9.]/g, '')) || fallback : fallback;
+            const getBool = (row: string[], idx: number) => {
+                if (idx === -1 || !row[idx]) return false;
+                const v = row[idx].toLowerCase();
+                return v === 'true' || v === 'yes' || v === '1' || v === 'checked';
+            };
 
             const poGroups: Record<string, any[]> = {};
             rows.forEach(row => {
@@ -172,6 +204,8 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                     poNumber: poNumber,
                     poDate: getStr(first, poDateIdx, new Date().toISOString().split('T')[0]),
                     status: getStr(first, poStatusIdx) as OverallPOStatus || OverallPOStatus.Available,
+                    poStatus: getStr(first, poStatusIdx) as OverallPOStatus || OverallPOStatus.Available,
+                    orderStatus: getStr(first, orderStatusIdx) as OrderStatus || OrderStatus.OpenOrders,
                     saleType: getStr(first, saleTypeIdx, 'Credit') as 'Cash' | 'Credit',
                     creditTerms: getNum(first, creditDaysIdx, 30),
                     billingPlan: getStr(first, billPlanIdx),
@@ -181,6 +215,19 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                     invoiceDate: getStr(first, invDateIdx),
                     etaAvailable: getStr(first, etaIdx),
                     generalRemarks: getStr(first, genRemIdx),
+                    pfAvailable: getBool(first, pfIdx),
+                    checklist: {
+                        bCheck: getBool(first, bCheckIdx),
+                        cCheck: getBool(first, cCheckIdx),
+                        dCheck: getBool(first, dCheckIdx),
+                        battery: getBool(first, batteryIdx),
+                        spares: getBool(first, sparesIdx),
+                        bd: getBool(first, bdIdx),
+                        radiatorDescaling: getBool(first, radIdx),
+                        others: getBool(first, othersIdx),
+                    },
+                    checklistRemarks: getStr(first, checkRemIdx),
+                    dispatchRemarks: getStr(first, dispatchRemIdx),
                     billingAddress: getStr(first, billAddrIdx),
                     billToGSTIN: getStr(first, billGstIdx),
                     shippingAddress: getStr(first, shipAddrIdx),
@@ -291,6 +338,7 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                             {renderField("PO.NO", "poNo", "text", [], true)}
                             {renderField("PO DATE", "poDate", "date", [], true)}
                             {renderField("Po Status", "poStatus", "select", Object.values(OverallPOStatus).map(s => ({value: s, label: s})))}
+                            {renderField("Order Status", "orderStatus", "select", Object.values(OrderStatus).map(s => ({value: s, label: s})))}
                             
                             <div>
                                 <label htmlFor="saleType" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Sale Type (Cash / Credit)</label>
@@ -314,6 +362,61 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                             <div className="md:col-span-3">
                                 <label className="block text-sm font-medium">General Remarks</label>
                                 <textarea name="generalRemarks" value={order.generalRemarks} onChange={handleOrderChange} rows={2} className="mt-1 block w-full px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"></textarea>
+                            </div>
+                        </div>
+
+                        {/* Additional Details Section */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-slate-50 dark:bg-slate-900/30 rounded-xl">
+                            <div className="md:col-span-2"><h3 className="text-lg font-bold text-slate-800 dark:text-white border-b pb-2 mb-2">Additional Details & Checklist</h3></div>
+                            <div className="flex items-center gap-4">
+                                <label className="flex items-center gap-2 font-medium">
+                                    <input 
+                                        type="checkbox" 
+                                        name="pfAvailable" 
+                                        checked={order.pfAvailable} 
+                                        onChange={(e) => setOrder(prev => ({ ...prev, pfAvailable: e.target.checked }))} 
+                                        className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"
+                                    /> 
+                                    P & F Available
+                                </label>
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium mb-2">Checklist</label>
+                                <div className="flex flex-wrap gap-x-6 gap-y-3">
+                                    {[
+                                        { label: 'B-Check', name: 'bCheck' },
+                                        { label: 'C-Check', name: 'cCheck' },
+                                        { label: 'D-Check', name: 'dCheck' },
+                                        { label: 'Battery', name: 'battery' },
+                                        { label: 'Spares', name: 'spares' },
+                                        { label: 'BD', name: 'bd' },
+                                        { label: 'Radiator Descaling', name: 'radiatorDescaling' },
+                                        { label: 'Others', name: 'others' },
+                                    ].map(item => (
+                                        <label key={item.name} className="flex items-center gap-2 text-sm">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={(order.checklist as any)[item.name]} 
+                                                onChange={(e) => setOrder(prev => ({
+                                                    ...prev,
+                                                    checklist: { ...prev.checklist, [item.name]: e.target.checked }
+                                                }))}
+                                                className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"
+                                            />
+                                            {item.label}
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                            {order.checklist.others && (
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium">Checklist Remarks (for Others)</label>
+                                    <input type="text" name="checklistRemarks" value={order.checklistRemarks} onChange={handleOrderChange} className="mt-1 block w-full px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500" />
+                                </div>
+                            )}
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium">Dispatch Pending Remarks</label>
+                                <textarea name="dispatchRemarks" value={order.dispatchRemarks} onChange={handleOrderChange} rows={2} className="mt-1 block w-full px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white" placeholder="Reason for not shipping..."></textarea>
                             </div>
                         </div>
 
@@ -399,7 +502,7 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                             <ArrowUpTrayIcon className={`w-16 h-16 ${dragging ? 'text-red-600 animate-bounce' : 'text-slate-300'}`} />
                         </div>
                         <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-2">Bulk Import (CSV)</h3>
-                        <p className="text-slate-500 dark:text-slate-400 text-center mb-8 max-w-md">Drag and drop your spreadsheet here. The format must exactly match the 37 columns defined in the template.</p>
+                        <p className="text-slate-500 dark:text-slate-400 text-center mb-8 max-w-md">Drag and drop your spreadsheet here. The format must exactly match the 49 columns defined in the template.</p>
                         
                         <div className="flex flex-col sm:flex-row gap-4">
                             <label className="flex items-center gap-3 px-8 py-4 bg-red-600 text-white rounded-lg hover:bg-red-700 cursor-pointer shadow-xl font-black transition-all active:scale-95">
