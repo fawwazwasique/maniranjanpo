@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import type { PurchaseOrder } from '../types';
 import { OverallPOStatus, FulfillmentStatus, OrderStatus } from '../types';
 import { CheckCircleIcon, ClockIcon, MagnifyingGlassIcon, TruckIcon, UserGroupIcon, XMarkIcon, ChartPieIcon, CalendarDaysIcon, CurrencyRupeeIcon, NoSymbolIcon, ArrowUpIcon, ArrowDownIcon } from './icons';
-import { MAIN_BRANCHES, BRANCH_STRUCTURE } from '../constants';
+import { MAIN_BRANCHES, BRANCH_STRUCTURE, ITEM_CATEGORIES } from '../constants';
 
 interface DashboardProps {
   purchaseOrders: PurchaseOrder[];
@@ -13,6 +13,7 @@ interface DashboardProps {
     date: string;
     mainBranch: string;
     subBranch: string;
+    categories: string[];
   };
   setFilters: React.Dispatch<React.SetStateAction<{
     status: string;
@@ -20,6 +21,7 @@ interface DashboardProps {
     date: string;
     mainBranch: string;
     subBranch: string;
+    categories: string[];
   }>>;
   customers: string[];
   onCardClick?: (type: string) => void;
@@ -176,13 +178,27 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         }
     };
 
+    const toggleCategory = (category: string) => {
+        setFilters(prev => {
+            const current = prev.categories || [];
+            const next = current.includes(category)
+                ? current.filter(c => c !== category)
+                : [...current, category];
+            return { ...prev, categories: next };
+        });
+    };
+
     const filteredPOs = useMemo(() => {
         return purchaseOrders
             .filter(po => filters.status ? po.status === filters.status : true)
             .filter(po => filters.customer ? (po.customerName || '').toLowerCase().includes(filters.customer.toLowerCase()) : true)
             .filter(po => filters.date ? new Date(po.poDate).toISOString().split('T')[0] === filters.date : true)
             .filter(po => filters.mainBranch ? po.mainBranch === filters.mainBranch : true)
-            .filter(po => filters.subBranch ? po.subBranch === filters.subBranch : true);
+            .filter(po => filters.subBranch ? po.subBranch === filters.subBranch : true)
+            .filter(po => {
+                if (!filters.categories || filters.categories.length === 0) return true;
+                return (po.items || []).some(item => filters.categories.includes(item.category));
+            });
     }, [purchaseOrders, filters]);
 
     const getTrend = (
@@ -422,8 +438,26 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                         <label htmlFor="date" className="block text-sm font-medium text-slate-700 dark:text-slate-300">PO Date</label>
                         <input type="date" id="date" name="date" value={filters.date} onChange={handleFilterChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500" />
                     </div>
+                    <div className="lg:col-span-1">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Categories (Multi-select)</label>
+                        <div className="flex flex-wrap gap-2 max-h-[100px] overflow-y-auto p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700/50">
+                            {ITEM_CATEGORIES.map(cat => (
+                                <button
+                                    key={cat}
+                                    onClick={() => toggleCategory(cat)}
+                                    className={`px-2 py-1 text-xs font-medium rounded-full border transition-colors ${
+                                        filters.categories.includes(cat)
+                                            ? 'bg-red-500 text-white border-red-500'
+                                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700'
+                                    }`}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                      <div className="flex items-end">
-                        <button onClick={() => setFilters({status: '', customer: '', date: '', mainBranch: '', subBranch: ''})} className="w-full justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-slate-600 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 flex items-center gap-2">
+                        <button onClick={() => setFilters({status: '', customer: '', date: '', mainBranch: '', subBranch: '', categories: []})} className="w-full justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-slate-600 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 flex items-center gap-2">
                            <XMarkIcon className="w-4 h-4" />
                            Clear
                         </button>

@@ -263,7 +263,7 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
         setOrder(prev => {
             const newItems = prev.items.map((item, i) => {
                 if (i === index) {
-                    return { ...item, [name]: value };
+                    return { ...item, [name]: value ?? '' };
                 }
                 return item;
             });
@@ -308,12 +308,12 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
         <div>
             <label htmlFor={name} className="block text-sm font-medium text-slate-700 dark:text-slate-300">{label}</label>
             {type === 'select' ? (
-                <select id={name} name={name} value={(order as any)[name]} onChange={handleOrderChange} required={required} className="mt-1 block w-full px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500">
+                <select id={name} name={name} value={(order as any)[name] || ''} onChange={handleOrderChange} required={required} className="mt-1 block w-full px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500">
                     <option value="">Select...</option>
                     {options?.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                 </select>
             ) : (
-                <input type={type} id={name} name={name} value={(order as any)[name]} onChange={handleOrderChange} required={required} className="mt-1 block w-full px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500" />
+                <input type={type} id={name} name={name} value={(order as any)[name] || ''} onChange={handleOrderChange} required={required} className="mt-1 block w-full px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500" />
             )}
         </div>
     );

@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import type { PurchaseOrder, OverallPOStatus, FulfillmentStatus, POItem } from '../types';
 import { POItemStatus } from '../types';
-import { MagnifyingGlassIcon, ArrowDownTrayIcon, TrashIcon, XMarkIcon } from './icons';
+import { MagnifyingGlassIcon, ArrowDownTrayIcon, TrashIcon, XMarkIcon, ChevronDownIcon } from './icons';
 import { exportToCSV } from '../utils/export';
 
 interface AllOrdersPaneProps {
@@ -102,7 +102,25 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                         className="w-full pl-10 pr-4 py-2.5 text-base rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500"
                     />
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <div className="relative w-full sm:w-48">
+                        <select 
+                            value={`${sortConfig?.key}-${sortConfig?.direction}`}
+                            onChange={(e) => {
+                                const [key, direction] = e.target.value.split('-');
+                                setSortConfig({ key: key as SortKeys, direction: direction as 'ascending' | 'descending' });
+                            }}
+                            className="w-full pl-3 pr-10 py-2.5 text-sm font-medium rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500 appearance-none"
+                        >
+                            <option value="poDate-descending">Date: Newest First</option>
+                            <option value="poDate-ascending">Date: Oldest First</option>
+                            <option value="totalValue-descending">Value: High to Low</option>
+                            <option value="totalValue-ascending">Value: Low to High</option>
+                            <option value="poNumber-ascending">PO Number: A-Z</option>
+                            <option value="customerName-ascending">Customer: A-Z</option>
+                        </select>
+                        <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    </div>
                     {filter && (
                          <div className="flex items-center gap-2 bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200 px-3 py-1.5 rounded-full text-sm font-medium">
                             <span>Filtering by: {filter.status || filter.fulfillmentStatus}</span>

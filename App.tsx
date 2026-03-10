@@ -103,6 +103,7 @@ function App() {
     date: '',
     mainBranch: '',
     subBranch: '',
+    categories: [] as string[],
   });
 
   const [firestoreError, setFirestoreError] = useState<string | null>(null);

@@ -82,6 +82,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
   useEffect(() => {
     if (isOpen && existingPO) {
         setFormData({ 
+            ...initialPOState,
             ...existingPO,
             checklist: {
                 bCheck: existingPO.checklist?.bCheck || false,
@@ -94,6 +95,16 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                 others: existingPO.checklist?.others || false,
             },
             dispatchRemarks: existingPO.dispatchRemarks || '',
+            systemRemarks: existingPO.systemRemarks || '',
+            invoiceNumber: existingPO.invoiceNumber || '',
+            invoiceDate: existingPO.invoiceDate || '',
+            billingAddress: existingPO.billingAddress || '',
+            billToGSTIN: existingPO.billToGSTIN || '',
+            shippingAddress: existingPO.shippingAddress || '',
+            shipToGSTIN: existingPO.shipToGSTIN || '',
+            quoteNumber: existingPO.quoteNumber || '',
+            salesOrderNumber: existingPO.salesOrderNumber || '',
+            paymentNotes: existingPO.paymentNotes || '',
         });
     } else if (isOpen && !existingPO) {
         setFormData(initialPOState);
@@ -107,7 +118,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
     const checkedValue = (e.target as HTMLInputElement).checked;
 
     if (name === 'mainBranch') {
-        setFormData(prev => ({ ...prev, mainBranch: value, subBranch: '' }));
+        setFormData(prev => ({ ...prev, mainBranch: value || '', subBranch: '' }));
     } else if (name === 'pfAvailable') {
         setFormData(prev => ({ ...prev, pfAvailable: checkedValue }));
     } else if (name === 'saleType') {
@@ -119,7 +130,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
             creditTerms: saleType === 'Credit' ? 30 : 0
         }));
     } else {
-        setFormData(prev => ({ ...prev, [name]: value }));
+        setFormData(prev => ({ ...prev, [name]: value || '' }));
     }
   };
   
@@ -131,11 +142,11 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
     }));
   };
   
-  const handleItemChange = (index: number, field: keyof POItem, value: string | number) => {
+  const handleItemChange = (index: number, field: keyof POItem, value: any) => {
     setFormData(prev => {
         const newItems = prev.items.map((item, i) => {
             if (i === index) {
-                return { ...item, [field]: value };
+                return { ...item, [field]: value ?? '' };
             }
             return item;
         });
