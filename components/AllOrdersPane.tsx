@@ -12,6 +12,14 @@ interface AllOrdersPaneProps {
   filter?: { status?: OverallPOStatus, fulfillmentStatus?: FulfillmentStatus } | null;
   onClearFilter?: () => void;
   selectedCategories?: string[];
+  dashboardFilters?: {
+    status: string;
+    customer: string;
+    date: string;
+    mainBranch: string;
+    subBranch: string;
+    categories: string[];
+  };
 }
 
 type SortKeys = 'poNumber' | 'customerName' | 'poDate' | 'totalValue' | 'status' | 'fulfillmentStatus' | 'orderStatus';
@@ -26,7 +34,7 @@ const getDynamicFulfillmentStatus = (items: POItem[]) => {
     return FulfillmentStatus.PartiallyAvailable;
 };
 
-const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectPO, onDeletePO, filter, onClearFilter, selectedCategories = [] }) => {
+const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectPO, onDeletePO, filter, onClearFilter, selectedCategories = [], dashboardFilters }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: SortKeys; direction: 'ascending' | 'descending' } | null>({ key: 'poDate', direction: 'descending' });
 
@@ -59,6 +67,25 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
             }
             if (filter.fulfillmentStatus) {
                 sortableItems = sortableItems.filter(po => getDynamicFulfillmentStatus(po.filteredItems) === filter.fulfillmentStatus);
+            }
+        }
+
+        // Apply dashboard filters
+        if (dashboardFilters) {
+            if (dashboardFilters.status) {
+                sortableItems = sortableItems.filter(po => po.status === dashboardFilters.status);
+            }
+            if (dashboardFilters.customer) {
+                sortableItems = sortableItems.filter(po => (po.customerName || '').toLowerCase().includes(dashboardFilters.customer.toLowerCase()));
+            }
+            if (dashboardFilters.date) {
+                sortableItems = sortableItems.filter(po => new Date(po.poDate).toISOString().split('T')[0] === dashboardFilters.date);
+            }
+            if (dashboardFilters.mainBranch) {
+                sortableItems = sortableItems.filter(po => po.mainBranch === dashboardFilters.mainBranch);
+            }
+            if (dashboardFilters.subBranch) {
+                sortableItems = sortableItems.filter(po => po.subBranch === dashboardFilters.subBranch);
             }
         }
 

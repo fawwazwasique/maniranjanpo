@@ -204,11 +204,11 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                         <div className="grid grid-cols-2 gap-4">
                              <div>
                                 <label htmlFor="customerName" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Customer Name</label>
-                                <input type="text" id="customerName" name="customerName" value={formData.customerName} onChange={handleInputChange} required className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                                 <input type="text" id="customerName" name="customerName" value={formData.customerName || ''} onChange={handleInputChange} required className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
                             </div>
                              <div>
                                 <label htmlFor="mainBranch" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Main Branch</label>
-                                <select id="mainBranch" name="mainBranch" value={formData.mainBranch} onChange={handleInputChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500">
+                                <select id="mainBranch" name="mainBranch" value={formData.mainBranch || ''} onChange={handleInputChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500">
                                     <option value="">Select Main Branch</option>
                                     {MAIN_BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
                                 </select>
@@ -217,11 +217,11 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label htmlFor="poNumber" className="block text-sm font-medium text-slate-700 dark:text-slate-300">PO Number</label>
-                                <input type="text" id="poNumber" name="poNumber" value={formData.poNumber} onChange={handleInputChange} required className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                                <input type="text" id="poNumber" name="poNumber" value={formData.poNumber || ''} onChange={handleInputChange} required className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
                             </div>
                              <div>
                                 <label htmlFor="subBranch" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Sub Branch</label>
-                                <select id="subBranch" name="subBranch" value={formData.subBranch} onChange={handleInputChange} disabled={!formData.mainBranch} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500 disabled:opacity-50">
+                                <select id="subBranch" name="subBranch" value={formData.subBranch || ''} onChange={handleInputChange} disabled={!formData.mainBranch} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500 disabled:opacity-50">
                                     <option value="">Select Sub Branch</option>
                                     {formData.mainBranch && BRANCH_STRUCTURE[formData.mainBranch]?.map(sb => <option key={sb} value={sb}>{sb}</option>)}
                                 </select>
@@ -230,11 +230,11 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                          <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label htmlFor="poDate" className="block text-sm font-medium text-slate-700 dark:text-slate-300">PO Date</label>
-                                <input type="date" id="poDate" name="poDate" value={formData.poDate} onChange={handleInputChange} required className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                                <input type="date" id="poDate" name="poDate" value={formData.poDate || ''} onChange={handleInputChange} required className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
                             </div>
                              <div>
                                 <label htmlFor="orderStatus" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Order Status</label>
-                                <select id="orderStatus" name="orderStatus" value={formData.orderStatus} onChange={handleInputChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500">
+                                <select id="orderStatus" name="orderStatus" value={formData.orderStatus || ''} onChange={handleInputChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500">
                                     {Object.values(OrderStatus).map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                             </div>
@@ -256,11 +256,11 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                          <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label htmlFor="salesOrderNumber" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Sales Order No.</label>
-                                <input type="text" id="salesOrderNumber" name="salesOrderNumber" value={formData.salesOrderNumber} onChange={handleInputChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                                <input type="text" id="salesOrderNumber" name="salesOrderNumber" value={formData.salesOrderNumber || ''} onChange={handleInputChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
                             </div>
                             <div>
                                 <label htmlFor="fulfillmentStatus" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Materials / Fulfillment</label>
-                                <select id="fulfillmentStatus" name="fulfillmentStatus" value={formData.fulfillmentStatus} onChange={handleInputChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500">
+                                <select id="fulfillmentStatus" name="fulfillmentStatus" value={formData.fulfillmentStatus || ''} onChange={handleInputChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500">
                                     {Object.values(FulfillmentStatus).map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                             </div>
@@ -278,7 +278,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                         {formData.items.map((item, index) => (
                           <div key={index} className="space-y-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                             <div className="flex justify-between">
-                               <input type="text" placeholder="Item Name / Part Number" value={item.partNumber} onChange={e => handleItemChange(index, 'partNumber', e.target.value)} required className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                               <input type="text" placeholder="Item Name / Part Number" value={item.partNumber || ''} onChange={e => handleItemChange(index, 'partNumber', e.target.value)} required className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
                                {formData.items.length > 1 && (<button type="button" onClick={() => removeItem(index)} className="ml-2 text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50"><XMarkIcon className="w-5 h-5"/></button>)}
                             </div>
                             <div className="grid grid-cols-2 gap-2">
@@ -292,12 +292,12 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                                 </select>
                                 <input type="text" placeholder="Item Type" value={item.itemType || ''} onChange={e => handleItemChange(index, 'itemType', e.target.value)} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
                             </div>
-                            <textarea placeholder="Item Description" value={item.itemDesc} onChange={e => handleItemChange(index, 'itemDesc', e.target.value)} rows={1} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500" />
+                            <textarea placeholder="Item Description" value={item.itemDesc || ''} onChange={e => handleItemChange(index, 'itemDesc', e.target.value)} rows={1} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500" />
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                <input type="number" placeholder="Qty" min="1" value={item.quantity} onChange={e => handleItemChange(index, 'quantity', parseInt(e.target.value, 10))} required className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
-                                <input type="number" placeholder="Rate" min="0.01" step="0.01" value={item.rate} onChange={e => handleItemChange(index, 'rate', parseFloat(e.target.value))} required className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
-                                <input type="number" placeholder="Discount" min="0" step="0.01" value={item.discount} onChange={e => handleItemChange(index, 'discount', parseFloat(e.target.value))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
-                                <input type="number" placeholder="GST %" min="0" step="0.01" value={item.gst} onChange={e => handleItemChange(index, 'gst', parseFloat(e.target.value))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                                <input type="number" placeholder="Qty" min="1" value={item.quantity ?? 0} onChange={e => handleItemChange(index, 'quantity', parseInt(e.target.value, 10))} required className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                                <input type="number" placeholder="Rate" min="0.01" step="0.01" value={item.rate ?? 0} onChange={e => handleItemChange(index, 'rate', parseFloat(e.target.value))} required className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                                <input type="number" placeholder="Discount" min="0" step="0.01" value={item.discount ?? 0} onChange={e => handleItemChange(index, 'discount', parseFloat(e.target.value))} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                                <input type="number" placeholder="GST %" min="0" step="0.01" value={item.gst ?? 0} onChange={e => handleItemChange(index, 'gst', parseFloat(e.target.value))} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
                             </div>
                             
                             <div className="mt-3 pt-2 border-t border-dashed border-slate-300 dark:border-slate-700">
@@ -305,23 +305,23 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                                     <div>
                                         <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Stock Avail.</label>
-                                        <input type="number" value={item.stockAvailable} onChange={e => handleItemChange(index, 'stockAvailable', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                                        <input type="number" value={item.stockAvailable ?? 0} onChange={e => handleItemChange(index, 'stockAvailable', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
                                     </div>
                                     <div>
                                         <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Stock InHand</label>
-                                        <input type="number" value={item.stockInHand} onChange={e => handleItemChange(index, 'stockInHand', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                                        <input type="number" value={item.stockInHand ?? 0} onChange={e => handleItemChange(index, 'stockInHand', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
                                     </div>
                                     <div>
                                         <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Allocated</label>
-                                        <input type="number" value={item.allocatedQuantity} onChange={e => handleItemChange(index, 'allocatedQuantity', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                                        <input type="number" value={item.allocatedQuantity ?? 0} onChange={e => handleItemChange(index, 'allocatedQuantity', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
                                     </div>
                                     <div>
                                         <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Delivered</label>
-                                        <input type="number" value={item.deliveryQuantity} onChange={e => handleItemChange(index, 'deliveryQuantity', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                                        <input type="number" value={item.deliveryQuantity ?? 0} onChange={e => handleItemChange(index, 'deliveryQuantity', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
                                     </div>
                                     <div>
                                         <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Invoiced</label>
-                                        <input type="number" value={item.invoicedQuantity} onChange={e => handleItemChange(index, 'invoicedQuantity', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                                        <input type="number" value={item.invoicedQuantity ?? 0} onChange={e => handleItemChange(index, 'invoicedQuantity', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
                                     </div>
                                 </div>
                             </div>
@@ -350,19 +350,19 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                         <h3 className="text-lg font-medium text-slate-800 dark:text-white">Payment & Sale Type</h3>
                         <div>
                             <label htmlFor="saleType" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Payment Type</label>
-                            <select id="saleType" name="saleType" value={formData.saleType} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500">
+                            <select id="saleType" name="saleType" value={formData.saleType || ''} onChange={handleInputChange} className="mt-1 block w-full px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500">
                                 {SALE_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
                             </select>
                         </div>
                         {formData.saleType === 'Credit' && (
-                           <div><label htmlFor="creditTerms" className="block text-sm font-medium">Credit Terms (days)</label><input type="number" id="creditTerms" name="creditTerms" value={formData.creditTerms} onChange={handleInputChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/></div>
+                           <div><label htmlFor="creditTerms" className="block text-sm font-medium">Credit Terms (days)</label><input type="number" id="creditTerms" name="creditTerms" value={formData.creditTerms ?? 0} onChange={handleInputChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/></div>
                         )}
                         {formData.saleType === 'Cash' && (
                             <div className="space-y-4">
                                 <div><label htmlFor="paymentStatus" className="block text-sm font-medium">Payment Status</label><select id="paymentStatus" name="paymentStatus" value={formData.paymentStatus || ''} onChange={handleInputChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"><option value="Pending">Pending</option><option value="Received">Received</option></select></div>
                             </div>
                         )}
-                         <div><label htmlFor="systemRemarks" className="block text-sm font-medium">System Remarks / Notes</label><textarea id="systemRemarks" name="systemRemarks" value={formData.systemRemarks} onChange={handleInputChange} rows={2} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"></textarea></div>
+                         <div><label htmlFor="systemRemarks" className="block text-sm font-medium">System Remarks / Notes</label><textarea id="systemRemarks" name="systemRemarks" value={formData.systemRemarks || ''} onChange={handleInputChange} rows={2} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"></textarea></div>
                     </div>
                     
                     <div className="space-y-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">

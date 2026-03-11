@@ -433,35 +433,35 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
                      <div>
                         <label htmlFor="customer" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Search</label>
-                        <input type="text" id="customer" name="customer" value={filters.customer} onChange={handleFilterChange} list="customer-list" placeholder="All" className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500" />
+                        <input type="text" id="customer" name="customer" value={filters.customer || ''} onChange={handleFilterChange} list="customer-list" placeholder="All" className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500" />
                          <datalist id="customer-list">
                             {customers.map(c => <option key={c} value={c} />)}
                         </datalist>
                     </div>
                     <div>
                         <label htmlFor="mainBranch" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Main Branch</label>
-                        <select id="mainBranch" name="mainBranch" value={filters.mainBranch} onChange={handleFilterChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500">
+                        <select id="mainBranch" name="mainBranch" value={filters.mainBranch || ''} onChange={handleFilterChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500">
                             <option value="">All</option>
                             {MAIN_BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
                         </select>
                     </div>
                     <div>
                         <label htmlFor="subBranch" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Sub Branch</label>
-                        <select id="subBranch" name="subBranch" value={filters.subBranch} onChange={handleFilterChange} disabled={!filters.mainBranch} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500 disabled:opacity-50">
+                        <select id="subBranch" name="subBranch" value={filters.subBranch || ''} onChange={handleFilterChange} disabled={!filters.mainBranch} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500 disabled:opacity-50">
                             <option value="">All</option>
                             {filters.mainBranch && BRANCH_STRUCTURE[filters.mainBranch]?.map(sb => <option key={sb} value={sb}>{sb}</option>)}
                         </select>
                     </div>
                     <div>
                         <label htmlFor="status" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Status</label>
-                        <select id="status" name="status" value={filters.status} onChange={handleFilterChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500">
+                        <select id="status" name="status" value={filters.status || ''} onChange={handleFilterChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500">
                             <option value="">All</option>
                             {Object.values(OverallPOStatus).map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
                     </div>
                     <div>
                         <label htmlFor="date" className="block text-sm font-medium text-slate-700 dark:text-slate-300">PO Date</label>
-                        <input type="date" id="date" name="date" value={filters.date} onChange={handleFilterChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500" />
+                        <input type="date" id="date" name="date" value={filters.date || ''} onChange={handleFilterChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500" />
                     </div>
                     <div className="lg:col-span-2">
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Filter by Categories</label>

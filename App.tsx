@@ -108,6 +108,16 @@ function App() {
 
   const [firestoreError, setFirestoreError] = useState<string | null>(null);
   
+  // Keep selectedPO in sync with the latest data from purchaseOrders
+  useEffect(() => {
+    if (selectedPO) {
+      const updated = purchaseOrders.find(p => p.id === selectedPO.id);
+      if (updated && JSON.stringify(updated) !== JSON.stringify(selectedPO)) {
+        setSelectedPO(updated);
+      }
+    }
+  }, [purchaseOrders, selectedPO]);
+
   useEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove(theme === 'light' ? 'dark' : 'light');
@@ -416,7 +426,17 @@ function App() {
         <Header notifications={notifications} onMarkNotificationsAsRead={() => {}} theme={theme} setTheme={setTheme} />
         <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900">
             {activePane === 'dashboard' && <Dashboard purchaseOrders={purchaseOrders} filters={filters} setFilters={setFilters} customers={[]} onCardClick={handleDashboardCardClick} />}
-            {activePane === 'allOrders' && <AllOrdersPane purchaseOrders={purchaseOrders} onSelectPO={handleSelectPO} onDeletePO={() => {}} filter={ordersFilter} onClearFilter={() => setOrdersFilter(null)} selectedCategories={filters.categories} />}
+            {activePane === 'allOrders' && (
+                <AllOrdersPane 
+                    purchaseOrders={purchaseOrders} 
+                    onSelectPO={handleSelectPO} 
+                    onDeletePO={() => {}} 
+                    filter={ordersFilter} 
+                    onClearFilter={() => setOrdersFilter(null)} 
+                    selectedCategories={filters.categories}
+                    dashboardFilters={filters}
+                />
+            )}
             {activePane === 'stockManagement' && (
                 <StockManagementPane 
                     stock={stock} 

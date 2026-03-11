@@ -180,7 +180,7 @@ const StockManagementPane: React.FC<StockManagementPaneProps> = ({
           <input
             type="text"
             placeholder="Search parts inventory..."
-            value={searchTerm}
+            value={searchTerm || ''}
             onChange={e => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-3 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500 outline-none shadow-sm"
           />
@@ -278,7 +278,7 @@ const StockManagementPane: React.FC<StockManagementPaneProps> = ({
                             required
                             placeholder="e.g., VALV-5W30-1L"
                             className="w-full p-3 rounded-lg border dark:bg-slate-700 dark:border-slate-600 dark:text-white border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none"
-                            value={formState.partNumber}
+                            value={formState.partNumber || ''}
                             onChange={e => setFormState({ ...formState, partNumber: e.target.value.toUpperCase() })}
                         />
                     </div>
@@ -288,7 +288,7 @@ const StockManagementPane: React.FC<StockManagementPaneProps> = ({
                             required
                             placeholder="Briefly describe the part..."
                             className="w-full p-3 rounded-lg border dark:bg-slate-700 dark:border-slate-600 dark:text-white border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none"
-                            value={formState.description}
+                            value={formState.description || ''}
                             onChange={e => setFormState({ ...formState, description: e.target.value })}
                         />
                     </div>
@@ -305,7 +305,7 @@ const StockManagementPane: React.FC<StockManagementPaneProps> = ({
                         type="text"
                         placeholder="Type PO# or Customer to filter list..."
                         className="w-full pl-9 pr-3 py-2 rounded-lg border dark:bg-slate-900 dark:border-slate-600 dark:text-white border-slate-300 focus:ring-2 focus:ring-amber-500 outline-none shadow-inner"
-                        value={poSearchQuery}
+                        value={poSearchQuery || ''}
                         onChange={e => setPoSearchQuery(e.target.value)}
                       />
                     </div>
@@ -315,7 +315,7 @@ const StockManagementPane: React.FC<StockManagementPaneProps> = ({
                     <select 
                         required
                         className="w-full p-3 rounded-lg border dark:bg-slate-700 dark:border-slate-600 dark:text-white border-slate-300 focus:ring-2 focus:ring-amber-500"
-                        value={formState.poId}
+                        value={formState.poId || ''}
                         onChange={handlePOSelectionChange}
                     >
                         <option value="">{targetPOsForPart.length > 0 ? "Choose PO needing this part" : "No pending POs need this part"}</option>
@@ -341,7 +341,7 @@ const StockManagementPane: React.FC<StockManagementPaneProps> = ({
                         min="0"
                         required
                         className="w-full p-3 rounded-lg border dark:bg-slate-700 dark:border-slate-600 dark:text-white border-slate-300 focus:ring-2 focus:ring-red-500"
-                        value={formState.qty}
+                        value={formState.qty ?? 0}
                         onChange={e => setFormState({ ...formState, qty: Number(e.target.value) })}
                     />
                 </div>
@@ -358,7 +358,7 @@ const StockManagementPane: React.FC<StockManagementPaneProps> = ({
                   <textarea 
                       className="w-full p-3 rounded-lg border dark:bg-slate-700 dark:border-slate-600 dark:text-white border-slate-300 focus:ring-2 focus:ring-red-500 shadow-inner"
                       placeholder={activeModal === 'inward' ? 'e.g., Supplier Invoice #991' : activeModal === 'allocate' ? 'Reason for specific allocation' : 'e.g., Walk-in customer cash sale'}
-                      value={formState.remark}
+                      value={formState.remark || ''}
                       rows={2}
                       onChange={e => setFormState({ ...formState, remark: e.target.value })}
                   />

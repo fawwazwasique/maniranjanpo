@@ -342,14 +342,14 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                             
                             <div>
                                 <label htmlFor="saleType" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Sale Type</label>
-                                <select id="saleType" name="saleType" value={order.saleType} onChange={handleOrderChange} className="mt-1 block w-full px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500">
+                                <select id="saleType" name="saleType" value={order.saleType || ''} onChange={handleOrderChange} className="mt-1 block w-full px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500">
                                     {SALE_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
                                 </select>
                             </div>
                             {order.saleType === 'Credit' && (
                                 <div>
                                     <label htmlFor="creditTerms" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Credit Days</label>
-                                    <input type="number" id="creditTerms" name="creditTerms" value={order.creditTerms} onChange={handleOrderChange} className="mt-1 block w-full px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500" />
+                                    <input type="number" id="creditTerms" name="creditTerms" value={order.creditTerms ?? 0} onChange={handleOrderChange} className="mt-1 block w-full px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500" />
                                 </div>
                             )}
 
@@ -360,7 +360,7 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                             {renderField("Invoice Date", "invoiceDate", "date")}
                             <div className="md:col-span-3">
                                 <label className="block text-sm font-medium">General Remarks</label>
-                                <textarea name="generalRemarks" value={order.generalRemarks} onChange={handleOrderChange} rows={2} className="mt-1 block w-full px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"></textarea>
+                                <textarea name="generalRemarks" value={order.generalRemarks || ''} onChange={handleOrderChange} rows={2} className="mt-1 block w-full px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"></textarea>
                             </div>
                         </div>
 
@@ -410,12 +410,12 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                             {order.checklist.others && (
                                 <div className="md:col-span-2">
                                     <label className="block text-sm font-medium">Checklist Remarks (for Others)</label>
-                                    <input type="text" name="checklistRemarks" value={order.checklistRemarks} onChange={handleOrderChange} className="mt-1 block w-full px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500" />
+                                    <input type="text" name="checklistRemarks" value={order.checklistRemarks || ''} onChange={handleOrderChange} className="mt-1 block w-full px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500" />
                                 </div>
                             )}
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium">Dispatch Pending Remarks</label>
-                                <textarea name="dispatchRemarks" value={order.dispatchRemarks} onChange={handleOrderChange} rows={2} className="mt-1 block w-full px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white" placeholder="Reason for not shipping..."></textarea>
+                                <textarea name="dispatchRemarks" value={order.dispatchRemarks || ''} onChange={handleOrderChange} rows={2} className="mt-1 block w-full px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white" placeholder="Reason for not shipping..."></textarea>
                             </div>
                         </div>
 
@@ -426,13 +426,13 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                                <div key={index} className="p-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm relative space-y-4">
                                  {order.items.length > 1 && <button type="button" onClick={() => removeItem(index)} className="absolute top-4 right-4 text-slate-400 hover:text-red-500"><XMarkIcon className="w-6 h-6"/></button>}
                                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                     <div className="md:col-span-2"><label className="text-xs font-bold uppercase tracking-tight text-slate-500">Item: Item Name</label><input type="text" name="partNumber" value={item.partNumber} onChange={(e) => handleItemChange(index, e)} required className="w-full text-base font-bold p-2 border-b-2 border-slate-200 focus:border-red-500 bg-transparent outline-none"/></div>
-                                     <div><label className="text-xs font-bold uppercase tracking-tight text-slate-500">Item: Item Type</label><input type="text" name="itemType" value={item.itemType} onChange={(e) => handleItemChange(index, e)} className="w-full text-base p-2 border-b border-slate-200 bg-transparent outline-none"/></div>
+                                     <div className="md:col-span-2"><label className="text-xs font-bold uppercase tracking-tight text-slate-500">Item: Item Name</label><input type="text" name="partNumber" value={item.partNumber || ''} onChange={(e) => handleItemChange(index, e)} required className="w-full text-base font-bold p-2 border-b-2 border-slate-200 focus:border-red-500 bg-transparent outline-none"/></div>
+                                     <div><label className="text-xs font-bold uppercase tracking-tight text-slate-500">Item: Item Type</label><input type="text" name="itemType" value={item.itemType || ''} onChange={(e) => handleItemChange(index, e)} className="w-full text-base p-2 border-b border-slate-200 bg-transparent outline-none"/></div>
                                      <div>
                                         <label className="text-xs font-bold uppercase tracking-tight text-slate-500">Category</label>
                                         <select 
                                             name="category" 
-                                            value={item.category} 
+                                            value={item.category || ''} 
                                             onChange={(e) => handleItemChange(index, e)} 
                                             className="w-full text-base p-2 border-b border-slate-200 bg-transparent outline-none dark:bg-slate-800 dark:text-white"
                                         >
@@ -440,34 +440,34 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                                             {ITEM_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                                         </select>
                                      </div>
-                                     <div className="md:col-span-4"><label className="text-xs font-bold uppercase tracking-tight text-slate-500">Item: Item Description</label><input type="text" name="itemDesc" value={item.itemDesc} onChange={(e) => handleItemChange(index, e)} className="w-full text-base p-2 border-b border-slate-200 bg-transparent outline-none"/></div>
+                                     <div className="md:col-span-4"><label className="text-xs font-bold uppercase tracking-tight text-slate-500">Item: Item Description</label><input type="text" name="itemDesc" value={item.itemDesc || ''} onChange={(e) => handleItemChange(index, e)} className="w-full text-base p-2 border-b border-slate-200 bg-transparent outline-none"/></div>
                                  </div>
                                  <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-                                     <div><label className="text-xs">Quantity</label><input type="number" name="quantity" value={item.quantity} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none"/></div>
-                                     <div><label className="text-xs">Unit Price</label><input type="number" name="rate" value={item.rate} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none"/></div>
-                                     <div><label className="text-xs">Discount Amount</label><input type="number" name="discount" value={item.discount} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none"/></div>
-                                     <div><label className="text-xs">Base Amount</label><input type="number" name="baseAmount" value={item.baseAmount} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none"/></div>
-                                     <div><label className="text-xs">Tax Amount</label><input type="number" name="taxAmount" value={item.taxAmount} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none"/></div>
-                                     <div><label className="text-xs">Gross Amount</label><input type="number" name="grossAmount" value={item.grossAmount} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-red-50 font-bold rounded border-none"/></div>
+                                     <div><label className="text-xs">Quantity</label><input type="number" name="quantity" value={item.quantity ?? 0} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none"/></div>
+                                     <div><label className="text-xs">Unit Price</label><input type="number" name="rate" value={item.rate ?? 0} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none"/></div>
+                                     <div><label className="text-xs">Discount Amount</label><input type="number" name="discount" value={item.discount ?? 0} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none"/></div>
+                                     <div><label className="text-xs">Base Amount</label><input type="number" name="baseAmount" value={item.baseAmount ?? 0} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none"/></div>
+                                     <div><label className="text-xs">Tax Amount</label><input type="number" name="taxAmount" value={item.taxAmount ?? 0} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none"/></div>
+                                     <div><label className="text-xs">Gross Amount</label><input type="number" name="grossAmount" value={item.grossAmount ?? 0} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-red-50 font-bold rounded border-none"/></div>
                                  </div>
                                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                                     <div><label className="text-xs">Stock Available</label><input type="number" name="stockAvailable" value={item.stockAvailable} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none"/></div>
-                                     <div><label className="text-xs">Stock In Hand</label><input type="number" name="stockInHand" value={item.stockInHand} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none"/></div>
+                                     <div><label className="text-xs">Stock Available</label><input type="number" name="stockAvailable" value={item.stockAvailable ?? 0} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none"/></div>
+                                     <div><label className="text-xs">Stock In Hand</label><input type="number" name="stockInHand" value={item.stockInHand ?? 0} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none"/></div>
                                      <div>
                                         <label className="text-xs">Item Status</label>
                                         <select 
                                             name="status" 
-                                            value={item.status} 
+                                            value={item.status || ''} 
                                             onChange={(e) => handleItemChange(index, e)} 
                                             className="w-full p-2 bg-slate-50 rounded border-none text-sm outline-none"
                                         >
                                             {Object.values(POItemStatus).map(s => <option key={s} value={s}>{s}</option>)}
                                         </select>
                                      </div>
-                                     <div><label className="text-xs">Oa No</label><input type="text" name="oaNo" value={item.oaNo} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none"/></div>
-                                     <div><label className="text-xs">Oa Date</label><input type="date" name="oaDate" value={item.oaDate} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none"/></div>
+                                     <div><label className="text-xs">Oa No</label><input type="text" name="oaNo" value={item.oaNo || ''} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none"/></div>
+                                     <div><label className="text-xs">Oa Date</label><input type="date" name="oaDate" value={item.oaDate || ''} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none"/></div>
                                  </div>
-                                 <div><label className="text-xs font-bold text-slate-500">Item Remarks</label><input type="text" name="itemRemarks" value={item.itemRemarks} onChange={(e) => handleItemChange(index, e)} className="w-full text-sm p-2 border-b border-slate-200 bg-transparent outline-none"/></div>
+                                 <div><label className="text-xs font-bold text-slate-500">Item Remarks</label><input type="text" name="itemRemarks" value={item.itemRemarks || ''} onChange={(e) => handleItemChange(index, e)} className="w-full text-sm p-2 border-b border-slate-200 bg-transparent outline-none"/></div>
                                </div>
                            ))}
                         </div>
