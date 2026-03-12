@@ -199,7 +199,7 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
         return { available, partial, notAvailable };
     };
 
-    const isFulfillmentFilter = filter?.fulfillmentStatus !== undefined;
+    const isFulfillmentFilter = filter?.fulfillmentStatus !== undefined || filter?.hasAnyShortage === true;
 
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8 h-full flex flex-col">

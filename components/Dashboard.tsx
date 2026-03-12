@@ -474,6 +474,8 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         const avgSOtoInvoiceTrend = getTrend(purchaseOrders, filters, () => true, (pos) => getAvgDays(pos, 'soDate', 'invoiceDate'), false);
         const avgPOtoInvoiceTrend = getTrend(purchaseOrders, filters, () => true, (pos) => getAvgDays(pos, 'poDate', 'invoiceDate'), false);
 
+        const totalNotAvailableValue = partialNotAvailableItemsValue + notAvailableValue;
+
         return { 
             totalOpenPOs, openPOValue: isNaN(openPOValue) ? 0 : openPOValue, 
             fullyAvailablePOs, fullyAvailableValue: isNaN(fullyAvailableValue) ? 0 : fullyAvailableValue, 
@@ -481,6 +483,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             partialAvailableItemsCount, partialAvailableItemsValue,
             partialNotAvailableItemsCount, partialNotAvailableItemsValue,
             notAvailablePOs, notAvailableValue: isNaN(notAvailableValue) ? 0 : notAvailableValue,
+            totalNotAvailableValue,
             totalPartsNotAvailable,
             oilStuckPOs, oilStuckValue: isNaN(oilStuckValue) ? 0 : oilStuckValue,
             oilStuckPOsList,
@@ -615,6 +618,42 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
             {/* Detailed Fulfillment Insights */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div 
+                    onClick={() => onCardClick?.('ANY_SHORTAGE')}
+                    className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-xl shadow-md border border-slate-700 relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-transform"
+                >
+                    <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
+                        <NoSymbolIcon className="w-32 h-32 text-white" />
+                    </div>
+                    <div className="relative z-10">
+                        <div className="flex justify-between items-start mb-4">
+                            <h3 className="text-lg font-bold text-white uppercase tracking-tight">Total Not Available Value</h3>
+                            <div className="p-2 bg-red-600 rounded-lg">
+                                <NoSymbolIcon className="w-5 h-5 text-white" />
+                            </div>
+                        </div>
+                        <div className="flex items-baseline gap-2 mb-2">
+                            <p className="text-4xl font-black text-white">
+                                {dashboardData.totalNotAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })}
+                            </p>
+                            <p className="text-lg font-bold text-red-400">Total Gap</p>
+                        </div>
+                        <p className="text-sm text-slate-400 font-medium mb-4">
+                            Combined value of <span className="text-red-400 font-bold">all missing items</span> across Partial and 100% Not Available POs.
+                        </p>
+                        <div className="flex flex-col gap-2">
+                             <div className="flex items-center gap-2 text-[10px] font-bold text-slate-300 uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-lg w-fit">
+                                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                                Partial PO Gap: {dashboardData.partialNotAvailableItemsValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })}
+                            </div>
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-300 uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-lg w-fit">
+                                <span className="w-2 h-2 rounded-full bg-red-600"></span>
+                                100% Not Avail Gap: {dashboardData.notAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div 
                     onClick={() => onCardClick?.('OIL_STUCK')}
                     className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-xl shadow-md border border-slate-700 relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-transform"
