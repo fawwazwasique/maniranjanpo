@@ -2,8 +2,9 @@
 import React, { useMemo } from 'react';
 import type { PurchaseOrder } from '../types';
 import { OverallPOStatus, FulfillmentStatus, OrderStatus, POItemStatus } from '../types';
-import { CheckCircleIcon, ClockIcon, MagnifyingGlassIcon, TruckIcon, UserGroupIcon, XMarkIcon, ChartPieIcon, CalendarDaysIcon, CurrencyRupeeIcon, NoSymbolIcon, ArrowUpIcon, ArrowDownIcon } from './icons';
+import { CheckCircleIcon, ClockIcon, MagnifyingGlassIcon, TruckIcon, UserGroupIcon, XMarkIcon, ChartPieIcon, CalendarDaysIcon, CurrencyRupeeIcon, NoSymbolIcon, ArrowUpIcon, ArrowDownIcon, SparklesIcon, BeakerIcon } from './icons';
 import { MAIN_BRANCHES, BRANCH_STRUCTURE, ITEM_CATEGORIES } from '../constants';
+import { isOilItem, isOilStuckPO } from '../utils/poUtils';
 
 interface DashboardProps {
   purchaseOrders: PurchaseOrder[];
@@ -294,17 +295,76 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         const totalOpenPOs = openPOs.length;
         const openPOValue = calculateValue(openPOs);
         
+        // 1. 100% Available (Ready to Execute)
         const fullyAvailablePOsList = filteredPOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.Available);
         const fullyAvailablePOs = fullyAvailablePOsList.length;
         const fullyAvailableValue = calculateValue(fullyAvailablePOsList);
 
+        // 2. Partially Available
         const partiallyAvailablePOsList = filteredPOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.PartiallyAvailable);
         const partiallyAvailablePOs = partiallyAvailablePOsList.length;
         const partiallyAvailableValue = calculateValue(partiallyAvailablePOsList);
+        
+        // Bifurcation for partially available
+        let partialAvailableItemsCount = 0;
+        let partialAvailableItemsValue = 0;
+        let partialNotAvailableItemsCount = 0;
+        let partialNotAvailableItemsValue = 0;
+        partiallyAvailablePOsList.forEach(po => {
+            po.items.forEach(item => {
+                const itemValue = (Number(item.quantity || 0) * Number(item.rate || 0));
+                if (item.status === POItemStatus.Available || item.status === POItemStatus.Dispatched) {
+                    partialAvailableItemsCount++;
+                    partialAvailableItemsValue += itemValue;
+                } else if (item.status === POItemStatus.NotAvailable || item.status === POItemStatus.PartiallyAvailable) {
+                    partialNotAvailableItemsCount++;
+                    partialNotAvailableItemsValue += itemValue;
+                }
+            });
+        });
 
+        // 3. 100% Not Available
         const notAvailablePOsList = filteredPOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.NotAvailable);
         const notAvailablePOs = notAvailablePOsList.length;
         const notAvailableValue = calculateValue(notAvailablePOsList);
+
+        // 4. Global Part Shortage (Total items not available across all POs)
+        let totalPartsNotAvailable = 0;
+        filteredPOs.forEach(po => {
+            po.items.forEach(item => {
+                if (item.status === POItemStatus.NotAvailable || item.status === POItemStatus.PartiallyAvailable) {
+                    totalPartsNotAvailable++;
+                }
+            });
+        });
+
+        // 5. Oil-Stuck POs (All parts available except Oil/Valvoline)
+        const oilStuckPOsList = filteredPOs.filter(isOilStuckPO);
+        const oilStuckPOs = oilStuckPOsList.length;
+        const oilStuckValue = calculateValue(oilStuckPOsList);
+
+        // 6. Aggregated Unavailable Parts List
+        const unavailablePartsMap: Record<string, { partNumber: string, description: string, quantity: number, value: number, poCount: number }> = {};
+        filteredPOs.forEach(po => {
+            po.items.forEach(item => {
+                if (item.status === POItemStatus.NotAvailable || item.status === POItemStatus.PartiallyAvailable) {
+                    const key = item.partNumber;
+                    if (!unavailablePartsMap[key]) {
+                        unavailablePartsMap[key] = {
+                            partNumber: item.partNumber,
+                            description: item.itemDesc || 'N/A',
+                            quantity: 0,
+                            value: 0,
+                            poCount: 0
+                        };
+                    }
+                    unavailablePartsMap[key].quantity += item.quantity;
+                    unavailablePartsMap[key].value += (item.quantity * item.rate);
+                    unavailablePartsMap[key].poCount += 1;
+                }
+            });
+        });
+        const unavailablePartsList = Object.values(unavailablePartsMap).sort((a, b) => b.value - a.value);
 
         // Trends
         const openTrend = getTrend(purchaseOrders, filters, p => true, p => p.length, true);
@@ -418,7 +478,13 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             totalOpenPOs, openPOValue: isNaN(openPOValue) ? 0 : openPOValue, 
             fullyAvailablePOs, fullyAvailableValue: isNaN(fullyAvailableValue) ? 0 : fullyAvailableValue, 
             partiallyAvailablePOs, partiallyAvailableValue: isNaN(partiallyAvailableValue) ? 0 : partiallyAvailableValue, 
+            partialAvailableItemsCount, partialAvailableItemsValue,
+            partialNotAvailableItemsCount, partialNotAvailableItemsValue,
             notAvailablePOs, notAvailableValue: isNaN(notAvailableValue) ? 0 : notAvailableValue,
+            totalPartsNotAvailable,
+            oilStuckPOs, oilStuckValue: isNaN(oilStuckValue) ? 0 : oilStuckValue,
+            oilStuckPOsList,
+            unavailablePartsList,
             checklistChartData, fulfillmentChartData, topCustomers, paymentTermsChartData, 
             poAgeingChartData, poAgeingValueChartData, branchPerformanceChartData, 
             avgPOtoSO, avgSOtoInvoice, avgPOtoInvoice,
@@ -501,7 +567,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
                 <DashboardStatCard 
                     title="Total Active POs" 
                     value={dashboardData.totalOpenPOs} 
@@ -519,7 +585,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     onClick={() => onCardClick?.('OPEN')}
                 />
                 <DashboardStatCard 
-                    title="Fully Available" 
+                    title="Ready to Execute" 
                     value={dashboardData.fullyAvailablePOs} 
                     subValue={dashboardData.fullyAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })}
                     icon={<CheckCircleIcon className="w-6 h-6 text-green-500" />} 
@@ -532,19 +598,50 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     value={dashboardData.partiallyAvailablePOs} 
                     subValue={dashboardData.partiallyAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })}
                     icon={<TruckIcon className="w-6 h-6 text-blue-500" />} 
-                    indicatorColor="bg-blue-50"
+                    indicatorColor="bg-blue-500"
                     trend={dashboardData.partialTrend}
                     onClick={() => onCardClick?.('PARTIALLY_AVAILABLE')}
                 />
                 <DashboardStatCard 
-                    title="Not Available" 
+                    title="100% Not Available" 
                     value={dashboardData.notAvailablePOs} 
                     subValue={dashboardData.notAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })}
-                    icon={<NoSymbolIcon className="w-6 h-6 text-red-500" />} 
+                    icon={<NoSymbolIcon className="w-6 h-6 text-red-600" />} 
                     indicatorColor="bg-red-600"
                     trend={dashboardData.notAvailableTrend}
                     onClick={() => onCardClick?.('NOT_AVAILABLE')}
                 />
+            </div>
+
+            {/* Detailed Fulfillment Insights */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div 
+                    onClick={() => onCardClick?.('OIL_STUCK')}
+                    className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-xl shadow-md border border-slate-700 relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-transform"
+                >
+                    <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
+                        <BeakerIcon className="w-32 h-32 text-white" />
+                    </div>
+                    <div className="relative z-10">
+                        <div className="flex justify-between items-start mb-4">
+                            <h3 className="text-lg font-bold text-white uppercase tracking-tight">Oil-Stuck POs</h3>
+                            <div className="p-2 bg-red-500 rounded-lg">
+                                <SparklesIcon className="w-5 h-5 text-white" />
+                            </div>
+                        </div>
+                        <div className="flex items-baseline gap-2 mb-2">
+                            <p className="text-4xl font-black text-white">{dashboardData.oilStuckPOs}</p>
+                            <p className="text-lg font-bold text-red-400">POs</p>
+                        </div>
+                        <p className="text-sm text-slate-400 font-medium mb-4">
+                            Orders where <span className="text-green-400 font-bold">all parts are available</span> except for <span className="text-red-400 font-bold">Valvoline Oil</span>.
+                        </p>
+                        <div className="flex items-center gap-2 text-xs font-bold text-slate-300 uppercase tracking-widest bg-white/10 px-3 py-2 rounded-lg w-fit">
+                            <CurrencyRupeeIcon className="w-4 h-4 text-red-500" />
+                            Value: {dashboardData.oilStuckValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })}
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div className="flex flex-col md:flex-row justify-center gap-6 mb-6">
@@ -595,6 +692,97 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             <ChartContainer title="Top 5 Customers (by Value)">
                 <HorizontalBarChart data={dashboardData.topCustomers} isCurrency />
             </ChartContainer>
+
+            {/* Operational Lists */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+                {/* Critical Part Shortages List */}
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex justify-between items-center">
+                        <h3 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                            <NoSymbolIcon className="w-4 h-4 text-red-500" />
+                            Parts Requiring Primary Order (Not Available)
+                        </h3>
+                        <span className="text-xs font-bold text-slate-500 bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded">
+                            Sorted by Value
+                        </span>
+                    </div>
+                    <div className="overflow-x-auto max-h-[400px]">
+                        <table className="w-full text-left text-sm">
+                            <thead className="sticky top-0 bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 text-xs uppercase font-bold">
+                                <tr>
+                                    <th className="px-4 py-3">Part Number</th>
+                                    <th className="px-4 py-3">Description</th>
+                                    <th className="px-4 py-3 text-right">Qty</th>
+                                    <th className="px-4 py-3 text-right">Value</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                                {dashboardData.unavailablePartsList.slice(0, 20).map((part, idx) => (
+                                    <tr 
+                                        key={idx} 
+                                        onClick={() => onCardClick?.('PART_SHORTAGE', part.partNumber)}
+                                        className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
+                                    >
+                                        <td className="px-4 py-3 font-mono text-xs font-bold text-slate-700 dark:text-slate-300">{part.partNumber}</td>
+                                        <td className="px-4 py-3 text-slate-600 dark:text-slate-400 truncate max-w-[200px]">{part.description}</td>
+                                        <td className="px-4 py-3 text-right font-bold text-red-500">{part.quantity}</td>
+                                        <td className="px-4 py-3 text-right font-bold text-slate-700 dark:text-slate-300">
+                                            {part.value.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {dashboardData.unavailablePartsList.length === 0 && (
+                                    <tr>
+                                        <td colSpan={4} className="px-4 py-8 text-center text-slate-400 italic">No critical shortages found</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {/* Oil-Stuck Orders List */}
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex justify-between items-center">
+                        <h3 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                            <SparklesIcon className="w-4 h-4 text-amber-500" />
+                            Oil-Stuck Orders
+                        </h3>
+                        <span className="text-xs font-bold text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-2 py-1 rounded">
+                            Ready if Oil Available
+                        </span>
+                    </div>
+                    <div className="overflow-x-auto max-h-[400px]">
+                        <table className="w-full text-left text-sm">
+                            <thead className="sticky top-0 bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 text-xs uppercase font-bold">
+                                <tr>
+                                    <th className="px-4 py-3">PO Number</th>
+                                    <th className="px-4 py-3">Customer</th>
+                                    <th className="px-4 py-3">Date</th>
+                                    <th className="px-4 py-3 text-right">Value</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                                {dashboardData.oilStuckPOsList.map((po, idx) => (
+                                    <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                                        <td className="px-4 py-3 font-bold text-slate-700 dark:text-slate-300">{po.poNumber}</td>
+                                        <td className="px-4 py-3 text-slate-600 dark:text-slate-400 truncate max-w-[150px]">{po.customerName}</td>
+                                        <td className="px-4 py-3 text-xs text-slate-500">{new Date(po.poDate).toLocaleDateString()}</td>
+                                        <td className="px-4 py-3 text-right font-bold text-slate-700 dark:text-slate-300">
+                                            {po.items.reduce((acc, i) => acc + (i.quantity * i.rate), 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {dashboardData.oilStuckPOsList.length === 0 && (
+                                    <tr>
+                                        <td colSpan={4} className="px-4 py-8 text-center text-slate-400 italic">No oil-stuck orders found</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

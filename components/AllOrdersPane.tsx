@@ -4,12 +4,19 @@ import type { PurchaseOrder, OverallPOStatus, POItem } from '../types';
 import { POItemStatus, FulfillmentStatus } from '../types';
 import { MagnifyingGlassIcon, ArrowDownTrayIcon, TrashIcon, XMarkIcon, ChevronDownIcon } from './icons';
 import { exportToCSV } from '../utils/export';
+import { isOilStuckPO } from '../utils/poUtils';
 
 interface AllOrdersPaneProps {
   purchaseOrders: PurchaseOrder[];
   onSelectPO: (po: PurchaseOrder) => void;
   onDeletePO: (poId: string) => void;
-  filter?: { status?: OverallPOStatus, fulfillmentStatus?: FulfillmentStatus } | null;
+  filter?: { 
+      status?: OverallPOStatus, 
+      fulfillmentStatus?: FulfillmentStatus,
+      isOilStuck?: boolean,
+      partNumber?: string,
+      hasAnyShortage?: boolean
+  } | null;
   onClearFilter?: () => void;
   selectedCategories?: string[];
   dashboardFilters?: {
@@ -37,6 +44,7 @@ const getDynamicFulfillmentStatus = (items: POItem[]) => {
 const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectPO, onDeletePO, filter, onClearFilter, selectedCategories = [], dashboardFilters }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: SortKeys; direction: 'ascending' | 'descending' } | null>({ key: 'poDate', direction: 'descending' });
+    const [viewMode, setViewMode] = useState<'orders' | 'parts'>('orders');
 
     const posWithValues = useMemo(() => {
         return purchaseOrders.map(po => {
@@ -67,6 +75,15 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
             }
             if (filter.fulfillmentStatus) {
                 sortableItems = sortableItems.filter(po => getDynamicFulfillmentStatus(po.filteredItems) === filter.fulfillmentStatus);
+            }
+            if (filter.isOilStuck) {
+                sortableItems = sortableItems.filter(po => isOilStuckPO(po));
+            }
+            if (filter.partNumber) {
+                sortableItems = sortableItems.filter(po => po.items.some(item => item.partNumber === filter.partNumber));
+            }
+            if (filter.hasAnyShortage) {
+                sortableItems = sortableItems.filter(po => getDynamicFulfillmentStatus(po.filteredItems) !== FulfillmentStatus.Available);
             }
         }
 
@@ -114,6 +131,53 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
         return sortableItems;
     }, [posWithValues, searchTerm, sortConfig, filter]);
     
+    const partsBreakdown = useMemo(() => {
+        const partsMap: Record<string, { partNumber: string, description: string, quantity: number, value: number, poCount: number, status: 'available' | 'notAvailable' }> = {};
+        filteredAndSortedPOs.forEach(po => {
+            po.filteredItems.forEach(item => {
+                const isAvail = item.status === POItemStatus.Available || item.status === POItemStatus.Dispatched;
+                const statusKey = isAvail ? 'available' : 'notAvailable';
+                const key = `${item.partNumber}-${statusKey}`;
+                
+                if (!partsMap[key]) {
+                    partsMap[key] = {
+                        partNumber: item.partNumber,
+                        description: item.itemDesc || 'N/A',
+                        quantity: 0,
+                        value: 0,
+                        poCount: 0,
+                        status: statusKey
+                    };
+                }
+                partsMap[key].quantity += item.quantity;
+                partsMap[key].value += (item.quantity * item.rate);
+                partsMap[key].poCount += 1;
+            });
+        });
+        return Object.values(partsMap).sort((a, b) => b.value - a.value);
+    }, [filteredAndSortedPOs]);
+
+    const fulfillmentStats = useMemo(() => {
+        let availCount = 0;
+        let availValue = 0;
+        let notAvailCount = 0;
+        let notAvailValue = 0;
+
+        filteredAndSortedPOs.forEach(po => {
+            po.filteredItems.forEach(item => {
+                const val = (item.quantity || 0) * (item.rate || 0);
+                if (item.status === POItemStatus.Available || item.status === POItemStatus.Dispatched) {
+                    availCount++;
+                    availValue += val;
+                } else {
+                    notAvailCount++;
+                    notAvailValue += val;
+                }
+            });
+        });
+        return { availCount, availValue, notAvailCount, notAvailValue };
+    }, [filteredAndSortedPOs]);
+
     const requestSort = (key: SortKeys) => {
         let direction: 'ascending' | 'descending' = 'ascending';
         if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
@@ -135,8 +199,50 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
         return { available, partial, notAvailable };
     };
 
+    const isFulfillmentFilter = filter?.fulfillmentStatus !== undefined;
+
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8 h-full flex flex-col">
+            {isFulfillmentFilter && (
+                <div className="mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div 
+                            className={`p-4 rounded-xl border transition-all bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700`}
+                        >
+                            <p className="text-sm font-bold text-green-700 dark:text-green-400 uppercase tracking-wider">Available Items</p>
+                            <div className="flex items-baseline gap-2 mt-1">
+                                <p className="text-2xl font-black text-green-800 dark:text-green-300">{fulfillmentStats.availCount}</p>
+                                <p className="text-lg font-bold text-green-600/70">{fulfillmentStats.availValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })}</p>
+                            </div>
+                        </div>
+                        <div 
+                            className={`p-4 rounded-xl border transition-all bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700`}
+                        >
+                            <p className="text-sm font-bold text-red-700 dark:text-red-400 uppercase tracking-wider">Not Available Items</p>
+                            <div className="flex items-baseline gap-2 mt-1">
+                                <p className="text-2xl font-black text-red-800 dark:text-red-300">{fulfillmentStats.notAvailCount}</p>
+                                <p className="text-lg font-bold text-red-600/70">{fulfillmentStats.notAvailValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg w-fit">
+                        <button 
+                            onClick={() => setViewMode('orders')}
+                            className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${viewMode === 'orders' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                        >
+                            View Orders
+                        </button>
+                        <button 
+                            onClick={() => setViewMode('parts')}
+                            className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${viewMode === 'parts' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                        >
+                            View Parts Breakdown
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
                 <div className="relative w-full sm:w-72">
                     <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -183,65 +289,98 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                 </div>
             </div>
 
-            <div className="flex-grow overflow-auto rounded-lg shadow-md border border-slate-200 dark:border-slate-700">
-                <table className="w-full text-left text-base text-slate-500 dark:text-slate-400">
-                    <thead className="text-sm text-slate-700 dark:text-slate-300 uppercase bg-slate-50 dark:bg-slate-800 sticky top-0 z-10">
-                        <tr>
-                            <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('poNumber')}>PO Number {getSortIndicator('poNumber')}</th>
-                            <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('customerName')}>Customer {getSortIndicator('customerName')}</th>
-                            <th scope="col" className="p-4">Branch</th>
-                            <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('poDate')}>Date {getSortIndicator('poDate')}</th>
-                            <th scope="col" className="p-4 cursor-pointer text-right" onClick={() => requestSort('totalValue')}>Value {getSortIndicator('totalValue')}</th>
-                            <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('orderStatus')}>Order Status {getSortIndicator('orderStatus')}</th>
-                            <th scope="col" className="p-4 w-64">Item Availability (Breakdown)</th>
-                            <th scope="col" className="p-4 text-center">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white dark:bg-slate-800/50">
-                        {filteredAndSortedPOs.map(po => {
-                            const stats = getItemStats(po.filteredItems);
-                            const totalItems = po.filteredItems.length;
-                            return (
-                                <tr key={po.id} className="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50">
-                                    <td className="p-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">{po.poNumber}</td>
-                                    <td className="p-4">{po.customerName}</td>
-                                    <td className="p-4">{po.mainBranch}{po.subBranch && ` / ${po.subBranch}`}</td>
-                                    <td className="p-4">{new Date(po.poDate).toLocaleDateString()}</td>
-                                    <td className="p-4 text-right font-semibold">{po.totalValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</td>
-                                    <td className="p-4 font-medium">{po.orderStatus}</td>
+            <div className="flex-grow overflow-auto rounded-lg shadow-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50">
+                {viewMode === 'orders' ? (
+                    <table className="w-full text-left text-base text-slate-500 dark:text-slate-400">
+                        <thead className="text-sm text-slate-700 dark:text-slate-300 uppercase bg-slate-50 dark:bg-slate-800 sticky top-0 z-10">
+                            <tr>
+                                <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('poNumber')}>PO Number {getSortIndicator('poNumber')}</th>
+                                <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('customerName')}>Customer {getSortIndicator('customerName')}</th>
+                                <th scope="col" className="p-4">Branch</th>
+                                <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('poDate')}>Date {getSortIndicator('poDate')}</th>
+                                <th scope="col" className="p-4 cursor-pointer text-right" onClick={() => requestSort('totalValue')}>Value {getSortIndicator('totalValue')}</th>
+                                <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('orderStatus')}>Order Status {getSortIndicator('orderStatus')}</th>
+                                <th scope="col" className="p-4 w-64">Item Availability (Breakdown)</th>
+                                <th scope="col" className="p-4 text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white dark:bg-slate-800/50">
+                            {filteredAndSortedPOs.map(po => {
+                                const stats = getItemStats(po.filteredItems);
+                                const totalItems = po.filteredItems.length;
+                                return (
+                                    <tr key={po.id} className="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                                        <td className="p-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">{po.poNumber}</td>
+                                        <td className="p-4">{po.customerName}</td>
+                                        <td className="p-4">{po.mainBranch}{po.subBranch && ` / ${po.subBranch}`}</td>
+                                        <td className="p-4">{new Date(po.poDate).toLocaleDateString()}</td>
+                                        <td className="p-4 text-right font-semibold">{po.totalValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</td>
+                                        <td className="p-4 font-medium">{po.orderStatus}</td>
+                                        <td className="p-4">
+                                            <div className="flex flex-col gap-1 w-full max-w-[200px]">
+                                                <div className="flex text-xs font-semibold text-white overflow-hidden rounded-full h-4 w-full bg-slate-200 dark:bg-slate-700">
+                                                    {stats.available > 0 && (
+                                                        <div className="bg-green-500 flex items-center justify-center" style={{ width: `${(stats.available / totalItems) * 100}%` }} title={`${stats.available} Available`}></div>
+                                                    )}
+                                                    {stats.partial > 0 && (
+                                                        <div className="bg-yellow-500 flex items-center justify-center" style={{ width: `${(stats.partial / totalItems) * 100}%` }} title={`${stats.partial} Partial`}></div>
+                                                    )}
+                                                    {stats.notAvailable > 0 && (
+                                                        <div className="bg-red-500 flex items-center justify-center" style={{ width: `${(stats.notAvailable / totalItems) * 100}%` }} title={`${stats.notAvailable} Not Available`}></div>
+                                                    )}
+                                                </div>
+                                                <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                                    <span className={stats.available > 0 ? "text-green-600 dark:text-green-400" : ""}>{stats.available} Avail</span>
+                                                    <span className={stats.partial > 0 ? "text-yellow-600 dark:text-yellow-400" : ""}>{stats.partial} Part</span>
+                                                    <span className={stats.notAvailable > 0 ? "text-red-600 dark:text-red-400" : ""}>{stats.notAvailable} N/A</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <div className="flex justify-center items-center gap-2">
+                                                <button onClick={() => onSelectPO(po)} className="font-medium text-red-600 dark:text-red-500 hover:underline">Details</button>
+                                                <button onClick={() => onDeletePO(po.id)} className="text-red-500 hover:text-red-700 p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50">
+                                                    <TrashIcon className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                ) : (
+                    <table className="w-full text-left text-base text-slate-500 dark:text-slate-400">
+                        <thead className="text-sm text-slate-700 dark:text-slate-300 uppercase bg-slate-50 dark:bg-slate-800 sticky top-0 z-10">
+                            <tr>
+                                <th scope="col" className="p-4">Part Number</th>
+                                <th scope="col" className="p-4">Description</th>
+                                <th scope="col" className="p-4">Status</th>
+                                <th scope="col" className="p-4 text-right">Qty</th>
+                                <th scope="col" className="p-4 text-right">Value</th>
+                                <th scope="col" className="p-4 text-center">PO Count</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white dark:bg-slate-800/50">
+                            {partsBreakdown.map((part, idx) => (
+                                <tr key={idx} className="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                                    <td className="p-4 font-mono text-xs font-bold text-slate-900 dark:text-white">{part.partNumber}</td>
+                                    <td className="p-4">{part.description}</td>
                                     <td className="p-4">
-                                        <div className="flex flex-col gap-1 w-full max-w-[200px]">
-                                            <div className="flex text-xs font-semibold text-white overflow-hidden rounded-full h-4 w-full bg-slate-200 dark:bg-slate-700">
-                                                {stats.available > 0 && (
-                                                    <div className="bg-green-500 flex items-center justify-center" style={{ width: `${(stats.available / totalItems) * 100}%` }} title={`${stats.available} Available`}></div>
-                                                )}
-                                                {stats.partial > 0 && (
-                                                    <div className="bg-yellow-500 flex items-center justify-center" style={{ width: `${(stats.partial / totalItems) * 100}%` }} title={`${stats.partial} Partial`}></div>
-                                                )}
-                                                {stats.notAvailable > 0 && (
-                                                    <div className="bg-red-500 flex items-center justify-center" style={{ width: `${(stats.notAvailable / totalItems) * 100}%` }} title={`${stats.notAvailable} Not Available`}></div>
-                                                )}
-                                            </div>
-                                            <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 font-medium">
-                                                <span className={stats.available > 0 ? "text-green-600 dark:text-green-400" : ""}>{stats.available} Avail</span>
-                                                <span className={stats.partial > 0 ? "text-yellow-600 dark:text-yellow-400" : ""}>{stats.partial} Part</span>
-                                                <span className={stats.notAvailable > 0 ? "text-red-600 dark:text-red-400" : ""}>{stats.notAvailable} N/A</span>
-                                            </div>
-                                        </div>
+                                        <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${part.status === 'available' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                                            {part.status === 'available' ? 'Available' : 'Not Available'}
+                                        </span>
                                     </td>
-                                    <td className="p-4 text-center">
-                                        <div className="flex justify-center items-center gap-2">
-                                            <button onClick={() => onSelectPO(po)} className="font-medium text-red-600 dark:text-red-500 hover:underline">Details</button>
-                                            <button onClick={() => onDeletePO(po.id)} className="text-red-500 hover:text-red-700 p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50">
-                                                <TrashIcon className="w-4 h-4" />
-                                            </button>
-                                        </div>
+                                    <td className="p-4 text-right font-bold">{part.quantity}</td>
+                                    <td className="p-4 text-right font-semibold text-slate-900 dark:text-white">
+                                        {part.value.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
                                     </td>
+                                    <td className="p-4 text-center font-medium">{part.poCount}</td>
                                 </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
                  {filteredAndSortedPOs.length === 0 && (
                     <div className="text-center p-10 text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800/50">
                         No orders match your criteria.

@@ -90,6 +90,9 @@ function App() {
   const [ordersFilter, setOrdersFilter] = useState<{
       status?: OverallPOStatus;
       fulfillmentStatus?: FulfillmentStatus;
+      isOilStuck?: boolean;
+      partNumber?: string;
+      hasAnyShortage?: boolean;
   } | null>(null);
 
   const [suggestionItem, setSuggestionItem] = useState<POItem | null>(null);
@@ -410,11 +413,14 @@ function App() {
     setSuggestion(null);
   }, []);
 
-  const handleDashboardCardClick = useCallback((type: string) => {
+  const handleDashboardCardClick = useCallback((type: string, payload?: any) => {
     if (type === 'OPEN') setOrdersFilter(null);
     else if (type === 'FULLY_AVAILABLE') setOrdersFilter({ fulfillmentStatus: FulfillmentStatus.Available });
     else if (type === 'PARTIALLY_AVAILABLE') setOrdersFilter({ fulfillmentStatus: FulfillmentStatus.PartiallyAvailable });
     else if (type === 'NOT_AVAILABLE') setOrdersFilter({ fulfillmentStatus: FulfillmentStatus.NotAvailable });
+    else if (type === 'ANY_SHORTAGE') setOrdersFilter({ hasAnyShortage: true });
+    else if (type === 'OIL_STUCK') setOrdersFilter({ isOilStuck: true });
+    else if (type === 'PART_SHORTAGE') setOrdersFilter({ partNumber: payload });
     setActivePane('allOrders');
   }, []);
 

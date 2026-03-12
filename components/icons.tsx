@@ -179,6 +179,12 @@ export const ArrowDownIcon: React.FC<{ className?: string }> = ({ className }) =
   </svg>
 );
 
+export const BeakerIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-6 h-6"}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v1.244c0 .892-.56 1.676-1.396 1.972-1.284.455-2.26 1.573-2.603 2.923-.4 1.566.232 3.227 1.506 4.298a5.973 5.973 0 003.493 1.463c.67.09 1.357.09 2.027 0a5.972 5.972 0 003.493-1.463c1.274-1.071 1.907-2.732 1.506-4.298-.343-1.35-1.319-2.468-2.603-2.923-.836-.296-1.396-1.08-1.396-1.972V3.104M3.375 19.5h17.25m-17.25 0a1.5 1.5 0 01-1.5-1.5c0-.133.01-.265.03-.394L5.25 12l.262-1.531C5.758 9.121 7.856 8.25 9.75 8.25h4.5c1.894 0 3.992.87 4.238 2.219L18.75 12l.558 5.606c.02.129.03.261.03.394a1.5 1.5 0 01-1.5 1.5H3.375z" />
+  </svg>
+);
+
 export const DatabaseIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-6 h-6"}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />

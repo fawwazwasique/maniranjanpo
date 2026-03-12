@@ -3,6 +3,7 @@ import React, { useMemo, useState } from 'react';
 import type { PurchaseOrder } from '../types';
 import { OverallPOStatus, FulfillmentStatus, POItemStatus } from '../types';
 import { ChartBarIcon, CheckCircleIcon, ClockIcon, TruckIcon, ChartPieIcon, SparklesIcon, XMarkIcon, MagnifyingGlassIcon, ArrowDownTrayIcon } from './icons';
+import { isOilItem, isOilStuckPO } from '../utils/poUtils';
 
 interface AnalysisPaneProps {
   purchaseOrders: PurchaseOrder[];
@@ -208,22 +209,9 @@ const AnalysisPane: React.FC<AnalysisPaneProps> = ({ purchaseOrders, onSelectPO 
         let valvolineRecoveryValue = 0;
 
         purchaseOrders.forEach(po => {
-            // Fix: FulfillmentStatus.Partial does not exist. Replaced with FulfillmentStatus.PartiallyAvailable.
-            const isPending = po.fulfillmentStatus === FulfillmentStatus.PartiallyAvailable || po.fulfillmentStatus === FulfillmentStatus.NotAvailable;
-            if (!isPending) return;
-
-            const valvolineItems = po.items.filter(i => (i.itemDesc || '').toLowerCase().includes('valvoline'));
-            const nonValvolineItems = po.items.filter(i => !(i.itemDesc || '').toLowerCase().includes('valvoline'));
-
-            const hasUnavailableValvoline = valvolineItems.some(i => i.status === POItemStatus.NotAvailable || i.status === POItemStatus.PartiallyAvailable);
-            const hasUnavailableNonValvoline = nonValvolineItems.some(i => i.status === POItemStatus.NotAvailable || i.status === POItemStatus.PartiallyAvailable);
-
-            if (hasUnavailableValvoline) {
-                // If Valvoline is the ONLY thing missing (nothing else is unavailable)
-                if (!hasUnavailableNonValvoline) {
-                    closablePOs.push(po);
-                    valvolineRecoveryValue += po.items.reduce((acc, item) => acc + (Number(item.quantity) * Number(item.rate)), 0);
-                }
+            if (isOilStuckPO(po)) {
+                closablePOs.push(po);
+                valvolineRecoveryValue += po.items.reduce((acc, item) => acc + (Number(item.quantity) * Number(item.rate)), 0);
             }
         });
 
