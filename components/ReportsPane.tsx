@@ -10,7 +10,7 @@ interface ReportsPaneProps {
     onUpdatePO: (po: PurchaseOrder) => void;
 }
 
-type TabType = 'general' | 'missingOA' | 'dispatchPending' | 'oaFilled' | 'allocation';
+type TabType = 'general' | 'missingOA' | 'dispatchPending' | 'oaFilled' | 'allocation' | 'invoiced';
 
 const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO }) => {
     const [activeTab, setActiveTab] = useState<TabType>('general');
@@ -79,6 +79,11 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
             const isNotShipped = po.orderStatus !== OrderStatus.ShippedInSystemDC && po.orderStatus !== OrderStatus.Invoiced;
             return isFullyAvailable && isNotShipped;
         });
+    }, [purchaseOrders]);
+
+    // Invoiced Data Logic
+    const invoicedPOs = useMemo(() => {
+        return purchaseOrders.filter(po => po.orderStatus === OrderStatus.Invoiced);
     }, [purchaseOrders]);
 
     // Local state for remarks editing in Dispatch Pending tab
@@ -190,6 +195,29 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
         link.click();
     };
 
+    const exportInvoicedData = () => {
+        const rows = invoicedPOs.map(po => ({
+            'PO Number': po.poNumber,
+            'Date': po.poDate,
+            'Customer': po.customerName,
+            'Branch': po.mainBranch,
+            'Invoice Number': po.invoiceNumber || 'N/A',
+            'Invoice Date': po.invoiceDate || 'N/A',
+            'Value': po.items.reduce((acc, i) => acc + (i.quantity * i.rate), 0),
+            'Sale Type': po.saleType,
+            'Payment Status': po.paymentStatus || 'N/A'
+        }));
+        if (rows.length === 0) return alert("No invoiced data to export");
+        const headers = Object.keys(rows[0]).join(',');
+        const csvRows = rows.map(row => Object.values(row).map(v => `"${v}"`).join(',')).join('\n');
+        const csvContent = `${headers}\n${csvRows}`;
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'invoiced_orders_report.csv';
+        link.click();
+    };
+
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8 h-full flex flex-col">
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-6 flex-1 flex flex-col">
@@ -252,6 +280,16 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                         }`}
                     >
                         <TruckIcon className="w-4 h-4" /> Ready to Ship
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('invoiced')}
+                        className={`flex-1 rounded-lg py-2.5 text-sm font-medium leading-5 transition-all flex justify-center items-center gap-2 ${
+                            activeTab === 'invoiced'
+                                ? 'bg-white dark:bg-slate-700 shadow text-purple-600 dark:text-purple-400'
+                                : 'text-slate-500 hover:bg-white/[0.12] hover:text-slate-700 dark:hover:text-slate-200'
+                        }`}
+                    >
+                        <CheckCircleIcon className="w-4 h-4" /> Invoiced Data
                     </button>
                 </div>
 
@@ -454,6 +492,50 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                                             ))
                                         ) : (
                                             <tr><td colSpan={5} className="p-8 text-center text-slate-500">No pending dispatches.</td></tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+                    {activeTab === 'invoiced' && (
+                        <div className="space-y-4 h-full flex flex-col">
+                             <div className="flex justify-between items-center mb-2">
+                                <p className="text-slate-600 dark:text-slate-400">Orders that have been successfully invoiced.</p>
+                                <button onClick={exportInvoicedData} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-700 bg-purple-100 hover:bg-purple-200 rounded-lg">
+                                    <ArrowDownTrayIcon className="w-4 h-4" /> Export Invoiced Data
+                                </button>
+                            </div>
+                             <div className="flex-1 overflow-auto rounded-lg border border-slate-200 dark:border-slate-700">
+                                <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
+                                    <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-700 dark:text-slate-300 uppercase sticky top-0">
+                                        <tr>
+                                            <th className="p-3">PO Number</th>
+                                            <th className="p-3">Customer</th>
+                                            <th className="p-3">Invoice No</th>
+                                            <th className="p-3">Date</th>
+                                            <th className="p-3">Value</th>
+                                            <th className="p-3">Payment</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                                        {invoicedPOs.length > 0 ? (
+                                            invoicedPOs.map(po => (
+                                                <tr key={po.id} className="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                                                    <td className="p-3 font-medium">{po.poNumber}</td>
+                                                    <td className="p-3">{po.customerName}</td>
+                                                    <td className="p-3 font-bold text-purple-600">{po.invoiceNumber || 'N/A'}</td>
+                                                    <td className="p-3">{po.invoiceDate || po.poDate}</td>
+                                                    <td className="p-3">{po.items.reduce((acc, i) => acc + (i.quantity * i.rate), 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</td>
+                                                    <td className="p-3">
+                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${po.paymentStatus === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                                            {po.paymentStatus || 'Pending'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr><td colSpan={6} className="p-8 text-center text-slate-500">No invoiced orders found.</td></tr>
                                         )}
                                     </tbody>
                                 </table>

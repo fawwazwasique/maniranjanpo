@@ -86,6 +86,8 @@ function App() {
   const [theme, setTheme] = useLocalStorage<Theme>('theme', 'light');
 
   const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
+  const [poToDelete, setPoToDelete] = useState<string | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   
   const [ordersFilter, setOrdersFilter] = useState<{
       status?: OverallPOStatus;
@@ -183,6 +185,32 @@ function App() {
     await updateDoc(poRef, { ...cleanPO });
     addLog(cleanPO.id, "PO updated.");
   }, []);
+
+  const handleDeletePO = useCallback(async (poId: string) => {
+    setPoToDelete(poId);
+    setIsDeleteModalOpen(true);
+  }, []);
+
+  const confirmDeletePO = async () => {
+    if (!poToDelete) return;
+    try {
+        const { deleteDoc } = await import('firebase/firestore');
+        await deleteDoc(doc(db, "purchaseOrders", poToDelete));
+        // Also delete logs associated with this PO
+        const logsQuery = query(collection(db, "logs"), where("poId", "==", poToDelete));
+        const logsSnapshot = await getDocs(logsQuery);
+        const batch = writeBatch(db);
+        logsSnapshot.forEach((logDoc) => {
+            batch.delete(logDoc.ref);
+        });
+        await batch.commit();
+        setIsDeleteModalOpen(false);
+        setPoToDelete(null);
+    } catch (error) {
+        console.error("Error deleting PO:", error);
+        alert("Failed to delete Purchase Order.");
+    }
+  };
 
   const handleRegisterPart = async (partNumber: string, description: string, initialQty: number) => {
       const stockRef = doc(db, "stock", partNumber);
@@ -436,7 +464,7 @@ function App() {
                 <AllOrdersPane 
                     purchaseOrders={purchaseOrders} 
                     onSelectPO={handleSelectPO} 
-                    onDeletePO={() => {}} 
+                    onDeletePO={handleDeletePO} 
                     filter={ordersFilter} 
                     onClearFilter={() => setOrdersFilter(null)} 
                     selectedCategories={filters.categories}
@@ -483,6 +511,15 @@ function App() {
           isLoading={suggestionLoading}
           error={suggestionError}
        />
+
+       <ConfirmationModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onConfirm={confirmDeletePO}
+          title="Delete Purchase Order"
+       >
+          Are you sure you want to delete this Purchase Order? This action cannot be undone and will also remove all associated activity logs.
+       </ConfirmationModal>
     </div>
   );
 }

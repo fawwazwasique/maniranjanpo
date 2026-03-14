@@ -46,6 +46,24 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
     const [sortConfig, setSortConfig] = useState<{ key: SortKeys; direction: 'ascending' | 'descending' } | null>({ key: 'poDate', direction: 'descending' });
     const [viewMode, setViewMode] = useState<'orders' | 'parts'>('orders');
     const [partsFilter, setPartsFilter] = useState<'all' | 'available' | 'notAvailable'>('all');
+    const [mainBranchFilter, setMainBranchFilter] = useState('');
+    const [subBranchFilter, setSubBranchFilter] = useState('');
+
+    const mainBranches = useMemo(() => {
+        const branches = new Set<string>();
+        purchaseOrders.forEach(po => {
+            if (po.mainBranch) branches.add(po.mainBranch);
+        });
+        return Array.from(branches).sort();
+    }, [purchaseOrders]);
+
+    const subBranches = useMemo(() => {
+        const branches = new Set<string>();
+        purchaseOrders.forEach(po => {
+            if (po.subBranch) branches.add(po.subBranch);
+        });
+        return Array.from(branches).sort();
+    }, [purchaseOrders]);
 
     const posWithValues = useMemo(() => {
         return purchaseOrders.map(po => {
@@ -114,6 +132,14 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                 (po.mainBranch || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (po.subBranch || '').toLowerCase().includes(searchTerm.toLowerCase())
             );
+        }
+
+        if (mainBranchFilter) {
+            sortableItems = sortableItems.filter(po => po.mainBranch === mainBranchFilter);
+        }
+
+        if (subBranchFilter) {
+            sortableItems = sortableItems.filter(po => po.subBranch === subBranchFilter);
         }
 
         if (sortConfig !== null) {
@@ -255,15 +281,41 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
             )}
 
             <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
-                <div className="relative w-full sm:w-72">
-                    <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                    <input
-                        type="text"
-                        placeholder="Search orders..."
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 text-base rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500"
-                    />
+                <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+                    <div className="relative w-full sm:w-64">
+                        <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Search orders..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2.5 text-base rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <div className="relative w-full sm:w-40">
+                            <select 
+                                value={mainBranchFilter}
+                                onChange={e => setMainBranchFilter(e.target.value)}
+                                className="w-full pl-3 pr-10 py-2.5 text-sm font-medium rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500 appearance-none"
+                            >
+                                <option value="">All Main Branches</option>
+                                {mainBranches.map(b => <option key={b} value={b}>{b}</option>)}
+                            </select>
+                            <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                        </div>
+                        <div className="relative w-full sm:w-40">
+                            <select 
+                                value={subBranchFilter}
+                                onChange={e => setSubBranchFilter(e.target.value)}
+                                className="w-full pl-3 pr-10 py-2.5 text-sm font-medium rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500 appearance-none"
+                            >
+                                <option value="">All Sub Branches</option>
+                                {subBranches.map(b => <option key={b} value={b}>{b}</option>)}
+                            </select>
+                            <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                        </div>
+                    </div>
                 </div>
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                     <div className="relative w-full sm:w-48">
@@ -284,10 +336,14 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                         </select>
                         <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                     </div>
-                    {filter && (
+                    {(filter || mainBranchFilter || subBranchFilter) && (
                          <div className="flex items-center gap-2 bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200 px-3 py-1.5 rounded-full text-sm font-medium">
-                            <span>Filtering by: {filter.status || filter.fulfillmentStatus}</span>
-                            <button onClick={onClearFilter} className="hover:text-red-900 dark:hover:text-white"><XMarkIcon className="w-4 h-4"/></button>
+                            <span>Filtering Active</span>
+                            <button onClick={() => {
+                                onClearFilter?.();
+                                setMainBranchFilter('');
+                                setSubBranchFilter('');
+                            }} className="hover:text-red-900 dark:hover:text-white"><XMarkIcon className="w-4 h-4"/></button>
                          </div>
                     )}
                     <button
