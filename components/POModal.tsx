@@ -126,7 +126,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
         setFormData(prev => ({
             ...prev,
             saleType,
-            paymentStatus: saleType === 'Cash' ? 'Pending' : null,
+            paymentStatus: (saleType === 'Cash' || saleType === 'Awaiting Payment') ? 'Pending' : null,
             creditTerms: (saleType === 'Credit' || saleType === 'Amendment') ? 30 : 0
         }));
     } else {
@@ -357,7 +357,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                         {formData.saleType === 'Credit' && (
                            <div><label htmlFor="creditTerms" className="block text-sm font-medium">Credit Terms (days)</label><input type="number" id="creditTerms" name="creditTerms" value={formData.creditTerms ?? 0} onChange={handleInputChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/></div>
                         )}
-                        {formData.saleType === 'Cash' && (
+                        {(formData.saleType === 'Cash' || formData.saleType === 'Awaiting Payment') && (
                             <div className="space-y-4">
                                 <div><label htmlFor="paymentStatus" className="block text-sm font-medium">Payment Status</label><select id="paymentStatus" name="paymentStatus" value={formData.paymentStatus || ''} onChange={handleInputChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"><option value="Pending">Pending</option><option value="Received">Received</option></select></div>
                             </div>

@@ -42,7 +42,8 @@ export const SALE_TYPES = [
     'Cheque',
     'RTGS/NEFT',
     'Payment is Ready with Customer',
-    'Amendment'
+    'Amendment',
+    'Awaiting Payment'
 ];
 
 export const BULK_UPLOAD_HEADERS = [

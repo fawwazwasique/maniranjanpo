@@ -406,7 +406,15 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             acc[type] = (acc[type] || 0) + value;
             return acc;
         }, {} as Record<string, number>);
-        const paymentColors = { 'Credit': '#3b82f6', 'Cash': '#22c55e' };
+        const paymentColors = { 
+            'Credit': '#3b82f6', 
+            'Cash': '#22c55e',
+            'Awaiting Payment': '#f59e0b',
+            'Advance Payment': '#8b5cf6',
+            'Cheque': '#ec4899',
+            'RTGS/NEFT': '#14b8a6',
+            'PI Sent': '#9ca3af'
+        };
         const paymentTermsChartData = Object.entries(valueByPayment).map(([label, value]) => ({ label, value, color: paymentColors[label as keyof typeof paymentColors] || '#9ca3af'}));
 
         const today = new Date();

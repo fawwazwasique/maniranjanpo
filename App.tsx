@@ -370,7 +370,7 @@ function App() {
               invoiceNumber: order.invoiceNumber,
               invoiceDate: order.invoiceDate,
               createdAt: new Date().toISOString(),
-              paymentStatus: order.saleType === 'Cash' ? 'Pending' : null,
+              paymentStatus: (order.saleType === 'Cash' || order.saleType === 'Awaiting Payment') ? 'Pending' : null,
               paymentNotes: '',
           });
           await addDoc(collection(db, "purchaseOrders"), poData);

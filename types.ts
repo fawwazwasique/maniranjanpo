@@ -62,7 +62,7 @@ export interface PurchaseOrder {
   items: POItem[];
   status: OverallPOStatus; // Maps to Po Status
   createdAt: string;
-  saleType: 'Cash' | 'Credit' | 'PI Sent' | 'Advance Payment' | 'Received' | 'Cheque' | 'RTGS/NEFT' | 'Payment is Ready with Customer' | 'Amendment';
+  saleType: 'Cash' | 'Credit' | 'PI Sent' | 'Advance Payment' | 'Received' | 'Cheque' | 'RTGS/NEFT' | 'Payment is Ready with Customer' | 'Amendment' | 'Awaiting Payment';
   paymentStatus: 'Received' | 'Pending' | null;
   paymentNotes: string;
   creditTerms: number;

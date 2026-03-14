@@ -53,6 +53,8 @@ const initialOrderState = {
     shipToGSTIN: '',
     quoteNumber: '',
     saleType: 'Credit' as any,
+    paymentStatus: null as 'Received' | 'Pending' | null,
+    paymentNotes: '',
     creditTerms: 30,
     pfAvailable: false,
     checklist: {
@@ -207,6 +209,7 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                     poStatus: getStr(first, poStatusIdx) as OverallPOStatus || OverallPOStatus.Available,
                     orderStatus: getStr(first, orderStatusIdx) as OrderStatus || OrderStatus.OpenOrders,
                     saleType: getStr(first, saleTypeIdx, 'Credit') as any,
+                    paymentStatus: (getStr(first, saleTypeIdx) === 'Cash' || getStr(first, saleTypeIdx) === 'Awaiting Payment') ? 'Pending' : null,
                     creditTerms: getNum(first, creditDaysIdx, 30),
                     billingPlan: getStr(first, billPlanIdx),
                     materials: getStr(first, materialsIdx) as FulfillmentStatus || FulfillmentStatus.Available,
@@ -248,10 +251,12 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
         if (name === 'mainBranch') {
             setOrder(prev => ({ ...prev, mainBranch: value, subBranch: '' }));
         } else if (name === 'saleType') {
+            const saleType = value as any;
             setOrder(prev => ({ 
                 ...prev, 
-                saleType: value as any,
-                creditTerms: (value === 'Credit' || value === 'Amendment') ? 30 : 0 
+                saleType,
+                paymentStatus: (saleType === 'Cash' || saleType === 'Awaiting Payment') ? 'Pending' : null,
+                creditTerms: (saleType === 'Credit' || saleType === 'Amendment') ? 30 : 0 
             }));
         } else {
             setOrder(prev => ({ ...prev, [name]: value }));
@@ -350,6 +355,18 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                                 <div>
                                     <label htmlFor="creditTerms" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Credit Days</label>
                                     <input type="number" id="creditTerms" name="creditTerms" value={order.creditTerms ?? 0} onChange={handleOrderChange} className="mt-1 block w-full px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500" />
+                                </div>
+                            )}
+
+                            {(order.saleType === 'Cash' || order.saleType === 'Awaiting Payment') && (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label htmlFor="paymentStatus" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Payment Status</label>
+                                        <select id="paymentStatus" name="paymentStatus" value={order.paymentStatus || ''} onChange={handleOrderChange} className="mt-1 block w-full px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500">
+                                            <option value="Pending">Pending</option>
+                                            <option value="Received">Received</option>
+                                        </select>
+                                    </div>
                                 </div>
                             )}
 
