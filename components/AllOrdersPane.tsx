@@ -5,7 +5,7 @@ import { POItemStatus, FulfillmentStatus } from '../types';
 import { MagnifyingGlassIcon, ArrowDownTrayIcon, TrashIcon, XMarkIcon, ChevronDownIcon } from './icons';
 import { exportToCSV } from '../utils/export';
 import { isOilStuckPO } from '../utils/poUtils';
-import { formatDate, isDateInRange } from '../utils/dateUtils';
+import { formatDate, isDateInRange, parseDate } from '../utils/dateUtils';
 
 interface AllOrdersPaneProps {
   purchaseOrders: PurchaseOrder[];
@@ -29,6 +29,15 @@ interface AllOrdersPaneProps {
     subBranch: string;
     categories: string[];
   };
+  setDashboardFilters?: React.Dispatch<React.SetStateAction<{
+    status: string;
+    customer: string;
+    startDate: string;
+    endDate: string;
+    mainBranch: string;
+    subBranch: string;
+    categories: string[];
+  }>>;
 }
 
 type SortKeys = 'poNumber' | 'customerName' | 'poDate' | 'totalValue' | 'status' | 'fulfillmentStatus' | 'orderStatus';
@@ -43,13 +52,11 @@ const getDynamicFulfillmentStatus = (items: POItem[]) => {
     return FulfillmentStatus.PartiallyAvailable;
 };
 
-const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectPO, onDeletePO, filter, onClearFilter, selectedCategories = [], dashboardFilters }) => {
+const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectPO, onDeletePO, filter, onClearFilter, selectedCategories = [], dashboardFilters, setDashboardFilters }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: SortKeys; direction: 'ascending' | 'descending' } | null>({ key: 'poDate', direction: 'descending' });
     const [viewMode, setViewMode] = useState<'orders' | 'parts'>('orders');
     const [partsFilter, setPartsFilter] = useState<'all' | 'available' | 'notAvailable'>('all');
-    const [mainBranchFilter, setMainBranchFilter] = useState('');
-    const [subBranchFilter, setSubBranchFilter] = useState('');
 
     const mainBranches = useMemo(() => {
         const branches = new Set<string>();
@@ -136,18 +143,29 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
             );
         }
 
-        if (mainBranchFilter) {
-            sortableItems = sortableItems.filter(po => po.mainBranch === mainBranchFilter);
-        }
-
-        if (subBranchFilter) {
-            sortableItems = sortableItems.filter(po => po.subBranch === subBranchFilter);
-        }
-
         if (sortConfig !== null) {
             sortableItems.sort((a, b) => {
-                const valA = a[sortConfig.key] || '';
-                const valB = b[sortConfig.key] || '';
+                let valA: any = a[sortConfig.key];
+                let valB: any = b[sortConfig.key];
+
+                // Special handling for dates
+                if (sortConfig.key === 'poDate' || sortConfig.key === 'soDate' || sortConfig.key === 'invoiceDate') {
+                    const dateA = parseDate(valA)?.getTime() || 0;
+                    const dateB = parseDate(valB)?.getTime() || 0;
+                    return sortConfig.direction === 'ascending' ? dateA - dateB : dateB - dateA;
+                }
+
+                // Special handling for numbers
+                if (sortConfig.key === 'totalValue') {
+                    const numA = Number(valA) || 0;
+                    const numB = Number(valB) || 0;
+                    return sortConfig.direction === 'ascending' ? numA - numB : numB - numA;
+                }
+
+                // Default string comparison
+                valA = String(valA || '').toLowerCase();
+                valB = String(valB || '').toLowerCase();
+
                 if (valA < valB) {
                     return sortConfig.direction === 'ascending' ? -1 : 1;
                 }
@@ -158,7 +176,7 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
             });
         }
         return sortableItems;
-    }, [posWithValues, searchTerm, sortConfig, filter]);
+    }, [posWithValues, searchTerm, sortConfig, filter, dashboardFilters]);
     
     const partsBreakdown = useMemo(() => {
         const partsMap: Record<string, { partNumber: string, description: string, quantity: number, value: number, poCount: number, status: 'available' | 'notAvailable' }> = {};
@@ -295,10 +313,10 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                         />
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto">
-                        <div className="relative w-full sm:w-40">
+                        <div className="relative w-full sm:w-44">
                             <select 
-                                value={mainBranchFilter}
-                                onChange={e => setMainBranchFilter(e.target.value)}
+                                value={dashboardFilters?.mainBranch || ''}
+                                onChange={e => setDashboardFilters?.(prev => ({ ...prev, mainBranch: e.target.value, subBranch: '' }))}
                                 className="w-full pl-3 pr-10 py-2.5 text-sm font-medium rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500 appearance-none"
                             >
                                 <option value="">All Main Branches</option>
@@ -306,10 +324,10 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                             </select>
                             <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                         </div>
-                        <div className="relative w-full sm:w-40">
+                        <div className="relative w-full sm:w-44">
                             <select 
-                                value={subBranchFilter}
-                                onChange={e => setSubBranchFilter(e.target.value)}
+                                value={dashboardFilters?.subBranch || ''}
+                                onChange={e => setDashboardFilters?.(prev => ({ ...prev, subBranch: e.target.value }))}
                                 className="w-full pl-3 pr-10 py-2.5 text-sm font-medium rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500 appearance-none"
                             >
                                 <option value="">All Sub Branches</option>
@@ -338,13 +356,20 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                         </select>
                         <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                     </div>
-                    {(filter || mainBranchFilter || subBranchFilter) && (
+                    {(filter || dashboardFilters?.mainBranch || dashboardFilters?.subBranch || dashboardFilters?.status || dashboardFilters?.customer || dashboardFilters?.startDate || dashboardFilters?.endDate) && (
                          <div className="flex items-center gap-2 bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200 px-3 py-1.5 rounded-full text-sm font-medium">
                             <span>Filtering Active</span>
                             <button onClick={() => {
                                 onClearFilter?.();
-                                setMainBranchFilter('');
-                                setSubBranchFilter('');
+                                setDashboardFilters?.({
+                                    status: '',
+                                    customer: '',
+                                    startDate: '',
+                                    endDate: '',
+                                    mainBranch: '',
+                                    subBranch: '',
+                                    categories: dashboardFilters?.categories || []
+                                });
                             }} className="hover:text-red-900 dark:hover:text-white"><XMarkIcon className="w-4 h-4"/></button>
                          </div>
                     )}

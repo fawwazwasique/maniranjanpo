@@ -470,6 +470,7 @@ function App() {
                     onClearFilter={() => setOrdersFilter(null)} 
                     selectedCategories={filters.categories}
                     dashboardFilters={filters}
+                    setDashboardFilters={setFilters}
                 />
             )}
             {activePane === 'stockManagement' && (
