@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import type { PurchaseOrder } from '../types';
 import { OverallPOStatus, FulfillmentStatus, OrderStatus, POItemStatus } from '../types';
 import { exportToCSV } from '../utils/export';
+import { formatDate, isDateInRange } from '../utils/dateUtils';
 import { ArrowDownTrayIcon, ClipboardDocumentListIcon, ExclamationTriangleIcon, TruckIcon, CheckCircleIcon, DatabaseIcon } from './icons';
 
 interface ReportsPaneProps {
@@ -23,8 +24,7 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
     // General Filter Logic
     const filteredGeneralPOs = useMemo(() => {
         return purchaseOrders.filter(po => {
-            if (startDate && new Date(po.poDate) < new Date(startDate)) return false;
-            if (endDate && new Date(po.poDate) > new Date(endDate)) return false;
+            if (!isDateInRange(po.poDate, startDate, endDate)) return false;
             if (statusFilter && po.status !== statusFilter) return false;
             return true;
         });
@@ -525,7 +525,7 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                                                     <td className="p-3 font-medium">{po.poNumber}</td>
                                                     <td className="p-3">{po.customerName}</td>
                                                     <td className="p-3 font-bold text-purple-600">{po.invoiceNumber || 'N/A'}</td>
-                                                    <td className="p-3">{po.invoiceDate || po.poDate}</td>
+                                                    <td className="p-3">{formatDate(po.invoiceDate || po.poDate)}</td>
                                                     <td className="p-3">{po.items.reduce((acc, i) => acc + (i.quantity * i.rate), 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</td>
                                                     <td className="p-3">
                                                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${po.paymentStatus === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>

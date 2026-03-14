@@ -105,7 +105,8 @@ function App() {
   const [filters, setFilters] = useState({
     status: '',
     customer: '',
-    date: '',
+    startDate: '',
+    endDate: '',
     mainBranch: '',
     subBranch: '',
     categories: [] as string[],

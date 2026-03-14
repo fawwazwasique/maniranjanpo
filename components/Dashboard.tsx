@@ -5,13 +5,15 @@ import { OverallPOStatus, FulfillmentStatus, OrderStatus, POItemStatus } from '.
 import { CheckCircleIcon, ClockIcon, MagnifyingGlassIcon, TruckIcon, UserGroupIcon, XMarkIcon, ChartPieIcon, CalendarDaysIcon, CurrencyRupeeIcon, NoSymbolIcon, ArrowUpIcon, ArrowDownIcon, SparklesIcon, BeakerIcon } from './icons';
 import { MAIN_BRANCHES, BRANCH_STRUCTURE, ITEM_CATEGORIES } from '../constants';
 import { isOilItem, isOilStuckPO } from '../utils/poUtils';
+import { isDateInRange } from '../utils/dateUtils';
 
 interface DashboardProps {
   purchaseOrders: PurchaseOrder[];
   filters: {
     status: string;
     customer: string;
-    date: string;
+    startDate: string;
+    endDate: string;
     mainBranch: string;
     subBranch: string;
     categories: string[];
@@ -19,7 +21,8 @@ interface DashboardProps {
   setFilters: React.Dispatch<React.SetStateAction<{
     status: string;
     customer: string;
-    date: string;
+    startDate: string;
+    endDate: string;
     mainBranch: string;
     subBranch: string;
     categories: string[];
@@ -215,7 +218,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         return purchaseOrders
             .filter(po => filters.status ? po.status === filters.status : true)
             .filter(po => filters.customer ? (po.customerName || '').toLowerCase().includes(filters.customer.toLowerCase()) : true)
-            .filter(po => filters.date ? new Date(po.poDate).toISOString().split('T')[0] === filters.date : true)
+            .filter(po => isDateInRange(po.poDate, filters.startDate, filters.endDate))
             .filter(po => filters.mainBranch ? po.mainBranch === filters.mainBranch : true)
             .filter(po => filters.subBranch ? po.subBranch === filters.subBranch : true)
             .filter(po => {
@@ -521,8 +524,12 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                         </select>
                     </div>
                     <div>
-                        <label htmlFor="date" className="block text-sm font-medium text-slate-700 dark:text-slate-300">PO Date</label>
-                        <input type="date" id="date" name="date" value={filters.date || ''} onChange={handleFilterChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500" />
+                        <label htmlFor="startDate" className="block text-sm font-medium text-slate-700 dark:text-slate-300">From Date</label>
+                        <input type="date" id="startDate" name="startDate" value={filters.startDate || ''} onChange={handleFilterChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500" />
+                    </div>
+                    <div>
+                        <label htmlFor="endDate" className="block text-sm font-medium text-slate-700 dark:text-slate-300">To Date</label>
+                        <input type="date" id="endDate" name="endDate" value={filters.endDate || ''} onChange={handleFilterChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500" />
                     </div>
                     <div className="lg:col-span-2">
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Filter by Categories</label>
@@ -554,7 +561,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                         </div>
                     </div>
                      <div className="flex items-end">
-                        <button onClick={() => setFilters({status: '', customer: '', date: '', mainBranch: '', subBranch: '', categories: []})} className="w-full justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-slate-600 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 flex items-center gap-2">
+                        <button onClick={() => setFilters({status: '', customer: '', startDate: '', endDate: '', mainBranch: '', subBranch: '', categories: []})} className="w-full justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-slate-600 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 flex items-center gap-2">
                            <XMarkIcon className="w-4 h-4" />
                            Clear All
                         </button>

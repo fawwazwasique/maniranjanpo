@@ -5,6 +5,7 @@ import { POItemStatus, FulfillmentStatus } from '../types';
 import { MagnifyingGlassIcon, ArrowDownTrayIcon, TrashIcon, XMarkIcon, ChevronDownIcon } from './icons';
 import { exportToCSV } from '../utils/export';
 import { isOilStuckPO } from '../utils/poUtils';
+import { formatDate, isDateInRange } from '../utils/dateUtils';
 
 interface AllOrdersPaneProps {
   purchaseOrders: PurchaseOrder[];
@@ -22,7 +23,8 @@ interface AllOrdersPaneProps {
   dashboardFilters?: {
     status: string;
     customer: string;
-    date: string;
+    startDate: string;
+    endDate: string;
     mainBranch: string;
     subBranch: string;
     categories: string[];
@@ -114,8 +116,8 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
             if (dashboardFilters.customer) {
                 sortableItems = sortableItems.filter(po => (po.customerName || '').toLowerCase().includes(dashboardFilters.customer.toLowerCase()));
             }
-            if (dashboardFilters.date) {
-                sortableItems = sortableItems.filter(po => new Date(po.poDate).toISOString().split('T')[0] === dashboardFilters.date);
+            if (dashboardFilters.startDate || dashboardFilters.endDate) {
+                sortableItems = sortableItems.filter(po => isDateInRange(po.poDate, dashboardFilters.startDate, dashboardFilters.endDate));
             }
             if (dashboardFilters.mainBranch) {
                 sortableItems = sortableItems.filter(po => po.mainBranch === dashboardFilters.mainBranch);
@@ -380,7 +382,7 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                                         <td className="p-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">{po.poNumber}</td>
                                         <td className="p-4">{po.customerName}</td>
                                         <td className="p-4">{po.mainBranch}{po.subBranch && ` / ${po.subBranch}`}</td>
-                                        <td className="p-4">{new Date(po.poDate).toLocaleDateString()}</td>
+                                        <td className="p-4">{formatDate(po.poDate)}</td>
                                         <td className="p-4 text-right font-semibold">{po.totalValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</td>
                                         <td className="p-4 font-medium">{po.orderStatus}</td>
                                         <td className="p-4">
