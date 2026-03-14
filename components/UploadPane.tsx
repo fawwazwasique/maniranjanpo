@@ -251,7 +251,7 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
             setOrder(prev => ({ 
                 ...prev, 
                 saleType: value as any,
-                creditTerms: value === 'Credit' ? 30 : 0 
+                creditTerms: (value === 'Credit' || value === 'Amendment') ? 30 : 0 
             }));
         } else {
             setOrder(prev => ({ ...prev, [name]: value }));

@@ -127,7 +127,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
             ...prev,
             saleType,
             paymentStatus: saleType === 'Cash' ? 'Pending' : null,
-            creditTerms: saleType === 'Credit' ? 30 : 0
+            creditTerms: (saleType === 'Credit' || saleType === 'Amendment') ? 30 : 0
         }));
     } else {
         setFormData(prev => ({ ...prev, [name]: value || '' }));

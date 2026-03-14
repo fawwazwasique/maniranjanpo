@@ -45,6 +45,7 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: SortKeys; direction: 'ascending' | 'descending' } | null>({ key: 'poDate', direction: 'descending' });
     const [viewMode, setViewMode] = useState<'orders' | 'parts'>('orders');
+    const [partsFilter, setPartsFilter] = useState<'all' | 'available' | 'notAvailable'>('all');
 
     const posWithValues = useMemo(() => {
         return purchaseOrders.map(po => {
@@ -154,8 +155,10 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                 partsMap[key].poCount += 1;
             });
         });
-        return Object.values(partsMap).sort((a, b) => b.value - a.value);
-    }, [filteredAndSortedPOs]);
+        return Object.values(partsMap)
+            .filter(part => partsFilter === 'all' || part.status === partsFilter)
+            .sort((a, b) => b.value - a.value);
+    }, [filteredAndSortedPOs, partsFilter]);
 
     const fulfillmentStats = useMemo(() => {
         let availCount = 0;
@@ -207,7 +210,11 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                 <div className="mb-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div 
-                            className={`p-4 rounded-xl border transition-all bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700`}
+                            onClick={() => {
+                                setViewMode('parts');
+                                setPartsFilter(prev => prev === 'available' ? 'all' : 'available');
+                            }}
+                            className={`p-4 rounded-xl border transition-all cursor-pointer bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-green-500 ${partsFilter === 'available' ? 'ring-2 ring-green-500' : ''}`}
                         >
                             <p className="text-sm font-bold text-green-700 dark:text-green-400 uppercase tracking-wider">Available Items</p>
                             <div className="flex items-baseline gap-2 mt-1">
@@ -216,7 +223,11 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                             </div>
                         </div>
                         <div 
-                            className={`p-4 rounded-xl border transition-all bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700`}
+                            onClick={() => {
+                                setViewMode('parts');
+                                setPartsFilter(prev => prev === 'notAvailable' ? 'all' : 'notAvailable');
+                            }}
+                            className={`p-4 rounded-xl border transition-all cursor-pointer bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-red-500 ${partsFilter === 'notAvailable' ? 'ring-2 ring-red-500' : ''}`}
                         >
                             <p className="text-sm font-bold text-red-700 dark:text-red-400 uppercase tracking-wider">Not Available Items</p>
                             <div className="flex items-baseline gap-2 mt-1">

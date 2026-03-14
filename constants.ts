@@ -29,7 +29,8 @@ export const ITEM_CATEGORIES = [
     'Oil',
     'Local Parts',
     'Auto Parts',
-    'Growth Parts'
+    'Growth Parts',
+    'Service'
 ];
 
 export const SALE_TYPES = [
@@ -40,7 +41,8 @@ export const SALE_TYPES = [
     'Received',
     'Cheque',
     'RTGS/NEFT',
-    'Payment is Ready with Customer'
+    'Payment is Ready with Customer',
+    'Amendment'
 ];
 
 export const BULK_UPLOAD_HEADERS = [

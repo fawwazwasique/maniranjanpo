@@ -305,19 +305,14 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         const partiallyAvailablePOs = partiallyAvailablePOsList.length;
         const partiallyAvailableValue = calculateValue(partiallyAvailablePOsList);
         
-        // Bifurcation for partially available
-        let partialAvailableItemsCount = 0;
         let partialAvailableItemsValue = 0;
-        let partialNotAvailableItemsCount = 0;
         let partialNotAvailableItemsValue = 0;
         partiallyAvailablePOsList.forEach(po => {
             po.items.forEach(item => {
                 const itemValue = (Number(item.quantity || 0) * Number(item.rate || 0));
                 if (item.status === POItemStatus.Available || item.status === POItemStatus.Dispatched) {
-                    partialAvailableItemsCount++;
                     partialAvailableItemsValue += itemValue;
-                } else if (item.status === POItemStatus.NotAvailable || item.status === POItemStatus.PartiallyAvailable) {
-                    partialNotAvailableItemsCount++;
+                } else {
                     partialNotAvailableItemsValue += itemValue;
                 }
             });
@@ -327,16 +322,6 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         const notAvailablePOsList = filteredPOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.NotAvailable);
         const notAvailablePOs = notAvailablePOsList.length;
         const notAvailableValue = calculateValue(notAvailablePOsList);
-
-        // 4. Global Part Shortage (Total items not available across all POs)
-        let totalPartsNotAvailable = 0;
-        filteredPOs.forEach(po => {
-            po.items.forEach(item => {
-                if (item.status === POItemStatus.NotAvailable || item.status === POItemStatus.PartiallyAvailable) {
-                    totalPartsNotAvailable++;
-                }
-            });
-        });
 
         // 5. Oil-Stuck POs (All parts available except Oil/Valvoline)
         const oilStuckPOsList = filteredPOs.filter(isOilStuckPO);
@@ -480,11 +465,10 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             totalOpenPOs, openPOValue: isNaN(openPOValue) ? 0 : openPOValue, 
             fullyAvailablePOs, fullyAvailableValue: isNaN(fullyAvailableValue) ? 0 : fullyAvailableValue, 
             partiallyAvailablePOs, partiallyAvailableValue: isNaN(partiallyAvailableValue) ? 0 : partiallyAvailableValue, 
-            partialAvailableItemsCount, partialAvailableItemsValue,
-            partialNotAvailableItemsCount, partialNotAvailableItemsValue,
+            partialAvailableItemsValue,
+            partialNotAvailableItemsValue,
             notAvailablePOs, notAvailableValue: isNaN(notAvailableValue) ? 0 : notAvailableValue,
             totalNotAvailableValue,
-            totalPartsNotAvailable,
             oilStuckPOs, oilStuckValue: isNaN(oilStuckValue) ? 0 : oilStuckValue,
             oilStuckPOsList,
             unavailablePartsList,
@@ -599,7 +583,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 <DashboardStatCard 
                     title="Partially Available" 
                     value={dashboardData.partiallyAvailablePOs} 
-                    subValue={dashboardData.partiallyAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })}
+                    subValue={`Avail: ${dashboardData.partialAvailableItemsValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })} / Gap: ${dashboardData.partialNotAvailableItemsValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })}`}
                     icon={<TruckIcon className="w-6 h-6 text-blue-500" />} 
                     indicatorColor="bg-blue-500"
                     trend={dashboardData.partialTrend}
@@ -641,16 +625,6 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                         <p className="text-sm text-slate-400 font-medium mb-4">
                             Combined value of <span className="text-red-400 font-bold">all missing items</span> across Partial and 100% Not Available POs.
                         </p>
-                        <div className="flex flex-col gap-2">
-                             <div className="flex items-center gap-2 text-[10px] font-bold text-slate-300 uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-lg w-fit">
-                                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                                Partial PO Gap: {dashboardData.partialNotAvailableItemsValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })}
-                            </div>
-                            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-300 uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-lg w-fit">
-                                <span className="w-2 h-2 rounded-full bg-red-600"></span>
-                                100% Not Avail Gap: {dashboardData.notAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })}
-                            </div>
-                        </div>
                     </div>
                 </div>
 
