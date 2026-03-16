@@ -625,7 +625,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
                 <DashboardStatCard 
-                    title="Total Active POs" 
+                    title="Total No of PO's" 
                     value={dashboardData.totalOpenPOs} 
                     icon={<ClockIcon className="w-6 h-6 text-amber-500" />} 
                     indicatorColor="bg-amber-500"
