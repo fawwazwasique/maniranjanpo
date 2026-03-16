@@ -21,21 +21,21 @@ interface AllOrdersPaneProps {
   onClearFilter?: () => void;
   selectedCategories?: string[];
   dashboardFilters?: {
-    status: string;
+    statuses: string[];
     customer: string;
     startDate: string;
     endDate: string;
-    mainBranch: string;
-    subBranch: string;
+    mainBranches: string[];
+    subBranches: string[];
     categories: string[];
   };
   setDashboardFilters?: React.Dispatch<React.SetStateAction<{
-    status: string;
+    statuses: string[];
     customer: string;
     startDate: string;
     endDate: string;
-    mainBranch: string;
-    subBranch: string;
+    mainBranches: string[];
+    subBranches: string[];
     categories: string[];
   }>>;
 }
@@ -117,8 +117,8 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
 
         // Apply dashboard filters
         if (dashboardFilters) {
-            if (dashboardFilters.status) {
-                sortableItems = sortableItems.filter(po => po.status === dashboardFilters.status);
+            if (dashboardFilters.statuses && dashboardFilters.statuses.length > 0) {
+                sortableItems = sortableItems.filter(po => dashboardFilters.statuses.includes(po.status));
             }
             if (dashboardFilters.customer) {
                 sortableItems = sortableItems.filter(po => (po.customerName || '').toLowerCase().includes(dashboardFilters.customer.toLowerCase()));
@@ -126,11 +126,11 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
             if (dashboardFilters.startDate || dashboardFilters.endDate) {
                 sortableItems = sortableItems.filter(po => isDateInRange(po.poDate, dashboardFilters.startDate, dashboardFilters.endDate));
             }
-            if (dashboardFilters.mainBranch) {
-                sortableItems = sortableItems.filter(po => po.mainBranch === dashboardFilters.mainBranch);
+            if (dashboardFilters.mainBranches && dashboardFilters.mainBranches.length > 0) {
+                sortableItems = sortableItems.filter(po => dashboardFilters.mainBranches.includes(po.mainBranch || ''));
             }
-            if (dashboardFilters.subBranch) {
-                sortableItems = sortableItems.filter(po => po.subBranch === dashboardFilters.subBranch);
+            if (dashboardFilters.subBranches && dashboardFilters.subBranches.length > 0) {
+                sortableItems = sortableItems.filter(po => dashboardFilters.subBranches.includes(po.subBranch || ''));
             }
         }
 
@@ -313,27 +313,25 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                         />
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto">
-                        <div className="relative w-full sm:w-44">
-                            <select 
-                                value={dashboardFilters?.mainBranch || ''}
-                                onChange={e => setDashboardFilters?.(prev => ({ ...prev, mainBranch: e.target.value, subBranch: '' }))}
-                                className="w-full pl-3 pr-10 py-2.5 text-sm font-medium rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500 appearance-none"
-                            >
-                                <option value="">All Main Branches</option>
-                                {mainBranches.map(b => <option key={b} value={b}>{b}</option>)}
-                            </select>
-                            <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                        </div>
-                        <div className="relative w-full sm:w-44">
-                            <select 
-                                value={dashboardFilters?.subBranch || ''}
-                                onChange={e => setDashboardFilters?.(prev => ({ ...prev, subBranch: e.target.value }))}
-                                className="w-full pl-3 pr-10 py-2.5 text-sm font-medium rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500 appearance-none"
-                            >
-                                <option value="">All Sub Branches</option>
-                                {subBranches.map(b => <option key={b} value={b}>{b}</option>)}
-                            </select>
-                            <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                        <div className="flex flex-wrap gap-1 max-w-[400px]">
+                            {dashboardFilters?.statuses && dashboardFilters.statuses.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                    {dashboardFilters.statuses.map(s => (
+                                        <span key={s} className="px-2 py-0.5 bg-red-100 text-red-700 text-[10px] font-bold rounded-full uppercase">
+                                            {s}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                            {(dashboardFilters?.mainBranches?.length || 0) > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                    {dashboardFilters?.mainBranches.map(b => (
+                                        <span key={b} className="px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-bold rounded-full uppercase">
+                                            {b}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -356,18 +354,18 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                         </select>
                         <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                     </div>
-                    {(filter || dashboardFilters?.mainBranch || dashboardFilters?.subBranch || dashboardFilters?.status || dashboardFilters?.customer || dashboardFilters?.startDate || dashboardFilters?.endDate) && (
+                    {(filter || (dashboardFilters?.mainBranches?.length || 0) > 0 || (dashboardFilters?.subBranches?.length || 0) > 0 || (dashboardFilters?.statuses?.length || 0) > 0 || dashboardFilters?.customer || dashboardFilters?.startDate || dashboardFilters?.endDate) && (
                          <div className="flex items-center gap-2 bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200 px-3 py-1.5 rounded-full text-sm font-medium">
                             <span>Filtering Active</span>
                             <button onClick={() => {
                                 onClearFilter?.();
                                 setDashboardFilters?.({
-                                    status: '',
+                                    statuses: [],
                                     customer: '',
                                     startDate: '',
                                     endDate: '',
-                                    mainBranch: '',
-                                    subBranch: '',
+                                    mainBranches: [],
+                                    subBranches: [],
                                     categories: dashboardFilters?.categories || []
                                 });
                             }} className="hover:text-red-900 dark:hover:text-white"><XMarkIcon className="w-4 h-4"/></button>

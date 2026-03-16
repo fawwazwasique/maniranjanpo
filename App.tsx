@@ -103,12 +103,12 @@ function App() {
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
 
   const [filters, setFilters] = useState({
-    status: '',
+    statuses: [] as string[],
     customer: '',
     startDate: '',
     endDate: '',
-    mainBranch: '',
-    subBranch: '',
+    mainBranches: [] as string[],
+    subBranches: [] as string[],
     categories: [] as string[],
   });
 

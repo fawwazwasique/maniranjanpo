@@ -10,21 +10,21 @@ import { isDateInRange } from '../utils/dateUtils';
 interface DashboardProps {
   purchaseOrders: PurchaseOrder[];
   filters: {
-    status: string;
+    statuses: string[];
     customer: string;
     startDate: string;
     endDate: string;
-    mainBranch: string;
-    subBranch: string;
+    mainBranches: string[];
+    subBranches: string[];
     categories: string[];
   };
   setFilters: React.Dispatch<React.SetStateAction<{
-    status: string;
+    statuses: string[];
     customer: string;
     startDate: string;
     endDate: string;
-    mainBranch: string;
-    subBranch: string;
+    mainBranches: string[];
+    subBranches: string[];
     categories: string[];
   }>>;
   customers: string[];
@@ -197,30 +197,42 @@ const getPOValue = (po: PurchaseOrder, selectedCategories: string[]) => {
 const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilters, customers, onCardClick }) => {
     const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        if (name === 'mainBranch') {
-            setFilters(prev => ({ ...prev, mainBranch: value, subBranch: '' }));
-        } else {
-            setFilters(prev => ({ ...prev, [name]: value }));
-        }
+        setFilters(prev => ({ ...prev, [name]: value }));
     };
 
-    const toggleCategory = (category: string) => {
+    const toggleFilter = (key: 'statuses' | 'mainBranches' | 'subBranches' | 'categories', value: string) => {
         setFilters(prev => {
-            const current = prev.categories || [];
-            const next = current.includes(category)
-                ? current.filter(c => c !== category)
-                : [...current, category];
-            return { ...prev, categories: next };
+            const current = prev[key] || [];
+            const next = current.includes(value)
+                ? current.filter(v => v !== value)
+                : [...current, value];
+            
+            // If main branch is deselected, also deselect its sub-branches
+            if (key === 'mainBranches' && current.includes(value)) {
+                const subsToRemove = BRANCH_STRUCTURE[value] || [];
+                return {
+                    ...prev,
+                    mainBranches: next,
+                    subBranches: prev.subBranches.filter(sb => !subsToRemove.includes(sb))
+                };
+            }
+            
+            return { ...prev, [key]: next };
         });
     };
 
+    const toggleCategory = (category: string) => toggleFilter('categories', category);
+    const toggleStatus = (status: string) => toggleFilter('statuses', status);
+    const toggleMainBranch = (branch: string) => toggleFilter('mainBranches', branch);
+    const toggleSubBranch = (branch: string) => toggleFilter('subBranches', branch);
+
     const filteredPOs = useMemo(() => {
         return purchaseOrders
-            .filter(po => filters.status ? po.status === filters.status : true)
+            .filter(po => filters.statuses.length > 0 ? filters.statuses.includes(po.status) : true)
             .filter(po => filters.customer ? (po.customerName || '').toLowerCase().includes(filters.customer.toLowerCase()) : true)
             .filter(po => isDateInRange(po.poDate, filters.startDate, filters.endDate))
-            .filter(po => filters.mainBranch ? po.mainBranch === filters.mainBranch : true)
-            .filter(po => filters.subBranch ? po.subBranch === filters.subBranch : true)
+            .filter(po => filters.mainBranches.length > 0 ? filters.mainBranches.includes(po.mainBranch || '') : true)
+            .filter(po => filters.subBranches.length > 0 ? filters.subBranches.includes(po.subBranch || '') : true)
             .filter(po => {
                 if (!filters.categories || filters.categories.length === 0) return true;
                 return (po.items || []).some(item => filters.categories.includes(item.category));
@@ -236,8 +248,8 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
     ): TrendData | null => {
         const contextPOs = allPOs.filter(po => {
             if (currentFilters.customer && !(po.customerName || '').toLowerCase().includes(currentFilters.customer.toLowerCase())) return false;
-            if (currentFilters.mainBranch && po.mainBranch !== currentFilters.mainBranch) return false;
-            if (currentFilters.subBranch && po.subBranch !== currentFilters.subBranch) return false;
+            if (currentFilters.mainBranches.length > 0 && !currentFilters.mainBranches.includes(po.mainBranch || '')) return false;
+            if (currentFilters.subBranches.length > 0 && !currentFilters.subBranches.includes(po.subBranch || '')) return false;
             if (currentFilters.categories && currentFilters.categories.length > 0) {
                 if (!(po.items || []).some(item => currentFilters.categories.includes(item.category))) return false;
             }
@@ -494,77 +506,119 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
     return (
         <div className="p-4 sm:p-6 lg:p-8">
             <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-md mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                     <div>
-                        <label htmlFor="customer" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Search</label>
-                        <input type="text" id="customer" name="customer" value={filters.customer || ''} onChange={handleFilterChange} list="customer-list" placeholder="All" className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500" />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div>
+                        <label htmlFor="customer" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Search Customer</label>
+                        <input type="text" id="customer" name="customer" value={filters.customer || ''} onChange={handleFilterChange} list="customer-list" placeholder="Type to search..." className="block w-full text-base px-3 py-2 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500" />
                          <datalist id="customer-list">
                             {customers.map(c => <option key={c} value={c} />)}
                         </datalist>
                     </div>
                     <div>
-                        <label htmlFor="mainBranch" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Main Branch</label>
-                        <select id="mainBranch" name="mainBranch" value={filters.mainBranch || ''} onChange={handleFilterChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500">
-                            <option value="">All</option>
-                            {MAIN_BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
-                        </select>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Date Range</label>
+                        <div className="flex items-center gap-2">
+                            <input type="date" id="startDate" name="startDate" value={filters.startDate || ''} onChange={handleFilterChange} className="block w-full text-sm px-2 py-2 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500" />
+                            <span className="text-slate-400">to</span>
+                            <input type="date" id="endDate" name="endDate" value={filters.endDate || ''} onChange={handleFilterChange} className="block w-full text-sm px-2 py-2 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500" />
+                        </div>
                     </div>
+                    <div className="lg:col-span-2 flex items-end justify-end">
+                        <button onClick={() => setFilters({statuses: [], customer: '', startDate: '', endDate: '', mainBranches: [], subBranches: [], categories: []})} className="py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 flex items-center gap-2 transition-colors">
+                           <XMarkIcon className="w-4 h-4" />
+                           Reset All Filters
+                        </button>
+                    </div>
+                </div>
+
+                <div className="mt-6 space-y-4">
                     <div>
-                        <label htmlFor="subBranch" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Sub Branch</label>
-                        <select id="subBranch" name="subBranch" value={filters.subBranch || ''} onChange={handleFilterChange} disabled={!filters.mainBranch} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500 disabled:opacity-50">
-                            <option value="">All</option>
-                            {filters.mainBranch && BRANCH_STRUCTURE[filters.mainBranch]?.map(sb => <option key={sb} value={sb}>{sb}</option>)}
-                        </select>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Status</label>
+                        <div className="flex flex-wrap gap-2">
+                            {Object.values(OverallPOStatus).map(s => {
+                                const isSelected = filters.statuses.includes(s);
+                                return (
+                                    <button
+                                        key={s}
+                                        onClick={() => toggleStatus(s)}
+                                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                                            isSelected 
+                                                ? 'bg-red-500 text-white border-red-500' 
+                                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-red-300'
+                                        }`}
+                                    >
+                                        {s}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
+
                     <div>
-                        <label htmlFor="status" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Status</label>
-                        <select id="status" name="status" value={filters.status || ''} onChange={handleFilterChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500">
-                            <option value="">All</option>
-                            {Object.values(OverallPOStatus).map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Main Branches</label>
+                        <div className="flex flex-wrap gap-2">
+                            {MAIN_BRANCHES.map(b => {
+                                const isSelected = filters.mainBranches.includes(b);
+                                return (
+                                    <button
+                                        key={b}
+                                        onClick={() => toggleMainBranch(b)}
+                                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                                            isSelected 
+                                                ? 'bg-red-500 text-white border-red-500' 
+                                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-red-300'
+                                        }`}
+                                    >
+                                        {b}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
+
+                    {filters.mainBranches.length > 0 && (
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Sub Branches</label>
+                            <div className="flex flex-wrap gap-2">
+                                {filters.mainBranches.flatMap(mb => BRANCH_STRUCTURE[mb] || []).map(sb => {
+                                    const isSelected = filters.subBranches.includes(sb);
+                                    return (
+                                        <button
+                                            key={sb}
+                                            onClick={() => toggleSubBranch(sb)}
+                                            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                                                isSelected 
+                                                    ? 'bg-red-500 text-white border-red-500' 
+                                                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-red-300'
+                                            }`}
+                                        >
+                                            {sb}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
                     <div>
-                        <label htmlFor="startDate" className="block text-sm font-medium text-slate-700 dark:text-slate-300">From Date</label>
-                        <input type="date" id="startDate" name="startDate" value={filters.startDate || ''} onChange={handleFilterChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500" />
-                    </div>
-                    <div>
-                        <label htmlFor="endDate" className="block text-sm font-medium text-slate-700 dark:text-slate-300">To Date</label>
-                        <input type="date" id="endDate" name="endDate" value={filters.endDate || ''} onChange={handleFilterChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500" />
-                    </div>
-                    <div className="lg:col-span-2">
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Filter by Categories</label>
-                        <div className="flex flex-wrap gap-1.5 p-1.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700/30 min-h-[46px]">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Categories</label>
+                        <div className="flex flex-wrap gap-2">
                             {ITEM_CATEGORIES.map(cat => {
                                 const isSelected = filters.categories.includes(cat);
                                 return (
                                     <button
                                         key={cat}
                                         onClick={() => toggleCategory(cat)}
-                                        className={`px-3 py-1 rounded-md text-xs font-semibold transition-all duration-200 border ${
-                                            isSelected
-                                                ? 'bg-red-500 text-white border-red-500 shadow-sm scale-105'
-                                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-red-300 dark:hover:border-red-900 hover:bg-red-50 dark:hover:bg-red-900/20'
+                                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                                            isSelected 
+                                                ? 'bg-red-500 text-white border-red-500' 
+                                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-red-300'
                                         }`}
                                     >
                                         {cat}
                                     </button>
                                 );
                             })}
-                            {filters.categories.length > 0 && (
-                                <button 
-                                    onClick={() => setFilters(prev => ({ ...prev, categories: [] }))}
-                                    className="px-2 py-1 text-[10px] uppercase tracking-wider font-bold text-slate-400 hover:text-red-500 transition-colors"
-                                >
-                                    Reset
-                                </button>
-                            )}
                         </div>
-                    </div>
-                     <div className="flex items-end">
-                        <button onClick={() => setFilters({status: '', customer: '', startDate: '', endDate: '', mainBranch: '', subBranch: '', categories: []})} className="w-full justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-slate-600 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 flex items-center gap-2">
-                           <XMarkIcon className="w-4 h-4" />
-                           Clear All
-                        </button>
                     </div>
                 </div>
             </div>
