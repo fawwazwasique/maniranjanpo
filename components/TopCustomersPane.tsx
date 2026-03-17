@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import type { PurchaseOrder, POItem } from '../types';
-import { POItemStatus, OrderStatus } from '../types';
+import { POItemStatus } from '../types';
 import { ChartPieIcon, UserGroupIcon, MagnifyingGlassIcon, ArrowDownTrayIcon, ChevronDownIcon, XMarkIcon } from './icons';
 import { exportDataToCSV } from '../utils/export';
 import { ITEM_CATEGORIES } from '../constants';
@@ -58,17 +58,16 @@ const TopCustomersPane: React.FC<TopCustomersPaneProps> = ({ purchaseOrders }) =
         const analysisMap: Record<string, CustomerAnalysis> = {};
 
         purchaseOrders.forEach(po => {
-            if (po.orderStatus === OrderStatus.Invoiced) return;
-            
-            // Strict category check: PO must only contain selected categories
+            // Inclusive category check: PO must contain at least one selected category
             if (selectedCategories.length > 0) {
-                const allCategoriesMatch = (po.items || []).every(item => selectedCategories.includes(item.category || ''));
-                if (!allCategoriesMatch) return;
+                const hasMatchingCategory = (po.items || []).some(item => selectedCategories.includes(item.category || ''));
+                if (!hasMatchingCategory) return;
             }
 
             const filteredItems = (po.items || []).filter(item => {
                 const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(item.status);
-                return matchesStatus;
+                const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(item.category || '');
+                return matchesStatus && matchesCategory;
             });
 
             if (filteredItems.length === 0) return;

@@ -228,7 +228,6 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
     const filteredPOs = useMemo(() => {
         return purchaseOrders
-            .filter(po => po.orderStatus !== OrderStatus.Invoiced)
             .filter(po => filters.statuses.length > 0 ? filters.statuses.includes(po.status) : true)
             .filter(po => filters.customer ? (po.customerName || '').toLowerCase().includes(filters.customer.toLowerCase()) : true)
             .filter(po => isDateInRange(po.poDate, filters.startDate, filters.endDate))
@@ -236,7 +235,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             .filter(po => filters.subBranches.length > 0 ? filters.subBranches.includes(po.subBranch || '') : true)
             .filter(po => {
                 if (!filters.categories || filters.categories.length === 0) return true;
-                return (po.items || []).every(item => filters.categories.includes(item.category));
+                return (po.items || []).some(item => filters.categories.includes(item.category));
             });
     }, [purchaseOrders, filters]);
 
@@ -248,12 +247,11 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         isPositiveGood: boolean = true
     ): TrendData | null => {
         const contextPOs = allPOs.filter(po => {
-            if (po.orderStatus === OrderStatus.Invoiced) return false;
             if (currentFilters.customer && !(po.customerName || '').toLowerCase().includes(currentFilters.customer.toLowerCase())) return false;
             if (currentFilters.mainBranches.length > 0 && !currentFilters.mainBranches.includes(po.mainBranch || '')) return false;
             if (currentFilters.subBranches.length > 0 && !currentFilters.subBranches.includes(po.subBranch || '')) return false;
             if (currentFilters.categories && currentFilters.categories.length > 0) {
-                if (!(po.items || []).every(item => currentFilters.categories.includes(item.category))) return false;
+                if (!(po.items || []).some(item => currentFilters.categories.includes(item.category))) return false;
             }
             return true;
         });
@@ -325,7 +323,10 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         let partialAvailableItemsValue = 0;
         let partialNotAvailableItemsValue = 0;
         partiallyAvailablePOsList.forEach(po => {
-            po.items.forEach(item => {
+            const relevantItems = (po.items || []).filter(item => 
+                filters.categories.length === 0 || filters.categories.includes(item.category)
+            );
+            relevantItems.forEach(item => {
                 const itemValue = (Number(item.quantity || 0) * Number(item.rate || 0));
                 if (item.status === POItemStatus.Available || item.status === POItemStatus.Dispatched) {
                     partialAvailableItemsValue += itemValue;
@@ -348,7 +349,10 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         // 6. Aggregated Unavailable Parts List
         const unavailablePartsMap: Record<string, { partNumber: string, description: string, quantity: number, value: number, poCount: number }> = {};
         filteredPOs.forEach(po => {
-            po.items.forEach(item => {
+            const relevantItems = (po.items || []).filter(item => 
+                filters.categories.length === 0 || filters.categories.includes(item.category)
+            );
+            relevantItems.forEach(item => {
                 if (item.status === POItemStatus.NotAvailable || item.status === POItemStatus.PartiallyAvailable) {
                     const key = item.partNumber;
                     if (!unavailablePartsMap[key]) {

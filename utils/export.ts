@@ -13,7 +13,8 @@ const convertToCSV = (data: PurchaseOrder[]): string => {
     };
 
     data.forEach(po => {
-        const items = po.items && po.items.length > 0 ? po.items : [{} as any];
+        // Use filteredItems if available (from Dashboard/AllOrdersPane), otherwise fallback to po.items
+        const items = (po as any).filteredItems || po.items || [{} as any];
 
         items.forEach(item => {
             const row = [
