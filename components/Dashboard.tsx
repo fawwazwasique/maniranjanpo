@@ -4,7 +4,7 @@ import type { PurchaseOrder } from '../types';
 import { OverallPOStatus, FulfillmentStatus, OrderStatus, POItemStatus } from '../types';
 import { CheckCircleIcon, ClockIcon, MagnifyingGlassIcon, TruckIcon, UserGroupIcon, XMarkIcon, ChartPieIcon, CalendarDaysIcon, CurrencyRupeeIcon, NoSymbolIcon, ArrowUpIcon, ArrowDownIcon, SparklesIcon, BeakerIcon } from './icons';
 import { MAIN_BRANCHES, BRANCH_STRUCTURE, ITEM_CATEGORIES } from '../constants';
-import { isOilItem, isOilStuckPO } from '../utils/poUtils';
+import { isOilItem, isOilStuckPO, getPOFulfillmentStatus, getPOValue } from '../utils/poUtils';
 import { isDateInRange } from '../utils/dateUtils';
 
 interface DashboardProps {
@@ -171,28 +171,6 @@ const HorizontalBarChart: React.FC<{ data: { label: string; value: number }[], i
     );
 }
 
-
-const getPOFulfillmentStatus = (po: PurchaseOrder, selectedCategories: string[]) => {
-    const relevantItems = (po.items || []).filter(item => 
-        selectedCategories.length === 0 || selectedCategories.includes(item.category)
-    );
-    
-    if (relevantItems.length === 0) return FulfillmentStatus.NotAvailable;
-
-    const fullyAvailableCount = relevantItems.filter(i => i.status === POItemStatus.Available || i.status === POItemStatus.Dispatched).length;
-    const notAvailableCount = relevantItems.filter(i => i.status === POItemStatus.NotAvailable).length;
-    
-    if (fullyAvailableCount === relevantItems.length) return FulfillmentStatus.Available;
-    if (notAvailableCount === relevantItems.length) return FulfillmentStatus.NotAvailable;
-    return FulfillmentStatus.PartiallyAvailable;
-};
-
-const getPOValue = (po: PurchaseOrder, selectedCategories: string[]) => {
-    const relevantItems = (po.items || []).filter(item => 
-        selectedCategories.length === 0 || selectedCategories.includes(item.category)
-    );
-    return relevantItems.reduce((itemAcc, item) => itemAcc + (Number(item.quantity || 0) * Number(item.rate || 0)), 0);
-};
 
 const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilters, customers, onCardClick }) => {
     const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {

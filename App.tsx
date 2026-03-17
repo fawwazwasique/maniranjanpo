@@ -12,6 +12,7 @@ import AllOrdersPane from './components/AllOrdersPane';
 import TopCustomersPane from './components/TopCustomersPane';
 import DataManagementPane from './components/DataManagementPane';
 import ReportsPane from './components/ReportsPane';
+import ManagementPane from './components/ManagementPane';
 import ErrorBanner from './components/ErrorBanner';
 import useLocalStorage from './hooks/useLocalStorage';
 import { db, auth } from './services/firebase';
@@ -24,7 +25,7 @@ import type { PurchaseOrder, Notification, LogEntry, POItem, ProcurementSuggesti
 import { POItemStatus, OverallPOStatus, OrderStatus, FulfillmentStatus } from './types';
 
 type ModalType = 'none' | 'poDetail' | 'suggestion';
-type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'topCustomers';
+type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'topCustomers' | 'management';
 type Theme = 'light' | 'dark';
 
 /**
@@ -84,7 +85,7 @@ function App() {
   const [theme, setTheme] = useLocalStorage<Theme>('theme', 'light');
 
   const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
-  const [poToDelete, setPoToDelete] = useState<string | null>(null);
+  const [poToDelete, setPoToDelete] = useState<string | string[] | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   
   const [ordersFilter, setOrdersFilter] = useState<{
@@ -171,7 +172,7 @@ function App() {
     addLog(cleanPO.id, "PO updated.");
   }, []);
 
-  const handleDeletePO = useCallback(async (poId: string) => {
+  const handleDeletePO = useCallback(async (poId: string | string[]) => {
     setPoToDelete(poId);
     setIsDeleteModalOpen(true);
   }, []);
@@ -179,21 +180,26 @@ function App() {
   const confirmDeletePO = async () => {
     if (!poToDelete) return;
     try {
-        const { deleteDoc } = await import('firebase/firestore');
-        await deleteDoc(doc(db, "purchaseOrders", poToDelete));
-        // Also delete logs associated with this PO
-        const logsQuery = query(collection(db, "logs"), where("poId", "==", poToDelete));
-        const logsSnapshot = await getDocs(logsQuery);
         const batch = writeBatch(db);
-        logsSnapshot.forEach((logDoc) => {
-            batch.delete(logDoc.ref);
-        });
+        const idsToDelete = Array.isArray(poToDelete) ? poToDelete : [poToDelete];
+        
+        for (const id of idsToDelete) {
+            batch.delete(doc(db, "purchaseOrders", id));
+            
+            // Also delete logs associated with this PO
+            const logsQuery = query(collection(db, "logs"), where("poId", "==", id));
+            const logsSnapshot = await getDocs(logsQuery);
+            logsSnapshot.forEach((logDoc) => {
+                batch.delete(logDoc.ref);
+            });
+        }
+        
         await batch.commit();
         setIsDeleteModalOpen(false);
         setPoToDelete(null);
     } catch (error) {
-        console.error("Error deleting PO:", error);
-        alert("Failed to delete Purchase Order.");
+        console.error("Error deleting PO(s):", error);
+        alert("Failed to delete Purchase Order(s).");
     }
   };
 
@@ -345,6 +351,7 @@ function App() {
             {activePane === 'topCustomers' && <TopCustomersPane purchaseOrders={purchaseOrders} />}
             {activePane === 'reports' && <ReportsPane purchaseOrders={purchaseOrders} onUpdatePO={handleUpdatePO} />}
             {activePane === 'dataManagement' && <DataManagementPane purchaseOrders={purchaseOrders} />}
+            {activePane === 'management' && <ManagementPane purchaseOrders={purchaseOrders} />}
         </main>
       </div>
       
@@ -373,9 +380,12 @@ function App() {
           isOpen={isDeleteModalOpen}
           onClose={() => setIsDeleteModalOpen(false)}
           onConfirm={confirmDeletePO}
-          title="Delete Purchase Order"
+          title={Array.isArray(poToDelete) ? "Delete Multiple Purchase Orders" : "Delete Purchase Order"}
        >
-          Are you sure you want to delete this Purchase Order? This action cannot be undone and will also remove all associated activity logs.
+          {Array.isArray(poToDelete) 
+            ? `Are you sure you want to delete ${poToDelete.length} selected Purchase Orders? This action cannot be undone and will also remove all associated activity logs.`
+            : "Are you sure you want to delete this Purchase Order? This action cannot be undone and will also remove all associated activity logs."
+          }
        </ConfirmationModal>
     </div>
   );

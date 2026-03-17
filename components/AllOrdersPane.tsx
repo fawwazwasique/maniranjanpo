@@ -10,7 +10,7 @@ import { formatDate, isDateInRange, parseDate } from '../utils/dateUtils';
 interface AllOrdersPaneProps {
   purchaseOrders: PurchaseOrder[];
   onSelectPO: (po: PurchaseOrder) => void;
-  onDeletePO: (poId: string) => void;
+  onDeletePO: (poId: string | string[]) => void;
   filter?: { 
       status?: OverallPOStatus, 
       fulfillmentStatus?: FulfillmentStatus,
@@ -57,6 +57,7 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
     const [sortConfig, setSortConfig] = useState<{ key: SortKeys; direction: 'ascending' | 'descending' } | null>({ key: 'poDate', direction: 'descending' });
     const [viewMode, setViewMode] = useState<'orders' | 'parts'>('orders');
     const [partsFilter, setPartsFilter] = useState<'all' | 'available' | 'notAvailable'>('all');
+    const [selectedPOIds, setSelectedPOIds] = useState<string[]>([]);
 
     const mainBranches = useMemo(() => {
         const branches = new Set<string>();
@@ -253,6 +254,26 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
 
     const isFulfillmentFilter = filter?.fulfillmentStatus !== undefined || filter?.hasAnyShortage === true;
 
+    const toggleSelectAll = () => {
+        if (selectedPOIds.length === filteredAndSortedPOs.length) {
+            setSelectedPOIds([]);
+        } else {
+            setSelectedPOIds(filteredAndSortedPOs.map(po => po.id));
+        }
+    };
+
+    const toggleSelectPO = (id: string) => {
+        setSelectedPOIds(prev => 
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
+    };
+
+    const handleDeleteSelected = () => {
+        if (selectedPOIds.length === 0) return;
+        onDeletePO(selectedPOIds);
+        setSelectedPOIds([]);
+    };
+
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8 h-full flex flex-col">
             {isFulfillmentFilter && (
@@ -381,6 +402,15 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                         <ArrowDownTrayIcon className="w-5 h-5" />
                         Export to Excel
                     </button>
+                    {selectedPOIds.length > 0 && (
+                        <button
+                            onClick={handleDeleteSelected}
+                            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-800 rounded-md hover:bg-red-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-900 transition-all animate-in fade-in slide-in-from-right-4"
+                        >
+                            <TrashIcon className="w-5 h-5" />
+                            Delete ({selectedPOIds.length})
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -389,6 +419,14 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                     <table className="w-full text-left text-base text-slate-500 dark:text-slate-400">
                         <thead className="text-sm text-slate-700 dark:text-slate-300 uppercase bg-slate-50 dark:bg-slate-800 sticky top-0 z-10">
                             <tr>
+                                <th scope="col" className="p-4 w-10">
+                                    <input 
+                                        type="checkbox" 
+                                        className="w-4 h-4 text-red-600 rounded border-slate-300 focus:ring-red-500"
+                                        checked={filteredAndSortedPOs.length > 0 && selectedPOIds.length === filteredAndSortedPOs.length}
+                                        onChange={toggleSelectAll}
+                                    />
+                                </th>
                                 <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('poNumber')}>PO Number {getSortIndicator('poNumber')}</th>
                                 <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('customerName')}>Customer {getSortIndicator('customerName')}</th>
                                 <th scope="col" className="p-4">Branch</th>
@@ -404,7 +442,15 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                                 const stats = getItemStats(po.filteredItems);
                                 const totalItems = po.filteredItems.length;
                                 return (
-                                    <tr key={po.id} className="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                                    <tr key={po.id} className={`border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 ${selectedPOIds.includes(po.id) ? 'bg-red-50/50 dark:bg-red-900/10' : ''}`}>
+                                        <td className="p-4">
+                                            <input 
+                                                type="checkbox" 
+                                                className="w-4 h-4 text-red-600 rounded border-slate-300 focus:ring-red-500"
+                                                checked={selectedPOIds.includes(po.id)}
+                                                onChange={() => toggleSelectPO(po.id)}
+                                            />
+                                        </td>
                                         <td className="p-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">{po.poNumber}</td>
                                         <td className="p-4">{po.customerName}</td>
                                         <td className="p-4">{po.mainBranch}{po.subBranch && ` / ${po.subBranch}`}</td>

@@ -1,5 +1,27 @@
 
-import { PurchaseOrder, POItemStatus, OverallPOStatus } from '../types';
+import { PurchaseOrder, POItemStatus, OverallPOStatus, FulfillmentStatus } from '../types';
+
+export const getPOFulfillmentStatus = (po: PurchaseOrder, selectedCategories: string[]) => {
+    const relevantItems = (po.items || []).filter(item => 
+        selectedCategories.length === 0 || selectedCategories.includes(item.category)
+    );
+    
+    if (relevantItems.length === 0) return FulfillmentStatus.NotAvailable;
+
+    const fullyAvailableCount = relevantItems.filter(i => i.status === POItemStatus.Available || i.status === POItemStatus.Dispatched).length;
+    const notAvailableCount = relevantItems.filter(i => i.status === POItemStatus.NotAvailable).length;
+    
+    if (fullyAvailableCount === relevantItems.length) return FulfillmentStatus.Available;
+    if (notAvailableCount === relevantItems.length) return FulfillmentStatus.NotAvailable;
+    return FulfillmentStatus.PartiallyAvailable;
+};
+
+export const getPOValue = (po: PurchaseOrder, selectedCategories: string[]) => {
+    const relevantItems = (po.items || []).filter(item => 
+        selectedCategories.length === 0 || selectedCategories.includes(item.category)
+    );
+    return relevantItems.reduce((itemAcc, item) => itemAcc + (Number(item.quantity || 0) * Number(item.rate || 0)), 0);
+};
 
 export const isOilItem = (item: any) => {
     const text = ` ${(item.partNumber || '')} ${(item.itemDesc || '')} ${(item.category || '')} `.toLowerCase();
