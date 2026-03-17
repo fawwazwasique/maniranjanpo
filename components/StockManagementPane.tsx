@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import type { StockItem, PurchaseOrder, StockMovement, POItem } from '../types';
+import { OrderStatus } from '../types';
 import { ArrowUpTrayIcon, TruckIcon, XMarkIcon, MagnifyingGlassIcon, ArrowDownTrayIcon, PlusIcon, CurrencyRupeeIcon, ClockIcon, ClipboardDocumentListIcon } from './icons';
 import { downloadStockTemplate } from '../utils/export';
 
@@ -45,6 +46,7 @@ const StockManagementPane: React.FC<StockManagementPaneProps> = ({
     const normalizedPart = selectedPart.trim().toLowerCase();
     
     return purchaseOrders.filter(po => {
+        if (po.orderStatus === OrderStatus.Invoiced) return false;
         const matchingItem = po.items.find(item => (item.partNumber || '').trim().toLowerCase() === normalizedPart);
         const needsAllocation = matchingItem ? (Number(matchingItem.quantity || 0) - Number(matchingItem.allocatedQuantity || 0)) > 0 : false;
         

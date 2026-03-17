@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState } from 'react';
 import type { PurchaseOrder } from '../types';
-import { OverallPOStatus, FulfillmentStatus, POItemStatus } from '../types';
+import { OverallPOStatus, FulfillmentStatus, POItemStatus, OrderStatus } from '../types';
 import { ChartBarIcon, CheckCircleIcon, ClockIcon, TruckIcon, ChartPieIcon, SparklesIcon, XMarkIcon, MagnifyingGlassIcon, ArrowDownTrayIcon } from './icons';
 import { isOilItem, isOilStuckPO } from '../utils/poUtils';
 
@@ -175,18 +175,19 @@ const AnalysisPane: React.FC<AnalysisPaneProps> = ({ purchaseOrders, onSelectPO 
     const [showClosableModal, setShowClosableModal] = useState(false);
 
     const stats = useMemo(() => {
-        const totalPOs = purchaseOrders.length;
-        const totalValue = purchaseOrders.reduce((acc, po) => acc + po.items.reduce((itemAcc, item) => itemAcc + (Number(item.quantity) * Number(item.rate)), 0), 0);
+        const activePOs = purchaseOrders.filter(po => po.orderStatus !== OrderStatus.Invoiced);
+        const totalPOs = activePOs.length;
+        const totalValue = activePOs.reduce((acc, po) => acc + po.items.reduce((itemAcc, item) => itemAcc + (Number(item.quantity) * Number(item.rate)), 0), 0);
         const avgOrderValue = totalPOs > 0 ? totalValue / totalPOs : 0;
         
-        const valueByBranch = purchaseOrders.reduce((acc, po) => {
+        const valueByBranch = activePOs.reduce((acc, po) => {
             if (!po.mainBranch) return acc;
             const value = po.items.reduce((itemAcc, item) => itemAcc + (Number(item.quantity) * Number(item.rate)), 0);
             acc[po.mainBranch] = (acc[po.mainBranch] || 0) + value;
             return acc;
         }, {} as Record<string, number>);
-
-        const valueOverTime = purchaseOrders.reduce((acc, po) => {
+ 
+        const valueOverTime = activePOs.reduce((acc, po) => {
             if (!po.poDate) return acc;
             const date = new Date(po.poDate);
             if (isNaN(date.getTime())) return acc;
@@ -195,7 +196,7 @@ const AnalysisPane: React.FC<AnalysisPaneProps> = ({ purchaseOrders, onSelectPO 
             acc[monthKey] = (acc[monthKey] || 0) + value;
             return acc;
         }, {} as Record<string, number>);
-
+ 
         const sortedValueOverTime = Object.entries(valueOverTime)
             .map(([label, value]) => ({ date: new Date(label), value}))
             .sort((a, b) => a.date.getTime() - b.date.getTime())
@@ -203,12 +204,12 @@ const AnalysisPane: React.FC<AnalysisPaneProps> = ({ purchaseOrders, onSelectPO 
                 label: date.toLocaleString('default', { month: 'short', year: '2-digit' }),
                 value
             }));
-
+ 
         // --- Valvoline (Oil) Impact Calculation ---
         const closablePOs: PurchaseOrder[] = [];
         let valvolineRecoveryValue = 0;
-
-        purchaseOrders.forEach(po => {
+ 
+        activePOs.forEach(po => {
             if (isOilStuckPO(po)) {
                 closablePOs.push(po);
                 valvolineRecoveryValue += po.items.reduce((acc, item) => acc + (Number(item.quantity) * Number(item.rate)), 0);

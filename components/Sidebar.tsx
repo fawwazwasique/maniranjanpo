@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { HomeIcon, ArrowUpTrayIcon, ChartBarIcon, ListBulletIcon, LogoIcon, DatabaseIcon, ClipboardDocumentListIcon } from './icons';
+import { HomeIcon, ArrowUpTrayIcon, ChartBarIcon, ListBulletIcon, LogoIcon, DatabaseIcon, ClipboardDocumentListIcon, UserGroupIcon } from './icons';
 
-type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'stockManagement';
+type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'topCustomers';
 
 interface SidebarProps {
   activePane: Pane;
@@ -66,17 +66,17 @@ const Sidebar: React.FC<SidebarProps> = ({ activePane, setActivePane }) => {
                         isActive={activePane === 'analysis'}
                         onClick={() => setActivePane('analysis')}
                     />
+                    <NavItem 
+                        icon={<UserGroupIcon className="w-6 h-6" />}
+                        label="Top 50 Customers"
+                        isActive={activePane === 'topCustomers'}
+                        onClick={() => setActivePane('topCustomers')}
+                    />
                     <NavItem
                         icon={<ListBulletIcon className="w-6 h-6" />}
                         label="All Purchase Orders"
                         isActive={activePane === 'allOrders'}
                         onClick={() => setActivePane('allOrders')}
-                    />
-                     <NavItem 
-                        icon={<DatabaseIcon className="w-6 h-6" />}
-                        label="Stock Management"
-                        isActive={activePane === 'stockManagement'}
-                        onClick={() => setActivePane('stockManagement')}
                     />
                      <NavItem
                         icon={<ClipboardDocumentListIcon className="w-6 h-6" />}

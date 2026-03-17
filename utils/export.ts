@@ -74,6 +74,31 @@ const convertToCSV = (data: PurchaseOrder[]): string => {
     return [headers.join(','), ...rows].join('\n');
 };
 
+export const exportDataToCSV = (data: any[], filename: string): void => {
+    if (data.length === 0) return;
+    const headers = Object.keys(data[0]);
+    const rows = data.map(obj => 
+        headers.map(header => {
+            const val = obj[header];
+            if (val === undefined || val === null) return '""';
+            const s = String(val).replace(/"/g, '""');
+            return `"${s}"`;
+        }).join(',')
+    );
+    const csvString = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+};
+
 export const exportToCSV = (data: PurchaseOrder[], filename: string = 'purchase_orders_detailed.csv'): void => {
     const csvString = convertToCSV(data);
     const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });

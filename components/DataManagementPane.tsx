@@ -9,21 +9,15 @@ import ConfirmationModal from './ConfirmationModal';
 
 interface DataManagementPaneProps {
   purchaseOrders: PurchaseOrder[];
-  stock?: StockItem[];
-  stockMovements?: StockMovement[];
 }
 
-const DataManagementPane: React.FC<DataManagementPaneProps> = ({ purchaseOrders, stock = [], stockMovements = [] }) => {
+const DataManagementPane: React.FC<DataManagementPaneProps> = ({ purchaseOrders }) => {
     const [selectedMainBranch, setSelectedMainBranch] = useState('');
     const [selectedSubBranch, setSelectedSubBranch] = useState('');
     
     // UI state for PO deletion
     const [confirmationOpen, setConfirmationOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
-
-    // UI state for Stock deletion
-    const [stockConfirmationOpen, setStockConfirmationOpen] = useState(false);
-    const [isDeletingStock, setIsDeletingStock] = useState(false);
 
     const filteredCount = useMemo(() => {
         if (!selectedMainBranch) return 0;
@@ -101,42 +95,6 @@ const DataManagementPane: React.FC<DataManagementPaneProps> = ({ purchaseOrders,
         }
     };
 
-    const handleClearStock = async () => {
-        setIsDeletingStock(true);
-        try {
-            const stockSnapshot = await getDocs(collection(db, "stock"));
-            const movementsSnapshot = await getDocs(collection(db, "stockMovements"));
-            
-            const refsToDelete = [
-                ...stockSnapshot.docs.map(d => d.ref),
-                ...movementsSnapshot.docs.map(d => d.ref)
-            ];
-
-            if (refsToDelete.length === 0) {
-                alert("Inventory is already empty.");
-                setIsDeletingStock(false);
-                setStockConfirmationOpen(false);
-                return;
-            }
-
-            const CHUNK_SIZE = 400;
-            for (let i = 0; i < refsToDelete.length; i += CHUNK_SIZE) {
-                const batch = writeBatch(db);
-                const chunk = refsToDelete.slice(i, i + CHUNK_SIZE);
-                chunk.forEach(ref => batch.delete(ref));
-                await batch.commit();
-            }
-
-            alert("Inventory records and movement history wiped successfully.");
-        } catch (error) {
-            console.error("Error clearing stock:", error);
-            alert("Failed to clear inventory.");
-        } finally {
-            setIsDeletingStock(false);
-            setStockConfirmationOpen(false);
-        }
-    };
-
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
             <div className="flex items-center gap-4">
@@ -147,7 +105,7 @@ const DataManagementPane: React.FC<DataManagementPaneProps> = ({ purchaseOrders,
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 gap-8">
                 {/* Purchase Order Cleanup Card */}
                 <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 flex flex-col">
                     <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6 border-b dark:border-slate-700 pb-4">Order Maintenance</h3>
@@ -205,38 +163,6 @@ const DataManagementPane: React.FC<DataManagementPaneProps> = ({ purchaseOrders,
                         )}
                     </div>
                 </div>
-
-                {/* Inventory Cleanup Card */}
-                <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 flex flex-col">
-                    <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6 border-b dark:border-slate-700 pb-4">Global Inventory Cleanup</h3>
-                    <div className="space-y-6 flex-1 flex flex-col justify-center">
-                        <div className="text-center space-y-2">
-                             <div className="p-4 bg-slate-100 dark:bg-slate-900/50 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
-                                <DatabaseIcon className="w-10 h-10 text-slate-400" />
-                            </div>
-                            <p className="text-lg font-bold text-slate-800 dark:text-slate-100">Wipe All Stock & Movements</p>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                                This will remove every registered part number and all associated inward/outward movement history logs globally.
-                            </p>
-                        </div>
-                        
-                        <div className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-200 dark:border-amber-800/30 flex items-start gap-3">
-                             <ExclamationTriangleIcon className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                             <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">
-                                Active Purchase Orders containing these parts will show "Unavailable" stock status after this action.
-                             </p>
-                        </div>
-
-                        <button
-                            onClick={() => setStockConfirmationOpen(true)}
-                            disabled={isDeletingStock}
-                            className="w-full flex items-center justify-center gap-2 px-6 py-3 text-base font-bold text-white bg-slate-800 dark:bg-slate-700 rounded-lg hover:bg-red-600 transition-colors shadow-md active:scale-95 disabled:opacity-50"
-                        >
-                            <TrashIcon className="w-5 h-5" />
-                            {isDeletingStock ? 'Clearing Inventory...' : 'Wipe Global Stock Data'}
-                        </button>
-                    </div>
-                </div>
             </div>
 
             {/* PO Deletion Confirmation */}
@@ -249,20 +175,6 @@ const DataManagementPane: React.FC<DataManagementPaneProps> = ({ purchaseOrders,
                 <div className="space-y-3">
                     <p className="font-medium">You are about to delete <strong>{filteredCount}</strong> purchase orders for <strong>{selectedMainBranch}</strong>.</p>
                     <p className="text-xs text-slate-500">This action is irreversible and includes all linked logs and notifications.</p>
-                </div>
-            </ConfirmationModal>
-
-            {/* Global Stock Wipe Confirmation */}
-            <ConfirmationModal
-                isOpen={stockConfirmationOpen}
-                onClose={() => !isDeletingStock && setStockConfirmationOpen(false)}
-                onConfirm={handleClearStock}
-                title="Wipe Entire Inventory?"
-            >
-                <div className="space-y-3">
-                    <p className="font-bold text-red-600">WARNING: CRITICAL ACTION</p>
-                    <p>Are you absolutely sure you want to delete <strong>ALL</strong> parts and <strong>ALL</strong> history logs from the global database?</p>
-                    <p className="text-xs text-slate-500 italic">This cannot be undone. All stock levels will be reset to zero and parts must be re-registered.</p>
                 </div>
             </ConfirmationModal>
         </div>

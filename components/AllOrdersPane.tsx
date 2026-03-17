@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import type { PurchaseOrder, OverallPOStatus, POItem } from '../types';
-import { POItemStatus, FulfillmentStatus } from '../types';
+import { POItemStatus, FulfillmentStatus, OrderStatus } from '../types';
 import { MagnifyingGlassIcon, ArrowDownTrayIcon, TrashIcon, XMarkIcon, ChevronDownIcon } from './icons';
 import { exportToCSV } from '../utils/export';
 import { isOilStuckPO } from '../utils/poUtils';
@@ -75,22 +75,23 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
     }, [purchaseOrders]);
 
     const posWithValues = useMemo(() => {
-        return purchaseOrders.map(po => {
-            const relevantItems = (po.items || []).filter(item => 
-                selectedCategories.length === 0 || selectedCategories.includes(item.category)
-            );
-            
-            const totalValue = relevantItems.reduce((acc, item) => {
+        return purchaseOrders
+            .filter(po => po.orderStatus !== OrderStatus.Invoiced)
+            .map(po => {
+                const totalValue = (po.items || []).reduce((acc, item) => {
                 const val = Number(item.quantity || 0) * Number(item.rate || 0);
                 return acc + (isNaN(val) ? 0 : val);
             }, 0);
 
             return {
                 ...po,
-                filteredItems: relevantItems,
+                filteredItems: po.items || [],
                 totalValue
             };
-        }).filter(po => po.filteredItems.length > 0 || selectedCategories.length === 0);
+        }).filter(po => {
+            if (selectedCategories.length === 0) return true;
+            return (po.items || []).every(item => selectedCategories.includes(item.category));
+        });
     }, [purchaseOrders, selectedCategories]);
     
     const filteredAndSortedPOs = useMemo(() => {

@@ -9,9 +9,9 @@ import UploadPane from './components/UploadPane';
 import AnalysisPane from './components/AnalysisPane';
 import ConfirmationModal from './components/ConfirmationModal';
 import AllOrdersPane from './components/AllOrdersPane';
+import TopCustomersPane from './components/TopCustomersPane';
 import DataManagementPane from './components/DataManagementPane';
 import ReportsPane from './components/ReportsPane';
-import StockManagementPane from './components/StockManagementPane';
 import ErrorBanner from './components/ErrorBanner';
 import useLocalStorage from './hooks/useLocalStorage';
 import { db, auth } from './services/firebase';
@@ -24,7 +24,7 @@ import type { PurchaseOrder, Notification, LogEntry, POItem, ProcurementSuggesti
 import { POItemStatus, OverallPOStatus, OrderStatus, FulfillmentStatus } from './types';
 
 type ModalType = 'none' | 'poDetail' | 'suggestion';
-type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'stockManagement';
+type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'topCustomers';
 type Theme = 'light' | 'dark';
 
 /**
@@ -76,8 +76,6 @@ const sanitizeData = (data: any): any => {
 
 function App() {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
-  const [stock, setStock] = useState<StockItem[]>([]);
-  const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
@@ -146,16 +144,6 @@ function App() {
         setPurchaseOrders(pos);
     }, handleError);
 
-    const unsubStock = onSnapshot(collection(db, "stock"), (snapshot) => {
-        const stocks = snapshot.docs.map(doc => sanitizeData({ ...doc.data(), id: doc.id }) as StockItem);
-        setStock(stocks);
-    }, handleError);
-
-    const unsubMovements = onSnapshot(query(collection(db, "stockMovements"), orderBy("timestamp", "desc")), (snapshot) => {
-        const mvts = snapshot.docs.map(doc => sanitizeData({ ...doc.data(), id: doc.id }) as StockMovement);
-        setStockMovements(mvts);
-    }, handleError);
-
     const unsubLogs = onSnapshot(query(collection(db, "logs"), orderBy("timestamp", "desc")), (snapshot) => {
         const logsData = snapshot.docs.map(doc => sanitizeData({ ...doc.data(), id: doc.id }) as LogEntry);
         setLogs(logsData);
@@ -167,16 +155,12 @@ function App() {
     }, handleError);
 
     return () => {
-        unsubPO(); unsubStock(); unsubMovements(); unsubLogs(); unsubNotifs();
+        unsubPO(); unsubLogs(); unsubNotifs();
     };
 }, [theme]);
 
   const addLog = async (poId: string, action: string) => {
     await addDoc(collection(db, "logs"), { poId, action, timestamp: serverTimestamp() });
-  };
-
-  const logStockMovement = async (mvt: Omit<StockMovement, 'id' | 'timestamp'>) => {
-    await addDoc(collection(db, "stockMovements"), { ...mvt, timestamp: serverTimestamp() });
   };
 
   const handleUpdatePO = useCallback(async (updatedPO: PurchaseOrder) => {
@@ -211,128 +195,6 @@ function App() {
         console.error("Error deleting PO:", error);
         alert("Failed to delete Purchase Order.");
     }
-  };
-
-  const handleRegisterPart = async (partNumber: string, description: string, initialQty: number) => {
-      const stockRef = doc(db, "stock", partNumber);
-      await setDoc(stockRef, {
-          partNumber: partNumber,
-          description: description,
-          totalQuantity: initialQty,
-          allocatedQuantity: 0,
-          updatedAt: serverTimestamp()
-      }, { merge: true });
-
-      if (initialQty > 0) {
-          await logStockMovement({
-              partNumber: partNumber,
-              type: 'INWARD',
-              quantity: initialQty,
-              remarks: 'Initial stock registration'
-          });
-      }
-  };
-
-  const handleBulkStockUpload = async (items: { partNumber: string; description: string; quantity: number }[]) => {
-      const batch = writeBatch(db);
-      for (const item of items) {
-          const stockRef = doc(db, "stock", item.partNumber);
-          batch.set(stockRef, {
-              partNumber: item.partNumber,
-              description: item.description,
-              totalQuantity: item.quantity,
-              allocatedQuantity: 0,
-              updatedAt: serverTimestamp()
-          }, { merge: true });
-      }
-      await batch.commit();
-
-      for (const item of items) {
-          if (item.quantity > 0) {
-              await logStockMovement({
-                  partNumber: item.partNumber,
-                  type: 'INWARD',
-                  quantity: item.quantity,
-                  remarks: 'Bulk inward upload'
-              });
-          }
-      }
-  };
-
-  const handleInwardStock = async (partNumber: string, qty: number, remark: string) => {
-    const stockRef = doc(db, "stock", partNumber);
-    const existing = stock.find(s => s.partNumber === partNumber);
-    const newTotal = (existing?.totalQuantity || 0) + qty;
-    
-    await setDoc(stockRef, {
-        partNumber: partNumber,
-        description: existing?.description || 'Inward Entry',
-        totalQuantity: newTotal,
-        allocatedQuantity: existing?.allocatedQuantity || 0,
-        updatedAt: serverTimestamp()
-    }, { merge: true });
-
-    await logStockMovement({
-        partNumber: partNumber,
-        type: 'INWARD',
-        quantity: qty,
-        remarks: `Inward: ${remark}`
-    });
-  };
-
-  const handleWalkingSale = async (partNumber: string, qty: number, remark: string) => {
-    const stockRef = doc(db, "stock", partNumber);
-    const existing = stock.find(s => s.partNumber === partNumber);
-    if (!existing || (existing.totalQuantity - existing.allocatedQuantity) < qty) {
-        alert("Insufficient available stock for walking sale.");
-        return;
-    }
-    
-    const newTotal = existing.totalQuantity - qty;
-    await updateDoc(stockRef, { totalQuantity: newTotal, updatedAt: serverTimestamp() });
-
-    await logStockMovement({
-        partNumber: partNumber,
-        type: 'OUTWARD_WALKING',
-        quantity: qty,
-        remarks: `Walking Sale: ${remark}`
-    });
-  };
-
-  const handleAllocateStock = async (poId: string, partNumber: string, qty: number) => {
-    const targetPo = purchaseOrders.find(p => p.id === poId);
-    const targetStock = stock.find(s => s.partNumber === partNumber);
-
-    if (!targetPo || !targetStock) return;
-    if ((targetStock.totalQuantity - targetStock.allocatedQuantity) < qty) {
-        alert("Insufficient physical stock to allocate.");
-        return;
-    }
-
-    const batch = writeBatch(db);
-
-    const newItems = targetPo.items.map(item => {
-        if (item.partNumber === partNumber) {
-            return { ...item, allocatedQuantity: (item.allocatedQuantity || 0) + qty };
-        }
-        return item;
-    });
-
-    batch.update(doc(db, "purchaseOrders", poId), { items: newItems });
-    batch.update(doc(db, "stock", partNumber), { 
-        allocatedQuantity: (targetStock.allocatedQuantity || 0) + qty,
-        updatedAt: serverTimestamp()
-    });
-
-    await batch.commit();
-    await logStockMovement({
-        partNumber: partNumber,
-        type: 'ALLOCATION',
-        quantity: qty,
-        referenceId: poId,
-        remarks: `Allocated to PO #${targetPo.poNumber}`
-    });
-    addLog(poId, `Allocated ${qty} units of ${partNumber} from stock.`);
   };
 
   const handleGetSuggestion = async (item: POItem) => {
@@ -453,6 +315,11 @@ function App() {
     setActivePane('allOrders');
   }, []);
 
+  const uniqueCustomers = useMemo(() => {
+    const names = new Set(purchaseOrders.map(po => po.customerName).filter(Boolean));
+    return Array.from(names).sort();
+  }, [purchaseOrders]);
+
   return (
     <div className="flex h-screen bg-slate-100 dark:bg-gray-900 text-slate-900 dark:text-slate-100 overflow-hidden">
        {firestoreError && <ErrorBanner projectId="ethenpo-3afb3" message={firestoreError} onDismiss={() => setFirestoreError(null)} />}
@@ -460,7 +327,7 @@ function App() {
        <div className="flex-1 flex flex-col">
         <Header notifications={notifications} onMarkNotificationsAsRead={() => {}} theme={theme} setTheme={setTheme} />
         <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900">
-            {activePane === 'dashboard' && <Dashboard purchaseOrders={purchaseOrders} filters={filters} setFilters={setFilters} customers={[]} onCardClick={handleDashboardCardClick} />}
+            {activePane === 'dashboard' && <Dashboard purchaseOrders={purchaseOrders} filters={filters} setFilters={setFilters} customers={uniqueCustomers} onCardClick={handleDashboardCardClick} />}
             {activePane === 'allOrders' && (
                 <AllOrdersPane 
                     purchaseOrders={purchaseOrders} 
@@ -473,23 +340,11 @@ function App() {
                     setDashboardFilters={setFilters}
                 />
             )}
-            {activePane === 'stockManagement' && (
-                <StockManagementPane 
-                    stock={stock} 
-                    purchaseOrders={purchaseOrders} 
-                    movements={stockMovements}
-                    onInward={handleInwardStock}
-                    onWalkingSale={handleWalkingSale}
-                    onAllocate={handleAllocateStock}
-                    onRegisterPart={handleRegisterPart}
-                    onBulkStockUpload={handleBulkStockUpload}
-                    onNavigateToReports={() => setActivePane('reports')}
-                />
-            )}
             {activePane === 'upload' && <UploadPane onSaveSingleOrder={handleSaveSingleOrder} onBulkUpload={handleBulkUpload} />}
             {activePane === 'analysis' && <AnalysisPane purchaseOrders={purchaseOrders} onSelectPO={handleSelectPO} />}
+            {activePane === 'topCustomers' && <TopCustomersPane purchaseOrders={purchaseOrders} />}
             {activePane === 'reports' && <ReportsPane purchaseOrders={purchaseOrders} onUpdatePO={handleUpdatePO} />}
-            {activePane === 'dataManagement' && <DataManagementPane purchaseOrders={purchaseOrders} stock={stock} stockMovements={stockMovements} />}
+            {activePane === 'dataManagement' && <DataManagementPane purchaseOrders={purchaseOrders} />}
         </main>
       </div>
       

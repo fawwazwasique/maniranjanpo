@@ -228,6 +228,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
     const filteredPOs = useMemo(() => {
         return purchaseOrders
+            .filter(po => po.orderStatus !== OrderStatus.Invoiced)
             .filter(po => filters.statuses.length > 0 ? filters.statuses.includes(po.status) : true)
             .filter(po => filters.customer ? (po.customerName || '').toLowerCase().includes(filters.customer.toLowerCase()) : true)
             .filter(po => isDateInRange(po.poDate, filters.startDate, filters.endDate))
@@ -235,7 +236,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             .filter(po => filters.subBranches.length > 0 ? filters.subBranches.includes(po.subBranch || '') : true)
             .filter(po => {
                 if (!filters.categories || filters.categories.length === 0) return true;
-                return (po.items || []).some(item => filters.categories.includes(item.category));
+                return (po.items || []).every(item => filters.categories.includes(item.category));
             });
     }, [purchaseOrders, filters]);
 
@@ -247,11 +248,12 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         isPositiveGood: boolean = true
     ): TrendData | null => {
         const contextPOs = allPOs.filter(po => {
+            if (po.orderStatus === OrderStatus.Invoiced) return false;
             if (currentFilters.customer && !(po.customerName || '').toLowerCase().includes(currentFilters.customer.toLowerCase())) return false;
             if (currentFilters.mainBranches.length > 0 && !currentFilters.mainBranches.includes(po.mainBranch || '')) return false;
             if (currentFilters.subBranches.length > 0 && !currentFilters.subBranches.includes(po.subBranch || '')) return false;
             if (currentFilters.categories && currentFilters.categories.length > 0) {
-                if (!(po.items || []).some(item => currentFilters.categories.includes(item.category))) return false;
+                if (!(po.items || []).every(item => currentFilters.categories.includes(item.category))) return false;
             }
             return true;
         });
@@ -642,8 +644,8 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 />
                 <DashboardStatCard 
                     title="Ready to Execute" 
-                    value={dashboardData.fullyAvailablePOs} 
-                    subValue={dashboardData.fullyAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })}
+                    value={dashboardData.fullyAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })} 
+                    subValue={`${dashboardData.fullyAvailablePOs} POs`}
                     icon={<CheckCircleIcon className="w-6 h-6 text-green-500" />} 
                     indicatorColor="bg-green-500"
                     trend={dashboardData.fullyTrend}
@@ -651,8 +653,8 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 />
                 <DashboardStatCard 
                     title="Partially Available" 
-                    value={dashboardData.partiallyAvailablePOs} 
-                    subValue={`Avail: ${dashboardData.partialAvailableItemsValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })} / Gap: ${dashboardData.partialNotAvailableItemsValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })}`}
+                    value={dashboardData.partialAvailableItemsValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })} 
+                    subValue={`Gap: ${dashboardData.partialNotAvailableItemsValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })} | ${dashboardData.partiallyAvailablePOs} POs`}
                     icon={<TruckIcon className="w-6 h-6 text-blue-500" />} 
                     indicatorColor="bg-blue-500"
                     trend={dashboardData.partialTrend}
@@ -660,8 +662,8 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 />
                 <DashboardStatCard 
                     title="100% Not Available" 
-                    value={dashboardData.notAvailablePOs} 
-                    subValue={dashboardData.notAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })}
+                    value={dashboardData.notAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })} 
+                    subValue={`${dashboardData.notAvailablePOs} POs`}
                     icon={<NoSymbolIcon className="w-6 h-6 text-red-600" />} 
                     indicatorColor="bg-red-600"
                     trend={dashboardData.notAvailableTrend}
