@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import type { PurchaseOrder, OverallPOStatus, POItem } from '../types';
-import { POItemStatus, FulfillmentStatus } from '../types';
+import { POItemStatus, FulfillmentStatus, OrderStatus } from '../types';
 import { MagnifyingGlassIcon, ArrowDownTrayIcon, TrashIcon, XMarkIcon, ChevronDownIcon } from './icons';
 import { exportToCSV } from '../utils/export';
 import { isOilStuckPO } from '../utils/poUtils';
@@ -16,7 +16,8 @@ interface AllOrdersPaneProps {
       fulfillmentStatus?: FulfillmentStatus,
       isOilStuck?: boolean,
       partNumber?: string,
-      hasAnyShortage?: boolean
+      hasAnyShortage?: boolean,
+      isInvoiced?: boolean
   } | null;
   onClearFilter?: () => void;
   selectedCategories?: string[];
@@ -121,6 +122,18 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
             if (filter.hasAnyShortage) {
                 sortableItems = sortableItems.filter(po => getDynamicFulfillmentStatus(po.filteredItems) !== FulfillmentStatus.Available);
             }
+            if (filter.isInvoiced !== undefined) {
+                sortableItems = sortableItems.filter(po => filter.isInvoiced ? po.orderStatus === OrderStatus.Invoiced : po.orderStatus !== OrderStatus.Invoiced);
+            } else {
+                // If not explicitly filtering for invoiced, only show active ones by default if no other status filter is present
+                // This keeps the list "Active" unless we are viewing invoiced orders
+                if (!filter.status) {
+                    sortableItems = sortableItems.filter(po => po.orderStatus !== OrderStatus.Invoiced);
+                }
+            }
+        } else {
+            // No external filter, default to active orders only
+            sortableItems = sortableItems.filter(po => po.orderStatus !== OrderStatus.Invoiced);
         }
 
         // Apply dashboard filters
@@ -384,6 +397,13 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                                             {b}
                                         </span>
                                     ))}
+                                </div>
+                            )}
+                            {filter?.isInvoiced && (
+                                <div className="flex flex-wrap gap-1">
+                                    <span className="px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-bold rounded-full uppercase">
+                                        Invoiced Only
+                                    </span>
                                 </div>
                             )}
                         </div>

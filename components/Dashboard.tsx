@@ -270,6 +270,9 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             });
     }, [purchaseOrders, filters]);
 
+    const activePOs = useMemo(() => filteredPOs.filter(po => po.orderStatus !== OrderStatus.Invoiced), [filteredPOs]);
+    const invoicedPOs = useMemo(() => filteredPOs.filter(po => po.orderStatus === OrderStatus.Invoiced), [filteredPOs]);
+
     const getTrend = (
         allPOs: PurchaseOrder[], 
         currentFilters: typeof filters, 
@@ -339,17 +342,20 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
     const dashboardData = useMemo(() => {
         const calculateValue = (pos: PurchaseOrder[]) => pos.reduce((acc, po) => acc + getPOValue(po, filters.categories), 0);
 
-        const openPOs = filteredPOs;
+        const openPOs = activePOs;
         const totalOpenPOs = openPOs.length;
         const openPOValue = calculateValue(openPOs);
         
+        const totalInvoicedPOs = invoicedPOs.length;
+        const totalInvoicedValue = calculateValue(invoicedPOs);
+
         // 1. 100% Available (Ready to Execute)
-        const fullyAvailablePOsList = filteredPOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.Available);
+        const fullyAvailablePOsList = activePOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.Available);
         const fullyAvailablePOs = fullyAvailablePOsList.length;
         const fullyAvailableValue = calculateValue(fullyAvailablePOsList);
 
         // 2. Partially Available
-        const partiallyAvailablePOsList = filteredPOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.PartiallyAvailable);
+        const partiallyAvailablePOsList = activePOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.PartiallyAvailable);
         const partiallyAvailablePOs = partiallyAvailablePOsList.length;
         const partiallyAvailableValue = calculateValue(partiallyAvailablePOsList);
         
@@ -370,18 +376,18 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         });
 
         // 3. 100% Not Available
-        const notAvailablePOsList = filteredPOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.NotAvailable);
+        const notAvailablePOsList = activePOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.NotAvailable);
         const notAvailablePOs = notAvailablePOsList.length;
         const notAvailableValue = calculateValue(notAvailablePOsList);
 
         // 5. Oil-Stuck POs (All parts available except Oil/Valvoline)
-        const oilStuckPOsList = filteredPOs.filter(isOilStuckPO);
+        const oilStuckPOsList = activePOs.filter(isOilStuckPO);
         const oilStuckPOs = oilStuckPOsList.length;
         const oilStuckValue = calculateValue(oilStuckPOsList);
 
         // 6. Aggregated Unavailable Parts List
         const unavailablePartsMap: Record<string, { partNumber: string, description: string, quantity: number, value: number, poCount: number }> = {};
-        filteredPOs.forEach(po => {
+        activePOs.forEach(po => {
             const relevantItems = (po.items || []).filter(item => 
                 filters.categories.length === 0 || filters.categories.includes(item.category)
             );
@@ -406,21 +412,22 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         const unavailablePartsList = Object.values(unavailablePartsMap).sort((a, b) => b.value - a.value);
 
         // Trends
-        const openTrend = getTrend(purchaseOrders, filters, p => true, p => p.length, true);
-        const valueTrend = getTrend(purchaseOrders, filters, p => true, p => calculateValue(p), true);
-        const fullyTrend = getTrend(purchaseOrders, filters, p => getPOFulfillmentStatus(p, filters.categories) === FulfillmentStatus.Available, p => p.length, true);
-        const partialTrend = getTrend(purchaseOrders, filters, p => getPOFulfillmentStatus(p, filters.categories) === FulfillmentStatus.PartiallyAvailable, p => p.length, true);
-        const notAvailableTrend = getTrend(purchaseOrders, filters, p => getPOFulfillmentStatus(p, filters.categories) === FulfillmentStatus.NotAvailable, p => p.length, false);
+        const openTrend = getTrend(purchaseOrders, filters, p => p.orderStatus !== OrderStatus.Invoiced, p => p.length, true);
+        const valueTrend = getTrend(purchaseOrders, filters, p => p.orderStatus !== OrderStatus.Invoiced, p => calculateValue(p), true);
+        const fullyTrend = getTrend(purchaseOrders, filters, p => p.orderStatus !== OrderStatus.Invoiced && getPOFulfillmentStatus(p, filters.categories) === FulfillmentStatus.Available, p => p.length, true);
+        const partialTrend = getTrend(purchaseOrders, filters, p => p.orderStatus !== OrderStatus.Invoiced && getPOFulfillmentStatus(p, filters.categories) === FulfillmentStatus.PartiallyAvailable, p => p.length, true);
+        const notAvailableTrend = getTrend(purchaseOrders, filters, p => p.orderStatus !== OrderStatus.Invoiced && getPOFulfillmentStatus(p, filters.categories) === FulfillmentStatus.NotAvailable, p => p.length, false);
+        const invoicedTrend = getTrend(purchaseOrders, filters, p => p.orderStatus === OrderStatus.Invoiced, p => p.length, true);
 
         const checklistDataRaw = {
-            'B-Check': filteredPOs.filter(po => po.checklist?.bCheck).length,
-            'C-Check': filteredPOs.filter(po => po.checklist?.cCheck).length,
-            'D-Check': filteredPOs.filter(po => po.checklist?.dCheck).length,
-            'Battery': filteredPOs.filter(po => po.checklist?.battery).length,
-            'Spares': filteredPOs.filter(po => po.checklist?.spares).length,
-            'BD': filteredPOs.filter(po => po.checklist?.bd).length,
-            'Radiator': filteredPOs.filter(po => po.checklist?.radiatorDescaling).length,
-            'Others': filteredPOs.filter(po => po.checklist?.others).length,
+            'B-Check': activePOs.filter(po => po.checklist?.bCheck).length,
+            'C-Check': activePOs.filter(po => po.checklist?.cCheck).length,
+            'D-Check': activePOs.filter(po => po.checklist?.dCheck).length,
+            'Battery': activePOs.filter(po => po.checklist?.battery).length,
+            'Spares': activePOs.filter(po => po.checklist?.spares).length,
+            'BD': activePOs.filter(po => po.checklist?.bd).length,
+            'Radiator': activePOs.filter(po => po.checklist?.radiatorDescaling).length,
+            'Others': activePOs.filter(po => po.checklist?.others).length,
         };
         const checklistColors = { 
             'B-Check': '#34d399', 
@@ -434,7 +441,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         };
         const checklistChartData = Object.entries(checklistDataRaw).map(([label, value]) => ({ label, value, color: checklistColors[label as keyof typeof checklistColors] || '#9ca3af' }));
 
-        const valueByFulfillment = filteredPOs.reduce((acc, po) => {
+        const valueByFulfillment = activePOs.reduce((acc, po) => {
             const status = getPOFulfillmentStatus(po, filters.categories);
             const value = getPOValue(po, filters.categories);
             acc[status] = (acc[status] || 0) + value;
@@ -447,14 +454,14 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         };
         const fulfillmentChartData = Object.entries(valueByFulfillment).map(([label, value]) => ({ label, value, color: fulfillmentColors[label] || '#9ca3af' }));
 
-        const customerValue = filteredPOs.reduce((acc, po) => {
+        const customerValue = activePOs.reduce((acc, po) => {
             const value = getPOValue(po, filters.categories);
             acc[po.customerName] = (acc[po.customerName] || 0) + value;
             return acc;
         }, {} as { [key: string]: number });
         const topCustomers = Object.entries(customerValue).map(([label, value]) => ({ label, value })).sort((a,b) => Number(b.value) - Number(a.value)).slice(0, 5);
 
-        const valueByPayment = filteredPOs.reduce((acc, po) => {
+        const valueByPayment = activePOs.reduce((acc, po) => {
             const type = po.saleType || 'N/A';
             const value = getPOValue(po, filters.categories);
             acc[type] = (acc[type] || 0) + value;
@@ -501,7 +508,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         const poAgeingChartData = Object.entries(ageing).map(([label, value]) => ({ label, value }));
         const poAgeingValueChartData = Object.entries(ageingValue).map(([label, value]) => ({ label, value }));
 
-        const valueByBranch = filteredPOs.reduce((acc, po) => {
+        const valueByBranch = activePOs.reduce((acc, po) => {
             const branch = po.mainBranch || 'Unassigned';
             const value = getPOValue(po, filters.categories);
             acc[branch] = (acc[branch] || 0) + value;
@@ -509,17 +516,17 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         }, {} as Record<string, number>);
         const branchPerformanceChartData = Object.entries(valueByBranch).map(([label, value]) => ({ label, value })).sort((a,b) => Number(b.value) - Number(a.value));
 
-        const avgPOtoSOVal = getAvgDays(filteredPOs, 'poDate', 'soDate');
-        const avgSOtoInvoiceVal = getAvgDays(filteredPOs, 'soDate', 'invoiceDate');
-        const avgPOtoInvoiceVal = getAvgDays(filteredPOs, 'poDate', 'invoiceDate');
+        const avgPOtoSOVal = getAvgDays(activePOs, 'poDate', 'soDate');
+        const avgSOtoInvoiceVal = getAvgDays(activePOs, 'soDate', 'invoiceDate');
+        const avgPOtoInvoiceVal = getAvgDays(activePOs, 'poDate', 'invoiceDate');
 
         const avgPOtoSO = avgPOtoSOVal ? `${Math.round(avgPOtoSOVal)} days` : '0 days';
         const avgSOtoInvoice = avgSOtoInvoiceVal ? `${Math.round(avgSOtoInvoiceVal)} days` : '0 days';
         const avgPOtoInvoice = avgPOtoInvoiceVal ? `${Math.round(avgPOtoInvoiceVal)} days` : '0 days';
 
-        const avgPOtoSOTrend = getTrend(purchaseOrders, filters, () => true, (pos) => getAvgDays(pos, 'poDate', 'soDate'), false);
-        const avgSOtoInvoiceTrend = getTrend(purchaseOrders, filters, () => true, (pos) => getAvgDays(pos, 'soDate', 'invoiceDate'), false);
-        const avgPOtoInvoiceTrend = getTrend(purchaseOrders, filters, () => true, (pos) => getAvgDays(pos, 'poDate', 'invoiceDate'), false);
+        const avgPOtoSOTrend = getTrend(purchaseOrders, filters, p => !!(p.poDate && p.soDate), (pos) => getAvgDays(pos, 'poDate', 'soDate'), false);
+        const avgSOtoInvoiceTrend = getTrend(purchaseOrders, filters, p => !!(p.soDate && p.invoiceDate), (pos) => getAvgDays(pos, 'soDate', 'invoiceDate'), false);
+        const avgPOtoInvoiceTrend = getTrend(purchaseOrders, filters, p => !!(p.poDate && p.invoiceDate), (pos) => getAvgDays(pos, 'poDate', 'invoiceDate'), false);
 
         const totalNotAvailableValue = partialNotAvailableItemsValue + notAvailableValue;
 
@@ -535,25 +542,27 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             oilStuckPOsList,
             unavailablePartsList,
             checklistChartData, fulfillmentChartData, topCustomers, paymentTermsChartData, 
-            poAgeingChartData, poAgeingValueChartData, branchPerformanceChartData, 
+            poAgeingChartData, poAgeingValueChartData, branchPerformanceChartData,
             avgPOtoSO, avgSOtoInvoice, avgPOtoInvoice,
             openTrend, valueTrend, fullyTrend, partialTrend, notAvailableTrend,
-            avgPOtoSOTrend, avgSOtoInvoiceTrend, avgPOtoInvoiceTrend
+            avgPOtoSOTrend, avgSOtoInvoiceTrend, avgPOtoInvoiceTrend,
+            totalInvoicedPOs, totalInvoicedValue, invoicedTrend
         };
-    }, [filteredPOs, purchaseOrders, filters]);
+    }, [activePOs, invoicedPOs, purchaseOrders, filters]);
 
     const getBreakdownData = (type: string) => {
         let pos: PurchaseOrder[] = [];
         let isGap = false;
 
-        if (type === 'OPEN') pos = filteredPOs;
-        else if (type === 'FULLY_AVAILABLE') pos = filteredPOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.Available);
-        else if (type === 'PARTIALLY_AVAILABLE') pos = filteredPOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.PartiallyAvailable);
-        else if (type === 'NOT_AVAILABLE') pos = filteredPOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.NotAvailable);
-        else if (type === 'ANY_SHORTAGE') pos = filteredPOs.filter(po => getPOFulfillmentStatus(po, filters.categories) !== FulfillmentStatus.Available);
-        else if (type === 'OIL_STUCK') pos = filteredPOs.filter(isOilStuckPO);
+        if (type === 'OPEN') pos = activePOs;
+        else if (type === 'FULLY_AVAILABLE') pos = activePOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.Available);
+        else if (type === 'PARTIALLY_AVAILABLE') pos = activePOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.PartiallyAvailable);
+        else if (type === 'NOT_AVAILABLE') pos = activePOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.NotAvailable);
+        else if (type === 'ANY_SHORTAGE') pos = activePOs.filter(po => getPOFulfillmentStatus(po, filters.categories) !== FulfillmentStatus.Available);
+        else if (type === 'OIL_STUCK') pos = activePOs.filter(isOilStuckPO);
+        else if (type === 'INVOICED') pos = invoicedPOs;
         else if (type === 'GAP') {
-            pos = filteredPOs;
+            pos = activePOs;
             isGap = true;
         }
 
@@ -753,7 +762,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
                 <DashboardStatCard 
                     title="Total No of PO's" 
                     value={dashboardData.totalOpenPOs} 
@@ -769,6 +778,15 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     indicatorColor="bg-red-500"
                     trend={dashboardData.valueTrend}
                     onClick={() => setSelectedBreakdown({ type: 'OPEN', title: "Active PO Value" })}
+                />
+                <DashboardStatCard 
+                    title="Invoiced POs" 
+                    value={dashboardData.totalInvoicedValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })} 
+                    subValue={`${dashboardData.totalInvoicedPOs} POs`}
+                    icon={<CheckCircleIcon className="w-6 h-6 text-slate-500" />} 
+                    indicatorColor="bg-slate-500"
+                    trend={dashboardData.invoicedTrend}
+                    onClick={() => setSelectedBreakdown({ type: 'INVOICED', title: "Invoiced POs" })}
                 />
                 <DashboardStatCard 
                     title="Ready to Execute" 

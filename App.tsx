@@ -315,13 +315,15 @@ function App() {
   }, []);
 
   const handleDashboardCardClick = useCallback((type: string, payload?: any) => {
-    if (type === 'OPEN') setOrdersFilter(null);
-    else if (type === 'FULLY_AVAILABLE') setOrdersFilter({ fulfillmentStatus: FulfillmentStatus.Available });
-    else if (type === 'PARTIALLY_AVAILABLE') setOrdersFilter({ fulfillmentStatus: FulfillmentStatus.PartiallyAvailable });
-    else if (type === 'NOT_AVAILABLE') setOrdersFilter({ fulfillmentStatus: FulfillmentStatus.NotAvailable });
-    else if (type === 'ANY_SHORTAGE') setOrdersFilter({ hasAnyShortage: true });
-    else if (type === 'OIL_STUCK') setOrdersFilter({ isOilStuck: true });
-    else if (type === 'PART_SHORTAGE') setOrdersFilter({ partNumber: payload });
+    if (type === 'OPEN') setOrdersFilter({ isInvoiced: false });
+    else if (type === 'FULLY_AVAILABLE') setOrdersFilter({ fulfillmentStatus: FulfillmentStatus.Available, isInvoiced: false });
+    else if (type === 'PARTIALLY_AVAILABLE') setOrdersFilter({ fulfillmentStatus: FulfillmentStatus.PartiallyAvailable, isInvoiced: false });
+    else if (type === 'NOT_AVAILABLE') setOrdersFilter({ fulfillmentStatus: FulfillmentStatus.NotAvailable, isInvoiced: false });
+    else if (type === 'ANY_SHORTAGE') setOrdersFilter({ hasAnyShortage: true, isInvoiced: false });
+    else if (type === 'OIL_STUCK') setOrdersFilter({ isOilStuck: true, isInvoiced: false });
+    else if (type === 'PART_SHORTAGE') setOrdersFilter({ partNumber: payload, isInvoiced: false });
+    else if (type === 'INVOICED') setOrdersFilter({ isInvoiced: true });
+    else setOrdersFilter(null);
     setActivePane('allOrders');
   }, []);
 
