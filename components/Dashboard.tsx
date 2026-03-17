@@ -42,46 +42,53 @@ interface TrendData {
     isPositiveGood: boolean;
 }
 
-const DashboardStatCard: React.FC<{ title: string; value: string | number; subValue?: string; icon: React.ReactNode; indicatorColor?: string; trend?: TrendData | null; onClick?: () => void }> = ({ title, value, subValue, icon, indicatorColor, trend, onClick }) => (
+const DashboardStatCard: React.FC<{ title: string; value: string | number; subValue?: string; icon: React.ReactNode; indicatorColor?: string; trend?: TrendData | null; onClick?: () => void; renderExtra?: () => React.ReactNode }> = ({ title, value, subValue, icon, indicatorColor, trend, onClick, renderExtra }) => (
     <div 
         onClick={onClick}
-        className={`bg-white dark:bg-slate-800 p-5 rounded-xl shadow-md flex items-center space-x-4 relative overflow-hidden transition-transform duration-200 ${onClick ? 'cursor-pointer hover:scale-105 hover:shadow-lg active:scale-95' : ''}`}
+        className={`bg-white dark:bg-slate-800 p-5 rounded-xl shadow-md flex flex-col relative overflow-hidden transition-transform duration-200 ${onClick ? 'cursor-pointer hover:scale-105 hover:shadow-lg active:scale-95' : ''}`}
     >
-        {indicatorColor && (
-            <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${indicatorColor}`}></div>
-        )}
-        <div className="bg-red-100 dark:bg-red-900/50 p-3 rounded-full">
-            {icon}
-        </div>
-        <div className="flex-1">
-            <p className="text-base text-slate-500 dark:text-slate-400 font-medium flex items-center gap-2">
-                {title}
-                {indicatorColor && <span className={`w-2 h-2 rounded-full ${indicatorColor}`}></span>}
-            </p>
-            <div className="flex items-baseline gap-2">
-                <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{value}</p>
-                {subValue && (
-                    <p className="text-lg font-semibold text-slate-500 dark:text-slate-400">
-                        {subValue}
-                    </p>
+        <div className="flex items-center space-x-4">
+            {indicatorColor && (
+                <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${indicatorColor}`}></div>
+            )}
+            <div className="bg-red-100 dark:bg-red-900/50 p-3 rounded-full">
+                {icon}
+            </div>
+            <div className="flex-1">
+                <p className="text-base text-slate-500 dark:text-slate-400 font-medium flex items-center gap-2">
+                    {title}
+                    {indicatorColor && <span className={`w-2 h-2 rounded-full ${indicatorColor}`}></span>}
+                </p>
+                <div className="flex items-baseline gap-2">
+                    <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{value}</p>
+                    {subValue && (
+                        <p className="text-lg font-semibold text-slate-500 dark:text-slate-400">
+                            {subValue}
+                        </p>
+                    )}
+                </div>
+                {trend && trend.percent !== 0 && (
+                    <div className={`flex items-center gap-1 text-sm font-semibold mt-1 ${
+                        trend.value > 0 
+                            ? (trend.isPositiveGood ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')
+                            : (trend.isPositiveGood ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400')
+                    }`}>
+                        {trend.value > 0 ? <ArrowUpIcon className="w-4 h-4" /> : <ArrowDownIcon className="w-4 h-4" />}
+                        <span>{Math.abs(trend.percent).toFixed(1)}% MOM</span>
+                    </div>
+                )}
+                {trend && trend.percent === 0 && (
+                    <div className="text-sm text-slate-400 mt-1 font-medium">
+                        No change MOM
+                    </div>
                 )}
             </div>
-            {trend && trend.percent !== 0 && (
-                 <div className={`flex items-center gap-1 text-sm font-semibold mt-1 ${
-                     trend.value > 0 
-                        ? (trend.isPositiveGood ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')
-                        : (trend.isPositiveGood ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400')
-                 }`}>
-                     {trend.value > 0 ? <ArrowUpIcon className="w-4 h-4" /> : <ArrowDownIcon className="w-4 h-4" />}
-                     <span>{Math.abs(trend.percent).toFixed(1)}% MOM</span>
-                 </div>
-            )}
-             {trend && trend.percent === 0 && (
-                <div className="text-sm text-slate-400 mt-1 font-medium">
-                     No change MOM
-                </div>
-            )}
         </div>
+        {renderExtra && (
+            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+                {renderExtra()}
+            </div>
+        )}
     </div>
 );
 
@@ -838,11 +845,47 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 <DashboardStatCard 
                     title="Partially Available" 
                     value={dashboardData.partialAvailableItemsValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })} 
-                    subValue={`Gap: ${dashboardData.partialNotAvailableItemsValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })} | ${dashboardData.partiallyAvailablePOs} POs`}
+                    subValue={`${dashboardData.partiallyAvailablePOs} POs`}
                     icon={<TruckIcon className="w-6 h-6 text-blue-500" />} 
                     indicatorColor="bg-blue-500"
                     trend={dashboardData.partialTrend}
                     onClick={() => setSelectedBreakdown({ type: 'PARTIALLY_AVAILABLE', title: "Partially Available" })}
+                    renderExtra={() => (
+                        <div className="space-y-2">
+                            <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
+                                <span>Item Status</span>
+                                <span>Value</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                    <span className="text-sm text-slate-600 dark:text-slate-400">Available Parts</span>
+                                </div>
+                                <span className="text-sm font-bold text-green-600 dark:text-green-400">
+                                    {dashboardData.partialAvailableItemsValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                                    <span className="text-sm text-slate-600 dark:text-slate-400">Not Available (Gap)</span>
+                                </div>
+                                <span className="text-sm font-bold text-red-600 dark:text-red-400">
+                                    {dashboardData.partialNotAvailableItemsValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })}
+                                </span>
+                            </div>
+                            <div className="w-full bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden mt-2 flex">
+                                <div 
+                                    className="bg-green-500 h-full" 
+                                    style={{ width: `${(dashboardData.partialAvailableItemsValue / (dashboardData.partialAvailableItemsValue + dashboardData.partialNotAvailableItemsValue)) * 100}%` }}
+                                />
+                                <div 
+                                    className="bg-red-500 h-full" 
+                                    style={{ width: `${(dashboardData.partialNotAvailableItemsValue / (dashboardData.partialAvailableItemsValue + dashboardData.partialNotAvailableItemsValue)) * 100}%` }}
+                                />
+                            </div>
+                        </div>
+                    )}
                 />
                 <DashboardStatCard 
                     title="100% Not Available" 
