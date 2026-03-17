@@ -12,7 +12,6 @@ import AllOrdersPane from './components/AllOrdersPane';
 import TopCustomersPane from './components/TopCustomersPane';
 import DataManagementPane from './components/DataManagementPane';
 import ReportsPane from './components/ReportsPane';
-import ManagementPane from './components/ManagementPane';
 import ErrorBanner from './components/ErrorBanner';
 import useLocalStorage from './hooks/useLocalStorage';
 import { db, auth } from './services/firebase';
@@ -25,7 +24,7 @@ import type { PurchaseOrder, Notification, LogEntry, POItem, ProcurementSuggesti
 import { POItemStatus, OverallPOStatus, OrderStatus, FulfillmentStatus } from './types';
 
 type ModalType = 'none' | 'poDetail' | 'suggestion';
-type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'topCustomers' | 'management';
+type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'topCustomers';
 type Theme = 'light' | 'dark';
 
 /**
@@ -357,7 +356,6 @@ function App() {
             {activePane === 'topCustomers' && <TopCustomersPane purchaseOrders={purchaseOrders} />}
             {activePane === 'reports' && <ReportsPane purchaseOrders={purchaseOrders} onUpdatePO={handleUpdatePO} />}
             {activePane === 'dataManagement' && <DataManagementPane purchaseOrders={purchaseOrders} />}
-            {activePane === 'management' && <ManagementPane purchaseOrders={purchaseOrders} />}
         </main>
       </div>
       
