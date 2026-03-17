@@ -18,7 +18,8 @@ interface AllOrdersPaneProps {
       partNumber?: string,
       hasAnyShortage?: boolean,
       isInvoiced?: boolean,
-      showGapOnly?: boolean
+      showGapOnly?: boolean,
+      saleType?: string
   } | null;
   onClearFilter?: () => void;
   selectedCategories?: string[];
@@ -142,9 +143,12 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
             } else {
                 // If not explicitly filtering for invoiced, only show active ones by default if no other status filter is present
                 // This keeps the list "Active" unless we are viewing invoiced orders
-                if (!filter.status) {
+                if (!filter.status && !filter.saleType) {
                     sortableItems = sortableItems.filter(po => po.orderStatus !== OrderStatus.Invoiced);
                 }
+            }
+            if (filter.saleType) {
+                sortableItems = sortableItems.filter(po => po.saleType === filter.saleType);
             }
         } else {
             // No external filter, default to active orders only
@@ -418,6 +422,13 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                                 <div className="flex flex-wrap gap-1">
                                     <span className="px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-bold rounded-full uppercase">
                                         Invoiced Only
+                                    </span>
+                                </div>
+                            )}
+                            {filter?.saleType && (
+                                <div className="flex flex-wrap gap-1">
+                                    <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-full uppercase">
+                                        Sale Type: {filter.saleType}
                                     </span>
                                 </div>
                             )}

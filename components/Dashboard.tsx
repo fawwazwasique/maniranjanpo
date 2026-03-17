@@ -95,7 +95,7 @@ const ChartContainer: React.FC<{ title: string; children: React.ReactNode, class
 );
 
 
-const DonutChart: React.FC<{ data: { label: string; value: number; color: string }[] }> = ({ data }) => {
+const DonutChart: React.FC<{ data: { label: string; value: number; color: string }[]; onSegmentClick?: (label: string) => void; isCurrency?: boolean }> = ({ data, onSegmentClick, isCurrency = true }) => {
     const total = data.reduce((acc, d) => acc + d.value, 0);
     if (total === 0) {
         return <div className="flex items-center justify-center h-56 text-slate-500">No data to display</div>;
@@ -120,24 +120,34 @@ const DonutChart: React.FC<{ data: { label: string; value: number; color: string
                                     strokeWidth="15"
                                     strokeDasharray={`${segmentLength} ${circumference}`}
                                     strokeDashoffset={-acc.accumulatedLength}
-                                />
+                                    className={onSegmentClick ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}
+                                    onClick={() => onSegmentClick?.(segment.label)}
+                                >
+                                    <title>{segment.label}: {isCurrency ? segment.value.toLocaleString('en-IN', { style: 'currency', currency: 'INR' }) : segment.value}</title>
+                                </circle>
                              );
                              acc.accumulatedLength += segmentLength;
                              return acc;
                         }, { accumulatedLength: 0, elements: [] as React.ReactNode[] }).elements}
                     </g>
                      <text x="50" y="50" textAnchor="middle" dy=".3em" className="text-lg font-bold fill-current text-slate-800 dark:text-slate-100">
-                       {total.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })}
+                       {isCurrency 
+                        ? total.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })
+                        : total.toLocaleString()}
                     </text>
                 </svg>
             </div>
             <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
                 {data.filter(d => d.value > 0).map(segment => (
-                    <div key={segment.label} className="flex items-center text-sm">
+                    <div 
+                        key={segment.label} 
+                        className={`flex items-center text-sm ${onSegmentClick ? 'cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-1 rounded transition-colors' : ''}`}
+                        onClick={() => onSegmentClick?.(segment.label)}
+                    >
                         <span className="w-3 h-3 rounded-full mr-2 shrink-0" style={{ backgroundColor: segment.color }}></span>
                         <span className="text-slate-600 dark:text-slate-400 font-medium truncate mr-4">{segment.label}</span>
                         <span className="ml-auto font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap">
-                            {((segment.value / total) * 100).toFixed(1)}% ({segment.value.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 1, notation: 'compact' })})
+                            {((segment.value / total) * 100).toFixed(1)}% ({isCurrency ? segment.value.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 1, notation: 'compact' }) : segment.value})
                         </span>
                     </div>
                 ))}
@@ -467,6 +477,13 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             acc[type] = (acc[type] || 0) + value;
             return acc;
         }, {} as Record<string, number>);
+
+        const countByPayment = activePOs.reduce((acc, po) => {
+            const type = po.saleType || 'N/A';
+            acc[type] = (acc[type] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+
         const paymentColors = { 
             'Credit': '#3b82f6', 
             'Cash': '#22c55e',
@@ -474,9 +491,13 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             'Advance Payment': '#8b5cf6',
             'Cheque': '#ec4899',
             'RTGS/NEFT': '#14b8a6',
-            'PI Sent': '#9ca3af'
+            'PI Sent': '#9ca3af',
+            'Received': '#10b981',
+            'Payment is Ready with Customer': '#f97316',
+            'Amendment': '#6366f1'
         };
         const paymentTermsChartData = Object.entries(valueByPayment).map(([label, value]) => ({ label, value, color: paymentColors[label as keyof typeof paymentColors] || '#9ca3af'}));
+        const salesTypeCountChartData = Object.entries(countByPayment).map(([label, value]) => ({ label, value, color: paymentColors[label as keyof typeof paymentColors] || '#9ca3af'}));
 
         const today = new Date();
         const ageing: Record<string, number> = { '0-30 Days': 0, '31-60 Days': 0, '61-90 Days': 0, '>90 Days': 0 };
@@ -530,6 +551,22 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
         const totalNotAvailableValue = partialNotAvailableItemsValue + notAvailableValue;
 
+        const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
+
+        const readyToExecuteSalesTypeTotals: Record<string, number> = {};
+        fullyAvailablePOsList.forEach(po => {
+            const type = po.saleType || 'N/A';
+            readyToExecuteSalesTypeTotals[type] = (readyToExecuteSalesTypeTotals[type] || 0) + 1;
+        });
+        const readyToExecuteChartData = Object.entries(readyToExecuteSalesTypeTotals)
+            .filter(([_, value]) => value > 0)
+            .map(([label, value], index) => ({
+                label,
+                value,
+                color: colors[index % colors.length]
+            }))
+            .sort((a, b) => b.value - a.value);
+
         return { 
             totalOpenPOs, openPOValue: isNaN(openPOValue) ? 0 : openPOValue, 
             fullyAvailablePOs, fullyAvailableValue: isNaN(fullyAvailableValue) ? 0 : fullyAvailableValue, 
@@ -541,7 +578,8 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             oilStuckPOs, oilStuckValue: isNaN(oilStuckValue) ? 0 : oilStuckValue,
             oilStuckPOsList,
             unavailablePartsList,
-            checklistChartData, fulfillmentChartData, topCustomers, paymentTermsChartData, 
+            checklistChartData, fulfillmentChartData, topCustomers, paymentTermsChartData, salesTypeCountChartData,
+            readyToExecuteChartData,
             poAgeingChartData, poAgeingValueChartData, branchPerformanceChartData,
             avgPOtoSO, avgSOtoInvoice, avgPOtoInvoice,
             openTrend, valueTrend, fullyTrend, partialTrend, notAvailableTrend,
@@ -895,33 +933,45 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                  />
             </div>
 
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                 <ChartContainer title="Value by Payment Terms">
+                    <DonutChart 
+                        data={dashboardData.paymentTermsChartData} 
+                        onSegmentClick={(label) => onCardClick?.('SALE_TYPE', label)}
+                    />
+                 </ChartContainer>
+                 <ChartContainer title="Ready to Execute Breakdown (by Sales Type)">
+                    <DonutChart 
+                        data={dashboardData.readyToExecuteChartData} 
+                        isCurrency={false}
+                        onSegmentClick={(label) => onCardClick?.('FULLY_AVAILABLE', label)}
+                    />
+                 </ChartContainer>
+            </div>
+            
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                  <ChartContainer title="Fulfillment Status (by Value)">
                     <DonutChart data={dashboardData.fulfillmentChartData} />
                  </ChartContainer>
                  <ChartContainer title="Checklist Compliance (by PO Count)">
-                    <DonutChart data={dashboardData.checklistChartData} />
+                    <DonutChart data={dashboardData.checklistChartData} isCurrency={false} />
                  </ChartContainer>
-                 <ChartContainer title="Value by Payment Terms">
-                    <DonutChart data={dashboardData.paymentTermsChartData} />
-                 </ChartContainer>
-            </div>
-            
-             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                  <ChartContainer title="Active PO Ageing (by PO Count)">
                     <HorizontalBarChart data={dashboardData.poAgeingChartData} />
                  </ChartContainer>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                  <ChartContainer title="Active PO Ageing (by Value)">
                     <HorizontalBarChart data={dashboardData.poAgeingValueChartData} isCurrency />
                  </ChartContainer>
                  <ChartContainer title="Branch Performance (by Value)">
                     <HorizontalBarChart data={dashboardData.branchPerformanceChartData} isCurrency />
                  </ChartContainer>
+                 <ChartContainer title="Top 5 Customers (by Value)">
+                    <HorizontalBarChart data={dashboardData.topCustomers} isCurrency />
+                 </ChartContainer>
             </div>
-
-            <ChartContainer title="Top 5 Customers (by Value)">
-                <HorizontalBarChart data={dashboardData.topCustomers} isCurrency />
-            </ChartContainer>
 
             <BreakdownModal 
                 isOpen={!!selectedBreakdown}

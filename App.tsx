@@ -95,6 +95,7 @@ function App() {
       hasAnyShortage?: boolean;
       isInvoiced?: boolean;
       showGapOnly?: boolean;
+      saleType?: string;
   } | null>(null);
 
   const [suggestionItem, setSuggestionItem] = useState<POItem | null>(null);
@@ -317,7 +318,13 @@ function App() {
 
   const handleDashboardCardClick = useCallback((type: string, payload?: any) => {
     if (type === 'OPEN') setOrdersFilter({ isInvoiced: false });
-    else if (type === 'FULLY_AVAILABLE') setOrdersFilter({ fulfillmentStatus: FulfillmentStatus.Available, isInvoiced: false });
+    else if (type === 'FULLY_AVAILABLE') {
+        setOrdersFilter({ 
+            fulfillmentStatus: FulfillmentStatus.Available, 
+            isInvoiced: false,
+            saleType: payload 
+        });
+    }
     else if (type === 'PARTIALLY_AVAILABLE') setOrdersFilter({ fulfillmentStatus: FulfillmentStatus.PartiallyAvailable, isInvoiced: false, showGapOnly: true });
     else if (type === 'NOT_AVAILABLE') setOrdersFilter({ fulfillmentStatus: FulfillmentStatus.NotAvailable, isInvoiced: false, showGapOnly: true });
     else if (type === 'ANY_SHORTAGE') setOrdersFilter({ hasAnyShortage: true, isInvoiced: false });
@@ -325,6 +332,7 @@ function App() {
     else if (type === 'PART_SHORTAGE') setOrdersFilter({ partNumber: payload, isInvoiced: false });
     else if (type === 'INVOICED') setOrdersFilter({ isInvoiced: true });
     else if (type === 'GAP') setOrdersFilter({ showGapOnly: true, isInvoiced: false });
+    else if (type === 'SALE_TYPE') setOrdersFilter({ saleType: payload, isInvoiced: false });
     else setOrdersFilter(null);
     setActivePane('allOrders');
   }, []);
