@@ -17,7 +17,8 @@ interface AllOrdersPaneProps {
       isOilStuck?: boolean,
       partNumber?: string,
       hasAnyShortage?: boolean,
-      isInvoiced?: boolean
+      isInvoiced?: boolean,
+      showGapOnly?: boolean
   } | null;
   onClearFilter?: () => void;
   selectedCategories?: string[];
@@ -64,6 +65,13 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
     const [partsFilter, setPartsFilter] = useState<'all' | 'available' | 'notAvailable'>('all');
     const [selectedPOIds, setSelectedPOIds] = useState<string[]>([]);
 
+    React.useEffect(() => {
+        if (filter?.showGapOnly) {
+            setViewMode('parts');
+            setPartsFilter('notAvailable');
+        }
+    }, [filter?.showGapOnly]);
+
     const mainBranches = useMemo(() => {
         const branches = new Set<string>();
         purchaseOrders.forEach(po => {
@@ -82,9 +90,15 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
 
     const posWithValues = useMemo(() => {
         return purchaseOrders.map(po => {
-            const relevantItems = (po.items || []).filter(item => 
+            let relevantItems = (po.items || []).filter(item => 
                 selectedCategories.length === 0 || selectedCategories.includes(item.category)
             );
+
+            if (filter?.showGapOnly) {
+                relevantItems = relevantItems.filter(item => 
+                    item.status === POItemStatus.NotAvailable || item.status === POItemStatus.PartiallyAvailable
+                );
+            }
             
             const totalValue = relevantItems.reduce((acc, item) => {
                 const val = Number(item.quantity || 0) * Number(item.rate || 0);
@@ -97,6 +111,7 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                 totalValue
             };
         }).filter(po => {
+            if (po.filteredItems.length === 0) return false;
             if (selectedCategories.length === 0) return true;
             return (po.items || []).some(item => selectedCategories.includes(item.category));
         });
@@ -277,7 +292,7 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
         return { available, partial, notAvailable };
     };
 
-    const isFulfillmentFilter = filter?.fulfillmentStatus !== undefined || filter?.hasAnyShortage === true;
+    const isFulfillmentFilter = filter?.fulfillmentStatus !== undefined || filter?.hasAnyShortage === true || filter?.showGapOnly === true;
 
     const toggleSelectAll = () => {
         if (selectedPOIds.length === filteredAndSortedPOs.length) {

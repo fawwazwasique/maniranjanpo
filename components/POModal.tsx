@@ -14,6 +14,7 @@ interface POModalProps {
   existingPO?: PurchaseOrder;
   logs?: LogEntry[];
   onGetSuggestion?: (item: POItem) => void;
+  filterItems?: boolean;
 }
 
 const initialItemState: POItem = { 
@@ -75,7 +76,7 @@ const initialPOState: Omit<PurchaseOrder, 'id' | 'createdAt' | 'status'> = {
 };
 
 
-const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, onUpdateItemStatus, existingPO, logs = [], onGetSuggestion }) => {
+const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, onUpdateItemStatus, existingPO, logs = [], onGetSuggestion, filterItems }) => {
   const [formData, setFormData] = useState(initialPOState);
   const [activeDropdownIndex, setActiveDropdownIndex] = useState<number | null>(null);
 
@@ -83,9 +84,14 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
 
   useEffect(() => {
     if (isOpen && existingPO) {
+        let items = existingPO.items || [];
+        if (filterItems) {
+            items = items.filter(item => item.status === POItemStatus.NotAvailable || item.status === POItemStatus.PartiallyAvailable);
+        }
         setFormData({ 
             ...initialPOState,
             ...existingPO,
+            items: items,
             checklist: {
                 bCheck: existingPO.checklist?.bCheck || false,
                 cCheck: existingPO.checklist?.cCheck || false,
@@ -113,8 +119,9 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
     } else if (isOpen && !existingPO) {
         setFormData(initialPOState);
     }
+
     setActiveDropdownIndex(null);
-  }, [isOpen, existingPO]);
+  }, [isOpen, existingPO, filterItems]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
