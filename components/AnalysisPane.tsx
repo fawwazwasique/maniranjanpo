@@ -4,6 +4,7 @@ import type { PurchaseOrder } from '../types';
 import { OverallPOStatus, FulfillmentStatus, POItemStatus, OrderStatus } from '../types';
 import { ChartBarIcon, CheckCircleIcon, ClockIcon, TruckIcon, ChartPieIcon, SparklesIcon, XMarkIcon, MagnifyingGlassIcon, ArrowDownTrayIcon } from './icons';
 import { isOilItem, isOilStuckPO } from '../utils/poUtils';
+import { formatToCr } from '../utils/currencyUtils';
 
 interface AnalysisPaneProps {
   purchaseOrders: PurchaseOrder[];
@@ -108,7 +109,7 @@ const ClosableOrdersModal: React.FC<{ isOpen: boolean; onClose: () => void; orde
                                     <td className="p-4 font-bold text-slate-800 dark:text-white">{po.poNumber}</td>
                                     <td className="p-4">{po.customerName}</td>
                                     <td className="p-4 text-right font-semibold">
-                                        {po.items.reduce((acc, i) => acc + (Number(i.quantity) * Number(i.rate)), 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+                                        {formatToCr(po.items.reduce((acc, i) => acc + (Number(i.quantity) * Number(i.rate)), 0))}
                                     </td>
                                     <td className="p-4 text-center">
                                         <button 
@@ -145,7 +146,7 @@ const SimpleBarChart: React.FC<{ data: { label: string; value: number }[], color
 
     const formatValue = (value: number) => {
         if (isCurrency) {
-            return value.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' });
+            return formatToCr(value);
         }
         return value.toLocaleString('en-IN');
     };
@@ -234,8 +235,8 @@ const AnalysisPane: React.FC<AnalysisPaneProps> = ({ purchaseOrders, onSelectPO 
             {/* Main Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard title="Total POs" value={stats.totalPOs} icon={<ChartBarIcon className="w-6 h-6 text-red-500" />} />
-                <StatCard title="Total PO Value" value={stats.totalValue.toLocaleString('en-IN', {style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact'})} icon={<TruckIcon className="w-6 h-6 text-red-500" />} />
-                <StatCard title="Avg. Order Value" value={stats.avgOrderValue.toLocaleString('en-IN', {style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact'})} icon={<CheckCircleIcon className="w-6 h-6 text-green-500" />} />
+                <StatCard title="Total PO Value" value={formatToCr(stats.totalValue)} icon={<TruckIcon className="w-6 h-6 text-red-500" />} />
+                <StatCard title="Avg. Order Value" value={formatToCr(stats.avgOrderValue)} icon={<CheckCircleIcon className="w-6 h-6 text-green-500" />} />
                 <StatCard title="Top Performing Branch" value={stats.valueByBranch[0]?.label || 'N/A'} icon={<ClockIcon className="w-6 h-6 text-amber-500" />} />
             </div>
 
@@ -264,7 +265,7 @@ const AnalysisPane: React.FC<AnalysisPaneProps> = ({ purchaseOrders, onSelectPO 
                         />
                         <ImpactCard 
                             title="Potential Closure Value" 
-                            value={stats.valvolineImpact.value.toLocaleString('en-IN', {style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact'})} 
+                            value={formatToCr(stats.valvolineImpact.value)} 
                             color="border-blue-500" 
                             icon={<TruckIcon className="w-6 h-6 text-blue-500" />}
                         />

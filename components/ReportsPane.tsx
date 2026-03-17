@@ -4,6 +4,7 @@ import type { PurchaseOrder } from '../types';
 import { OverallPOStatus, FulfillmentStatus, OrderStatus, POItemStatus } from '../types';
 import { exportToCSV } from '../utils/export';
 import { formatDate, isDateInRange } from '../utils/dateUtils';
+import { formatToCr } from '../utils/currencyUtils';
 import { ArrowDownTrayIcon, ClipboardDocumentListIcon, ExclamationTriangleIcon, TruckIcon, CheckCircleIcon, DatabaseIcon } from './icons';
 
 interface ReportsPaneProps {
@@ -485,7 +486,7 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                                                 <tr key={po.id} className="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50">
                                                     <td className="p-3 font-medium">{po.poNumber}</td>
                                                     <td className="p-3">{po.customerName}</td>
-                                                    <td className="p-3">{po.items.reduce((acc, i) => acc + (i.quantity * i.rate), 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</td>
+                                                    <td className="p-3">{formatToCr(po.items.reduce((acc, i) => acc + (i.quantity * i.rate), 0))}</td>
                                                     <td className="p-3"><textarea className="w-full p-2 text-sm border border-slate-300 rounded dark:bg-slate-900 dark:border-slate-600" rows={2} value={remarksEdits[po.id] !== undefined ? remarksEdits[po.id] : (po.dispatchRemarks || '')} onChange={(e) => handleRemarkChange(po.id, e.target.value)} /></td>
                                                     <td className="p-3 text-center"><button onClick={() => handleSaveRemark(po)} className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded hover:bg-blue-700">Save</button></td>
                                                 </tr>
@@ -526,7 +527,7 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                                                     <td className="p-3">{po.customerName}</td>
                                                     <td className="p-3 font-bold text-purple-600">{po.invoiceNumber || 'N/A'}</td>
                                                     <td className="p-3">{formatDate(po.invoiceDate || po.poDate)}</td>
-                                                    <td className="p-3">{po.items.reduce((acc, i) => acc + (i.quantity * i.rate), 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</td>
+                                                    <td className="p-3">{formatToCr(po.items.reduce((acc, i) => acc + (i.quantity * i.rate), 0))}</td>
                                                     <td className="p-3">
                                                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${po.paymentStatus === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
                                                             {po.paymentStatus || 'Pending'}

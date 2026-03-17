@@ -333,7 +333,7 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                             <p className="text-sm font-bold text-green-700 dark:text-green-400 uppercase tracking-wider">Available Items</p>
                             <div className="flex items-baseline gap-2 mt-1">
                                 <p className="text-2xl font-black text-green-800 dark:text-green-300">{fulfillmentStats.availCount}</p>
-                                <p className="text-lg font-bold text-green-600/70">{fulfillmentStats.availValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })}</p>
+                                <p className="text-lg font-bold text-green-600/70">{fulfillmentStats.availValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })}</p>
                             </div>
                         </div>
                         <div 
@@ -346,7 +346,7 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                             <p className="text-sm font-bold text-red-700 dark:text-red-400 uppercase tracking-wider">Not Available Items</p>
                             <div className="flex items-baseline gap-2 mt-1">
                                 <p className="text-2xl font-black text-red-800 dark:text-red-300">{fulfillmentStats.notAvailCount}</p>
-                                <p className="text-lg font-bold text-red-600/70">{fulfillmentStats.notAvailValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })}</p>
+                                <p className="text-lg font-bold text-red-600/70">{fulfillmentStats.notAvailValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })}</p>
                             </div>
                         </div>
                     </div>

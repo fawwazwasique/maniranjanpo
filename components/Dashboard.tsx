@@ -42,53 +42,46 @@ interface TrendData {
     isPositiveGood: boolean;
 }
 
-const DashboardStatCard: React.FC<{ title: string; value: string | number; subValue?: string; icon: React.ReactNode; indicatorColor?: string; trend?: TrendData | null; onClick?: () => void; renderExtra?: () => React.ReactNode }> = ({ title, value, subValue, icon, indicatorColor, trend, onClick, renderExtra }) => (
+const DashboardStatCard: React.FC<{ title: string; value: string | number; subValue?: string; icon: React.ReactNode; indicatorColor?: string; trend?: TrendData | null; onClick?: () => void }> = ({ title, value, subValue, icon, indicatorColor, trend, onClick }) => (
     <div 
         onClick={onClick}
-        className={`bg-white dark:bg-slate-800 p-5 rounded-xl shadow-md flex flex-col relative overflow-hidden transition-transform duration-200 ${onClick ? 'cursor-pointer hover:scale-105 hover:shadow-lg active:scale-95' : ''}`}
+        className={`bg-white dark:bg-slate-800 p-5 rounded-xl shadow-md flex items-center space-x-4 relative overflow-hidden transition-transform duration-200 ${onClick ? 'cursor-pointer hover:scale-105 hover:shadow-lg active:scale-95' : ''}`}
     >
-        <div className="flex items-center space-x-4">
-            {indicatorColor && (
-                <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${indicatorColor}`}></div>
-            )}
-            <div className="bg-red-100 dark:bg-red-900/50 p-3 rounded-full">
-                {icon}
-            </div>
-            <div className="flex-1">
-                <p className="text-base text-slate-500 dark:text-slate-400 font-medium flex items-center gap-2">
-                    {title}
-                    {indicatorColor && <span className={`w-2 h-2 rounded-full ${indicatorColor}`}></span>}
-                </p>
-                <div className="flex items-baseline gap-2">
-                    <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{value}</p>
-                    {subValue && (
-                        <p className="text-lg font-semibold text-slate-500 dark:text-slate-400">
-                            {subValue}
-                        </p>
-                    )}
-                </div>
-                {trend && trend.percent !== 0 && (
-                    <div className={`flex items-center gap-1 text-sm font-semibold mt-1 ${
-                        trend.value > 0 
-                            ? (trend.isPositiveGood ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')
-                            : (trend.isPositiveGood ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400')
-                    }`}>
-                        {trend.value > 0 ? <ArrowUpIcon className="w-4 h-4" /> : <ArrowDownIcon className="w-4 h-4" />}
-                        <span>{Math.abs(trend.percent).toFixed(1)}% MOM</span>
-                    </div>
-                )}
-                {trend && trend.percent === 0 && (
-                    <div className="text-sm text-slate-400 mt-1 font-medium">
-                        No change MOM
-                    </div>
-                )}
-            </div>
-        </div>
-        {renderExtra && (
-            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-                {renderExtra()}
-            </div>
+        {indicatorColor && (
+            <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${indicatorColor}`}></div>
         )}
+        <div className="bg-red-100 dark:bg-red-900/50 p-3 rounded-full">
+            {icon}
+        </div>
+        <div className="flex-1">
+            <p className="text-base text-slate-500 dark:text-slate-400 font-medium flex items-center gap-2">
+                {title}
+                {indicatorColor && <span className={`w-2 h-2 rounded-full ${indicatorColor}`}></span>}
+            </p>
+            <div className="flex items-baseline gap-2">
+                <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{value}</p>
+                {subValue && (
+                    <p className="text-lg font-semibold text-slate-500 dark:text-slate-400">
+                        {subValue}
+                    </p>
+                )}
+            </div>
+            {trend && trend.percent !== 0 && (
+                 <div className={`flex items-center gap-1 text-sm font-semibold mt-1 ${
+                     trend.value > 0 
+                        ? (trend.isPositiveGood ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')
+                        : (trend.isPositiveGood ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400')
+                 }`}>
+                     {trend.value > 0 ? <ArrowUpIcon className="w-4 h-4" /> : <ArrowDownIcon className="w-4 h-4" />}
+                     <span>{Math.abs(trend.percent).toFixed(1)}% MOM</span>
+                 </div>
+            )}
+             {trend && trend.percent === 0 && (
+                <div className="text-sm text-slate-400 mt-1 font-medium">
+                     No change MOM
+                </div>
+            )}
+        </div>
     </div>
 );
 
@@ -154,7 +147,7 @@ const DonutChart: React.FC<{ data: { label: string; value: number; color: string
                         <span className="w-3 h-3 rounded-full mr-2 shrink-0" style={{ backgroundColor: segment.color }}></span>
                         <span className="text-slate-600 dark:text-slate-400 font-medium truncate mr-4">{segment.label}</span>
                         <span className="ml-auto font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap">
-                            {((segment.value / total) * 100).toFixed(1)}% ({isCurrency ? segment.value.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 1, notation: 'compact' }) : segment.value})
+                            {((segment.value / total) * 100).toFixed(1)}% ({isCurrency ? segment.value.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' }) : segment.value})
                         </span>
                     </div>
                 ))}
@@ -835,7 +828,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 />
                 <DashboardStatCard 
                     title="Ready to Execute" 
-                    value={dashboardData.fullyAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })} 
+                    value={dashboardData.fullyAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })} 
                     subValue={`${dashboardData.fullyAvailablePOs} POs`}
                     icon={<CheckCircleIcon className="w-6 h-6 text-green-500" />} 
                     indicatorColor="bg-green-500"
@@ -844,52 +837,16 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 />
                 <DashboardStatCard 
                     title="Partially Available" 
-                    value={dashboardData.partialAvailableItemsValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })} 
-                    subValue={`${dashboardData.partiallyAvailablePOs} POs`}
+                    value={dashboardData.partiallyAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })} 
+                    subValue={`Avail: ${dashboardData.partialAvailableItemsValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })} | Gap: ${dashboardData.partialNotAvailableItemsValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })} | ${dashboardData.partiallyAvailablePOs} POs`}
                     icon={<TruckIcon className="w-6 h-6 text-blue-500" />} 
                     indicatorColor="bg-blue-500"
                     trend={dashboardData.partialTrend}
                     onClick={() => setSelectedBreakdown({ type: 'PARTIALLY_AVAILABLE', title: "Partially Available" })}
-                    renderExtra={() => (
-                        <div className="space-y-2">
-                            <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
-                                <span>Item Status</span>
-                                <span>Value</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                                    <span className="text-sm text-slate-600 dark:text-slate-400">Available Parts</span>
-                                </div>
-                                <span className="text-sm font-bold text-green-600 dark:text-green-400">
-                                    {dashboardData.partialAvailableItemsValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })}
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                                    <span className="text-sm text-slate-600 dark:text-slate-400">Not Available (Gap)</span>
-                                </div>
-                                <span className="text-sm font-bold text-red-600 dark:text-red-400">
-                                    {dashboardData.partialNotAvailableItemsValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })}
-                                </span>
-                            </div>
-                            <div className="w-full bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden mt-2 flex">
-                                <div 
-                                    className="bg-green-500 h-full" 
-                                    style={{ width: `${(dashboardData.partialAvailableItemsValue / (dashboardData.partialAvailableItemsValue + dashboardData.partialNotAvailableItemsValue)) * 100}%` }}
-                                />
-                                <div 
-                                    className="bg-red-500 h-full" 
-                                    style={{ width: `${(dashboardData.partialNotAvailableItemsValue / (dashboardData.partialAvailableItemsValue + dashboardData.partialNotAvailableItemsValue)) * 100}%` }}
-                                />
-                            </div>
-                        </div>
-                    )}
                 />
                 <DashboardStatCard 
                     title="100% Not Available" 
-                    value={dashboardData.notAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })} 
+                    value={dashboardData.notAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })} 
                     subValue={`${dashboardData.notAvailablePOs} POs`}
                     icon={<NoSymbolIcon className="w-6 h-6 text-red-600" />} 
                     indicatorColor="bg-red-600"
@@ -916,7 +873,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                         </div>
                         <div className="flex items-baseline gap-2 mb-2">
                             <p className="text-4xl font-black text-white">
-                                {dashboardData.totalNotAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })}
+                                {dashboardData.totalNotAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })}
                             </p>
                             <p className="text-lg font-bold text-red-400">Total Gap</p>
                         </div>
@@ -949,7 +906,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                         </p>
                         <div className="flex items-center gap-2 text-xs font-bold text-slate-300 uppercase tracking-widest bg-white/10 px-3 py-2 rounded-lg w-fit">
                             <CurrencyRupeeIcon className="w-4 h-4 text-red-500" />
-                            Value: {dashboardData.oilStuckValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0, notation: 'compact' })}
+                            Value: {dashboardData.oilStuckValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })}
                         </div>
                     </div>
                 </div>
@@ -1063,7 +1020,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                                         <td className="px-4 py-3 text-slate-600 dark:text-slate-400 truncate max-w-[200px]">{part.description}</td>
                                         <td className="px-4 py-3 text-right font-bold text-red-500">{part.quantity}</td>
                                         <td className="px-4 py-3 text-right font-bold text-slate-700 dark:text-slate-300">
-                                            {part.value.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}
+                                            {part.value.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 })}
                                         </td>
                                     </tr>
                                 ))}
@@ -1105,7 +1062,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                                         <td className="px-4 py-3 text-slate-600 dark:text-slate-400 truncate max-w-[150px]">{po.customerName}</td>
                                         <td className="px-4 py-3 text-xs text-slate-500">{new Date(po.poDate).toLocaleDateString()}</td>
                                         <td className="px-4 py-3 text-right font-bold text-slate-700 dark:text-slate-300">
-                                            {po.items.reduce((acc, i) => acc + (i.quantity * i.rate), 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}
+                                            {po.items.reduce((acc, i) => acc + (i.quantity * i.rate), 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 })}
                                         </td>
                                     </tr>
                                 ))}

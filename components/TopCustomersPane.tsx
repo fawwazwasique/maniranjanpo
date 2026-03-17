@@ -5,6 +5,7 @@ import { POItemStatus } from '../types';
 import { ChartPieIcon, UserGroupIcon, MagnifyingGlassIcon, ArrowDownTrayIcon, ChevronDownIcon, XMarkIcon } from './icons';
 import { exportDataToCSV } from '../utils/export';
 import { ITEM_CATEGORIES } from '../constants';
+import { formatToCr } from '../utils/currencyUtils';
 
 interface TopCustomersPaneProps {
     purchaseOrders: PurchaseOrder[];
@@ -244,7 +245,7 @@ const TopCustomersPane: React.FC<TopCustomersPaneProps> = ({ purchaseOrders }) =
                                         <td className="px-6 py-4 text-sm font-medium text-slate-500 dark:text-slate-400">#{index + 1}</td>
                                         <td className="px-6 py-4 text-sm font-bold text-slate-800 dark:text-slate-100">{analysis.customerName}</td>
                                         <td className="px-6 py-4 text-sm font-bold text-red-600 dark:text-red-400 text-right">
-                                            {analysis.totalValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+                                            {formatToCr(analysis.totalValue)}
                                         </td>
                                         <td className="px-6 py-4 text-sm text-center text-slate-600 dark:text-slate-300">{analysis.poCount}</td>
                                     </tr>
