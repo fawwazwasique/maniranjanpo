@@ -109,6 +109,8 @@ function App() {
     mainBranches: [] as string[],
     subBranches: [] as string[],
     categories: [] as string[],
+    customerCategories: [] as string[],
+    zones: [] as string[],
   });
 
   const [firestoreError, setFirestoreError] = useState<string | null>(null);
@@ -266,6 +268,8 @@ function App() {
               billingPlan: order.billingPlan,
               invoiceNumber: order.invoiceNumber,
               invoiceDate: order.invoiceDate,
+              customerCategory: order.customerCategory,
+              zone: order.zone,
               createdAt: new Date().toISOString(),
               paymentStatus: (order.saleType === 'Cash' || order.saleType === 'Awaiting Payment') ? 'Pending' : null,
               paymentNotes: '',

@@ -28,6 +28,8 @@ interface AllOrdersPaneProps {
     mainBranches: string[];
     subBranches: string[];
     categories: string[];
+    customerCategories: string[];
+    zones: string[];
   };
   setDashboardFilters?: React.Dispatch<React.SetStateAction<{
     statuses: string[];
@@ -37,6 +39,8 @@ interface AllOrdersPaneProps {
     mainBranches: string[];
     subBranches: string[];
     categories: string[];
+    customerCategories: string[];
+    zones: string[];
   }>>;
 }
 
@@ -136,6 +140,12 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
             if (dashboardFilters.subBranches && dashboardFilters.subBranches.length > 0) {
                 sortableItems = sortableItems.filter(po => dashboardFilters.subBranches.includes(po.subBranch || ''));
             }
+            if (dashboardFilters.customerCategories && dashboardFilters.customerCategories.length > 0) {
+                sortableItems = sortableItems.filter(po => dashboardFilters.customerCategories.includes(po.customerCategory || ''));
+            }
+            if (dashboardFilters.zones && dashboardFilters.zones.length > 0) {
+                sortableItems = sortableItems.filter(po => dashboardFilters.zones.includes(po.zone || ''));
+            }
         }
 
         if (searchTerm) {
@@ -143,7 +153,9 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                 (po.poNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (po.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (po.mainBranch || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (po.subBranch || '').toLowerCase().includes(searchTerm.toLowerCase())
+                (po.subBranch || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (po.customerCategory || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (po.zone || '').toLowerCase().includes(searchTerm.toLowerCase())
             );
         }
 
@@ -347,6 +359,24 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                                     ))}
                                 </div>
                             )}
+                            {dashboardFilters?.customerCategories && dashboardFilters.customerCategories.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                    {dashboardFilters.customerCategories.map(c => (
+                                        <span key={c} className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full uppercase">
+                                            {c}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                            {dashboardFilters?.zones && dashboardFilters.zones.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                    {dashboardFilters.zones.map(z => (
+                                        <span key={z} className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full uppercase">
+                                            {z}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
                             {(dashboardFilters?.mainBranches?.length || 0) > 0 && (
                                 <div className="flex flex-wrap gap-1">
                                     {dashboardFilters?.mainBranches.map(b => (
@@ -390,6 +420,8 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                                     endDate: '',
                                     mainBranches: [],
                                     subBranches: [],
+                                    customerCategories: [],
+                                    zones: [],
                                     categories: dashboardFilters?.categories || []
                                 });
                             }} className="hover:text-red-900 dark:hover:text-white"><XMarkIcon className="w-4 h-4"/></button>
@@ -429,6 +461,7 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                                 </th>
                                 <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('poNumber')}>PO Number {getSortIndicator('poNumber')}</th>
                                 <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('customerName')}>Customer {getSortIndicator('customerName')}</th>
+                                <th scope="col" className="p-4">Category / Zone</th>
                                 <th scope="col" className="p-4">Branch</th>
                                 <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('poDate')}>Date {getSortIndicator('poDate')}</th>
                                 <th scope="col" className="p-4 cursor-pointer text-right" onClick={() => requestSort('totalValue')}>Value {getSortIndicator('totalValue')}</th>
@@ -453,6 +486,12 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                                         </td>
                                         <td className="p-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">{po.poNumber}</td>
                                         <td className="p-4">{po.customerName}</td>
+                                        <td className="p-4">
+                                            <div className="flex flex-col">
+                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{po.customerCategory || 'N/A'}</span>
+                                                <span className="text-[10px] text-slate-500">{po.zone || 'N/A'}</span>
+                                            </div>
+                                        </td>
                                         <td className="p-4">{po.mainBranch}{po.subBranch && ` / ${po.subBranch}`}</td>
                                         <td className="p-4">{formatDate(po.poDate)}</td>
                                         <td className="p-4 text-right font-semibold">{po.totalValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</td>

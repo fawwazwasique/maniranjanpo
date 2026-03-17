@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { ArrowUpTrayIcon, DocumentPlusIcon, PlusIcon, XMarkIcon, ArrowDownTrayIcon } from './icons';
-import { MAIN_BRANCHES, BRANCH_STRUCTURE, BULK_UPLOAD_HEADERS, ITEM_CATEGORIES, SALE_TYPES } from '../constants';
+import { MAIN_BRANCHES, BRANCH_STRUCTURE, BULK_UPLOAD_HEADERS, ITEM_CATEGORIES, SALE_TYPES, CUSTOMER_CATEGORIES, ZONES } from '../constants';
 import { downloadTemplate } from '../utils/export';
 import { OrderStatus, OverallPOStatus, FulfillmentStatus, POItemStatus } from '../types';
 
@@ -46,6 +46,8 @@ const initialOrderState = {
     materials: FulfillmentStatus.Available,
     invoiceNumber: '',
     invoiceDate: '',
+    customerCategory: '' as any,
+    zone: '' as any,
     items: [initialItemState],
     billingAddress: '',
     billToGSTIN: '',
@@ -106,6 +108,8 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
             const genRemIdx = getColIdx('General Remarks');
             const invNoIdx = getColIdx('Invoice Number');
             const invDateIdx = getColIdx('Invoice Date');
+            const custCatIdx = getColIdx('Customer Category');
+            const zoneIdx = getColIdx('Zone');
             
             const pfIdx = getColIdx('P & F Available');
             const bCheckIdx = getColIdx('B-Check');
@@ -216,6 +220,8 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                     fulfillmentStatus: getStr(first, materialsIdx) as FulfillmentStatus || FulfillmentStatus.Available,
                     invoiceNumber: getStr(first, invNoIdx),
                     invoiceDate: getStr(first, invDateIdx),
+                    customerCategory: getStr(first, custCatIdx) as any,
+                    zone: getStr(first, zoneIdx) as any,
                     etaAvailable: getStr(first, etaIdx),
                     generalRemarks: getStr(first, genRemIdx),
                     pfAvailable: getBool(first, pfIdx),
@@ -375,6 +381,8 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                             {renderField("Eta Available", "etaAvailable", "date")}
                             {renderField("Invoice Number", "invoiceNumber")}
                             {renderField("Invoice Date", "invoiceDate", "date")}
+                            {renderField("Customer Category", "customerCategory", "select", CUSTOMER_CATEGORIES.map(c => ({value: c, label: c})))}
+                            {renderField("Zone", "zone", "select", ZONES.map(z => ({value: z, label: z})))}
                             <div className="md:col-span-3">
                                 <label className="block text-sm font-medium">General Remarks</label>
                                 <textarea name="generalRemarks" value={order.generalRemarks || ''} onChange={handleOrderChange} rows={2} className="mt-1 block w-full px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white"></textarea>

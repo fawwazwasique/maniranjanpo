@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import type { PurchaseOrder, POItem, LogEntry } from '../types';
 import { POItemStatus, OrderStatus, FulfillmentStatus } from '../types';
-import { MAIN_BRANCHES, BRANCH_STRUCTURE, ITEM_CATEGORIES, SALE_TYPES } from '../constants';
+import { MAIN_BRANCHES, BRANCH_STRUCTURE, ITEM_CATEGORIES, SALE_TYPES, CUSTOMER_CATEGORIES, ZONES } from '../constants';
 import { PlusIcon, XMarkIcon, SparklesIcon, ChevronDownIcon } from './icons';
 
 interface POModalProps {
@@ -52,6 +52,8 @@ const initialPOState: Omit<PurchaseOrder, 'id' | 'createdAt' | 'status'> = {
     fulfillmentStatus: FulfillmentStatus.NotAvailable,
     invoiceNumber: '',
     invoiceDate: '',
+    customerCategory: '' as any,
+    zone: '' as any,
     billingAddress: '',
     billToGSTIN: '',
     shippingAddress: '',
@@ -98,6 +100,8 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
             systemRemarks: existingPO.systemRemarks || '',
             invoiceNumber: existingPO.invoiceNumber || '',
             invoiceDate: existingPO.invoiceDate || '',
+            customerCategory: existingPO.customerCategory || '' as any,
+            zone: existingPO.zone || '' as any,
             billingAddress: existingPO.billingAddress || '',
             billToGSTIN: existingPO.billToGSTIN || '',
             shippingAddress: existingPO.shippingAddress || '',
@@ -270,6 +274,22 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                              <div>
                                 <label htmlFor="quoteNumber" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Quote Number</label>
                                 <input type="text" id="quoteNumber" name="quoteNumber" value={formData.quoteNumber || ''} onChange={handleInputChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
+                             </div>
+                             <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label htmlFor="customerCategory" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Customer Category</label>
+                                    <select id="customerCategory" name="customerCategory" value={formData.customerCategory || ''} onChange={handleInputChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500">
+                                        <option value="">Select Category</option>
+                                        {CUSTOMER_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label htmlFor="zone" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Zone</label>
+                                    <select id="zone" name="zone" value={formData.zone || ''} onChange={handleInputChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500">
+                                        <option value="">Select Zone</option>
+                                        {ZONES.map(z => <option key={z} value={z}>{z}</option>)}
+                                    </select>
+                                </div>
                              </div>
                          </div>
                     </div>

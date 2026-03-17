@@ -46,6 +46,9 @@ export const SALE_TYPES = [
     'Awaiting Payment'
 ];
 
+export const CUSTOMER_CATEGORIES = ['AMC', 'NON - AMC', 'NEPI'];
+export const ZONES = ['Attibele', 'East', 'West', 'North', 'South', 'Central'];
+
 export const BULK_UPLOAD_HEADERS = [
     'Main -Branch',
     'Sub - branch',
@@ -64,6 +67,8 @@ export const BULK_UPLOAD_HEADERS = [
     'General Remarks',
     'Invoice Number',
     'Invoice Date',
+    'Customer Category',
+    'Zone',
     'P & F Available',
     'B-Check',
     'C-Check',

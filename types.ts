@@ -30,6 +30,21 @@ export enum FulfillmentStatus {
   PartiallyAvailable = 'Partially Available',
 }
 
+export enum CustomerCategory {
+  AMC = 'AMC',
+  NON_AMC = 'NON - AMC',
+  NEPI = 'NEPI'
+}
+
+export enum Zone {
+  Attibele = 'Attibele',
+  East = 'East',
+  West = 'West',
+  North = 'North',
+  South = 'South',
+  Central = 'Central'
+}
+
 export interface POItem {
   partNumber: string; // Maps to Item: Item Name
   quantity: number;
@@ -88,6 +103,8 @@ export interface PurchaseOrder {
   invoiceDate?: string;
   invoiceNumber?: string;
   systemRemarks?: string;
+  customerCategory?: CustomerCategory;
+  zone?: Zone;
   checklist?: {
     bCheck: boolean;
     cCheck: boolean;
