@@ -2,6 +2,12 @@
 import { PurchaseOrder, POItemStatus, OverallPOStatus, FulfillmentStatus } from '../types';
 
 export const getPOFulfillmentStatus = (po: PurchaseOrder, selectedCategories: string[]) => {
+    if (po.fulfillmentBucket) {
+        if (po.fulfillmentBucket === 'Ready to Execute') return FulfillmentStatus.Available;
+        if (po.fulfillmentBucket === 'Partially Available') return FulfillmentStatus.PartiallyAvailable;
+        if (po.fulfillmentBucket === '100% Not Available') return FulfillmentStatus.NotAvailable;
+    }
+
     const relevantItems = (po.items || []).filter(item => 
         selectedCategories.length === 0 || selectedCategories.includes(item.category)
     );

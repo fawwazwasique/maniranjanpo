@@ -78,7 +78,6 @@ export const BULK_UPLOAD_HEADERS = [
     'BD',
     'Radiator Descaling',
     'Others',
-    'Checklist Remarks',
     'Dispatch Remarks',
     'Item: Item Name',
     'Item: Item Type',

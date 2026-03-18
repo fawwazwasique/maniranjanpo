@@ -7,6 +7,7 @@ import { exportToCSV } from '../utils/export';
 import { isOilStuckPO } from '../utils/poUtils';
 import { formatDate, isDateInRange, parseDate } from '../utils/dateUtils';
 import { formatCurrency } from '../utils/currencyUtils';
+import { getPOFulfillmentStatus } from '../utils/poUtils';
 
 interface AllOrdersPaneProps {
   purchaseOrders: PurchaseOrder[];
@@ -128,7 +129,7 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                 sortableItems = sortableItems.filter(po => po.status === filter.status);
             }
             if (filter.fulfillmentStatus) {
-                sortableItems = sortableItems.filter(po => getDynamicFulfillmentStatus(po.filteredItems) === filter.fulfillmentStatus);
+                sortableItems = sortableItems.filter(po => getPOFulfillmentStatus(po, selectedCategories) === filter.fulfillmentStatus);
             }
             if (filter.isOilStuck) {
                 sortableItems = sortableItems.filter(po => isOilStuckPO(po));
@@ -508,6 +509,7 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                                 </th>
                                 <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('poNumber')}>PO Number {getSortIndicator('poNumber')}</th>
                                 <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('customerName')}>Customer {getSortIndicator('customerName')}</th>
+                                <th scope="col" className="p-4">Bucket</th>
                                 <th scope="col" className="p-4">Category / Zone</th>
                                 <th scope="col" className="p-4">Branch</th>
                                 <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('poDate')}>Date {getSortIndicator('poDate')}</th>
@@ -533,6 +535,19 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                                         </td>
                                         <td className="p-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">{po.poNumber}</td>
                                         <td className="p-4">{po.customerName}</td>
+                                        <td className="p-4">
+                                            {po.fulfillmentBucket ? (
+                                                <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                                    po.fulfillmentBucket === 'Ready to Execute' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                                    po.fulfillmentBucket === 'Partially Available' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                                                    'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                                }`}>
+                                                    {po.fulfillmentBucket}
+                                                </span>
+                                            ) : (
+                                                <span className="text-[10px] text-slate-400 italic">Auto</span>
+                                            )}
+                                        </td>
                                         <td className="p-4">
                                             <div className="flex flex-col">
                                                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{po.customerCategory || 'N/A'}</span>

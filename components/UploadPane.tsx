@@ -120,7 +120,6 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
             const bdIdx = getColIdx('BD');
             const radIdx = getColIdx('Radiator Descaling');
             const othersIdx = getColIdx('Others');
-            const checkRemIdx = getColIdx('Checklist Remarks');
             const dispatchRemIdx = getColIdx('Dispatch Remarks');
             
             const nameIdx = getColIdx('Item: Item Name');
@@ -235,7 +234,6 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                         radiatorDescaling: getBool(first, radIdx),
                         others: getBool(first, othersIdx),
                     },
-                    checklistRemarks: getStr(first, checkRemIdx),
                     dispatchRemarks: getStr(first, dispatchRemIdx),
                     billingAddress: getStr(first, billAddrIdx),
                     billToGSTIN: getStr(first, billGstIdx),

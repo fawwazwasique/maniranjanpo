@@ -98,6 +98,7 @@ export interface PurchaseOrder {
   shipToGSTIN?: string;
   orderStatus?: OrderStatus;
   fulfillmentStatus?: FulfillmentStatus; // Legacy reference kept for compatibility
+  fulfillmentBucket?: 'Ready to Execute' | 'Partially Available' | '100% Not Available';
   dispatchRemarks?: string;
   pfAvailable?: boolean;
   invoiceDate?: string;

@@ -241,41 +241,9 @@ function App() {
   const handleSaveSingleOrder = async (order: any) => {
       try {
           const poData = sanitizeData({
-              poNumber: order.poNo,
-              salesOrderNumber: order.soNo,
-              poDate: order.poDate,
-              customerName: order.accountName,
-              mainBranch: order.mainBranch,
-              subBranch: order.subBranch,
-              items: order.items.map((i: any) => ({
-                  ...i,
-                  status: i.status || (i.stockStatus === 'Available' ? POItemStatus.Available : POItemStatus.NotAvailable)
-              })),
-              saleType: order.saleType,
-              creditTerms: order.creditTerms,
-              status: order.poStatus || OverallPOStatus.Available,
-              materials: order.materials,
-              fulfillmentStatus: order.materials,
-              orderStatus: order.orderStatus || OrderStatus.OpenOrders,
-              billingAddress: order.billingAddress,
-              billToGSTIN: order.billToGSTIN,
-              shippingAddress: order.shippingAddress,
-              shipToGSTIN: order.shipToGSTIN,
-              quoteNumber: order.quoteNumber,
-              pfAvailable: order.pfAvailable,
-              checklist: order.checklist,
-              checklistRemarks: order.checklistRemarks,
-              dispatchRemarks: order.dispatchRemarks,
-              generalRemarks: order.generalRemarks,
-              etaAvailable: order.etaAvailable,
-              billingPlan: order.billingPlan,
-              invoiceNumber: order.invoiceNumber,
-              invoiceDate: order.invoiceDate,
-              customerCategory: order.customerCategory,
-              zone: order.zone,
+              ...order,
               createdAt: new Date().toISOString(),
               paymentStatus: (order.saleType === 'Cash' || order.saleType === 'Awaiting Payment') ? 'Pending' : null,
-              paymentNotes: '',
           });
           await addDoc(collection(db, "purchaseOrders"), poData);
           alert("Order saved successfully.");
@@ -286,22 +254,28 @@ function App() {
   };
 
   const handleBulkUpload = async (parsedOrders: any[]) => {
-      const batch = writeBatch(db);
       try {
-          for (const order of parsedOrders) {
-              const newRef = doc(collection(db, "purchaseOrders"));
-              batch.set(newRef, sanitizeData({
-                  ...order,
-                  createdAt: new Date().toISOString(),
-                  paymentNotes: '',
-              }));
+          const batchSize = 400; // Safe margin below 500
+          for (let i = 0; i < parsedOrders.length; i += batchSize) {
+              const batch = writeBatch(db);
+              const chunk = parsedOrders.slice(i, i + batchSize);
+              
+              for (const order of chunk) {
+                  const newRef = doc(collection(db, "purchaseOrders"));
+                  batch.set(newRef, sanitizeData({
+                      ...order,
+                      createdAt: new Date().toISOString(),
+                  }));
+              }
+              await batch.commit();
           }
-          await batch.commit();
+          
           alert(`Successfully uploaded ${parsedOrders.length} orders.`);
           setActivePane('dashboard');
-      } catch (e) {
-          console.error("Bulk upload batch error:", e);
-          alert("Failed to process bulk upload.");
+      } catch (e: any) {
+          console.error("Bulk upload error:", e);
+          const errorMsg = e.message || "Unknown error";
+          alert(`Failed to process bulk upload: ${errorMsg}`);
       }
   };
 

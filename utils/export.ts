@@ -36,38 +36,39 @@ const convertToCSV = (data: PurchaseOrder[]): string => {
                 safe(po.generalRemarks),     // 15
                 safe(po.invoiceNumber),      // 16
                 safe(po.invoiceDate),        // 17
-                safe(po.pfAvailable),        // 18
-                safe(po.checklist?.bCheck),  // 19
-                safe(po.checklist?.cCheck),  // 20
-                safe(po.checklist?.dCheck),  // 21
-                safe(po.checklist?.battery), // 22
-                safe(po.checklist?.spares),  // 23
-                safe(po.checklist?.bd),      // 24
-                safe(po.checklist?.radiatorDescaling), // 25
-                safe(po.checklist?.others),  // 26
-                safe(po.checklistRemarks),   // 27
-                safe(po.dispatchRemarks),    // 28
-                safe(item.partNumber),       // 29
-                safe(item.itemType),         // 30
-                safe(item.category),         // 31
-                safe(item.itemDesc),         // 32
-                safe(item.quantity),         // 33
-                safe(truncateToTwoDecimals(item.rate).toFixed(2)),             // 34
-                safe(truncateToTwoDecimals(item.discount).toFixed(2)),         // 35
-                safe(truncateToTwoDecimals(item.baseAmount).toFixed(2)),       // 36
-                safe(truncateToTwoDecimals(item.taxAmount).toFixed(2)),        // 37
-                safe(truncateToTwoDecimals(item.grossAmount).toFixed(2)),      // 38
-                safe(item.stockAvailable),    // 39
-                safe(item.stockInHand),      // 40
-                safe(item.status),           // 41
-                safe(item.oaNo),             // 42
-                safe(item.oaDate),           // 43
-                safe(item.itemRemarks),      // 44
-                safe(po.billingAddress),     // 45
-                safe(po.billToGSTIN),        // 46
-                safe(po.shippingAddress),    // 47
-                safe(po.shipToGSTIN),        // 48
-                safe(po.quoteNumber)         // 49
+                safe(po.customerCategory),   // 18
+                safe(po.zone),               // 19
+                safe(po.pfAvailable),        // 20
+                safe(po.checklist?.bCheck),  // 21
+                safe(po.checklist?.cCheck),  // 22
+                safe(po.checklist?.dCheck),  // 23
+                safe(po.checklist?.battery), // 24
+                safe(po.checklist?.spares),  // 25
+                safe(po.checklist?.bd),      // 26
+                safe(po.checklist?.radiatorDescaling), // 27
+                safe(po.checklist?.others),  // 28
+                safe(po.dispatchRemarks),    // 29
+                safe(item.partNumber),       // 30
+                safe(item.itemType),         // 31
+                safe(item.category),         // 32
+                safe(item.itemDesc),         // 33
+                safe(item.quantity),         // 34
+                safe(truncateToTwoDecimals(item.rate).toFixed(2)),             // 35
+                safe(truncateToTwoDecimals(item.discount).toFixed(2)),         // 36
+                safe(truncateToTwoDecimals(item.baseAmount).toFixed(2)),       // 37
+                safe(truncateToTwoDecimals(item.taxAmount).toFixed(2)),        // 38
+                safe(truncateToTwoDecimals(item.grossAmount).toFixed(2)),      // 39
+                safe(item.stockAvailable),    // 40
+                safe(item.stockInHand),      // 41
+                safe(item.status),           // 42
+                safe(item.oaNo),             // 43
+                safe(item.oaDate),           // 44
+                safe(item.itemRemarks),      // 45
+                safe(po.billingAddress),     // 46
+                safe(po.billToGSTIN),        // 47
+                safe(po.shippingAddress),    // 48
+                safe(po.shipToGSTIN),        // 49
+                safe(po.quoteNumber)         // 50
             ];
             rows.push(row.join(','));
         });
@@ -143,6 +144,8 @@ export const downloadTemplate = (): void => {
         'Urgent requirement',
         'INV-5501',           // Invoice Number
         '2024-03-25',         // Invoice Date
+        'AMC',                // Customer Category
+        'East',               // Zone
         'TRUE',               // P & F Available
         'TRUE',               // B-Check
         'FALSE',              // C-Check
@@ -152,7 +155,6 @@ export const downloadTemplate = (): void => {
         'FALSE',              // BD
         'FALSE',              // Radiator Descaling
         'FALSE',              // Others
-        '',                   // Checklist Remarks
         '',                   // Dispatch Remarks
         'VALV-5W30-4L',       // Item Name
         'Lubricant',
