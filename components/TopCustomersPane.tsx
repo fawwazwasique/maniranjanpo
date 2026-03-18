@@ -5,7 +5,7 @@ import { POItemStatus } from '../types';
 import { ChartPieIcon, UserGroupIcon, MagnifyingGlassIcon, ArrowDownTrayIcon, ChevronDownIcon, XMarkIcon } from './icons';
 import { exportDataToCSV } from '../utils/export';
 import { ITEM_CATEGORIES } from '../constants';
-import { formatToCr } from '../utils/currencyUtils';
+import { formatToCr, truncateToTwoDecimals } from '../utils/currencyUtils';
 
 interface TopCustomersPaneProps {
     purchaseOrders: PurchaseOrder[];
@@ -120,7 +120,7 @@ const TopCustomersPane: React.FC<TopCustomersPaneProps> = ({ purchaseOrders }) =
     const handleExport = () => {
         const exportData = filteredAnalysis.map(a => ({
             'Customer Name': a.customerName,
-            'Total Value': a.totalValue.toFixed(2),
+            'Total Value': truncateToTwoDecimals(a.totalValue).toFixed(2),
             'PO Count': a.poCount
         }));
         exportDataToCSV(exportData, `Top_50_Customers_Analysis_${new Date().toISOString().split('T')[0]}.csv`);

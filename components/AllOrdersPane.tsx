@@ -6,6 +6,7 @@ import { MagnifyingGlassIcon, ArrowDownTrayIcon, TrashIcon, XMarkIcon, ChevronDo
 import { exportToCSV } from '../utils/export';
 import { isOilStuckPO } from '../utils/poUtils';
 import { formatDate, isDateInRange, parseDate } from '../utils/dateUtils';
+import { formatCurrency } from '../utils/currencyUtils';
 
 interface AllOrdersPaneProps {
   purchaseOrders: PurchaseOrder[];
@@ -333,7 +334,7 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                             <p className="text-sm font-bold text-green-700 dark:text-green-400 uppercase tracking-wider">Available Items</p>
                             <div className="flex items-baseline gap-2 mt-1">
                                 <p className="text-2xl font-black text-green-800 dark:text-green-300">{fulfillmentStats.availCount}</p>
-                                <p className="text-lg font-bold text-green-600/70">{fulfillmentStats.availValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })}</p>
+                                <p className="text-lg font-bold text-green-600/70">{formatCurrency(fulfillmentStats.availValue, { notation: 'compact' })}</p>
                             </div>
                         </div>
                         <div 
@@ -346,7 +347,7 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                             <p className="text-sm font-bold text-red-700 dark:text-red-400 uppercase tracking-wider">Not Available Items</p>
                             <div className="flex items-baseline gap-2 mt-1">
                                 <p className="text-2xl font-black text-red-800 dark:text-red-300">{fulfillmentStats.notAvailCount}</p>
-                                <p className="text-lg font-bold text-red-600/70">{fulfillmentStats.notAvailValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })}</p>
+                                <p className="text-lg font-bold text-red-600/70">{formatCurrency(fulfillmentStats.notAvailValue, { notation: 'compact' })}</p>
                             </div>
                         </div>
                     </div>
@@ -540,7 +541,7 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                                         </td>
                                         <td className="p-4">{po.mainBranch}{po.subBranch && ` / ${po.subBranch}`}</td>
                                         <td className="p-4">{formatDate(po.poDate)}</td>
-                                        <td className="p-4 text-right font-semibold">{po.totalValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</td>
+                                        <td className="p-4 text-right font-semibold">{formatCurrency(po.totalValue)}</td>
                                         <td className="p-4 font-medium">{po.orderStatus}</td>
                                         <td className="p-4">
                                             <div className="flex flex-col gap-1 w-full max-w-[200px]">
@@ -599,7 +600,7 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                                     </td>
                                     <td className="p-4 text-right font-bold">{part.quantity}</td>
                                     <td className="p-4 text-right font-semibold text-slate-900 dark:text-white">
-                                        {part.value.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+                                        {formatCurrency(part.value)}
                                     </td>
                                     <td className="p-4 text-center font-medium">{part.poCount}</td>
                                 </tr>

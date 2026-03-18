@@ -5,6 +5,7 @@ import { POItemStatus, OrderStatus } from '../types';
 import { MagnifyingGlassIcon, ArrowDownTrayIcon, ListBulletIcon, ChevronDownIcon } from './icons';
 import { exportDataToCSV } from '../utils/export';
 import { ITEM_CATEGORIES } from '../constants';
+import { formatCurrency, truncateToTwoDecimals } from '../utils/currencyUtils';
 
 interface ItemAvailabilityPaneProps {
     purchaseOrders: PurchaseOrder[];
@@ -110,10 +111,10 @@ const ItemAvailabilityPane: React.FC<ItemAvailabilityPaneProps> = ({ purchaseOrd
             'Description': item.description,
             'Category': item.category,
             'Total Qty': item.totalQty,
-            'Total Value': item.totalValue.toFixed(2),
-            'Available Value': item.availableValue.toFixed(2),
-            'Not Available Value': item.notAvailableValue.toFixed(2),
-            'Partially Available Value': item.partiallyAvailableValue.toFixed(2),
+            'Total Value': truncateToTwoDecimals(item.totalValue).toFixed(2),
+            'Available Value': truncateToTwoDecimals(item.availableValue).toFixed(2),
+            'Not Available Value': truncateToTwoDecimals(item.notAvailableValue).toFixed(2),
+            'Partially Available Value': truncateToTwoDecimals(item.partiallyAvailableValue).toFixed(2),
             'PO Count': item.poCount,
             'Customer Count': item.customers.size
         }));
@@ -249,16 +250,16 @@ const ItemAvailabilityPane: React.FC<ItemAvailabilityPaneProps> = ({ purchaseOrd
                                     </td>
                                     <td className="px-6 py-4 text-sm text-center font-bold text-slate-700 dark:text-slate-200">{item.totalQty}</td>
                                     <td className="px-6 py-4 text-sm text-right font-bold text-red-600 dark:text-red-400">
-                                        {item.totalValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' })}
+                                        {formatCurrency(item.totalValue, { notation: 'compact' })}
                                     </td>
                                     <td className="px-6 py-4 text-sm text-right text-green-600 dark:text-green-400 font-medium">
-                                        {item.availableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' })}
+                                        {formatCurrency(item.availableValue, { notation: 'compact' })}
                                     </td>
                                     <td className="px-6 py-4 text-sm text-right text-red-600 dark:text-red-400 font-medium">
-                                        {item.notAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' })}
+                                        {formatCurrency(item.notAvailableValue, { notation: 'compact' })}
                                     </td>
                                     <td className="px-6 py-4 text-sm text-right text-amber-600 dark:text-amber-400 font-medium">
-                                        {item.partiallyAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' })}
+                                        {formatCurrency(item.partiallyAvailableValue, { notation: 'compact' })}
                                     </td>
                                     <td className="px-6 py-4 text-sm text-center text-slate-500 dark:text-slate-400">{item.poCount}</td>
                                     <td className="px-6 py-4 text-sm text-center text-slate-500 dark:text-slate-400">{item.customers.size}</td>

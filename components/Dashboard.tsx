@@ -6,6 +6,7 @@ import { CheckCircleIcon, ClockIcon, MagnifyingGlassIcon, TruckIcon, UserGroupIc
 import { MAIN_BRANCHES, BRANCH_STRUCTURE, ITEM_CATEGORIES, CUSTOMER_CATEGORIES, ZONES } from '../constants';
 import { isOilItem, isOilStuckPO, getPOFulfillmentStatus, getPOValue } from '../utils/poUtils';
 import { isDateInRange } from '../utils/dateUtils';
+import { formatCurrency } from '../utils/currencyUtils';
 
 interface DashboardProps {
   purchaseOrders: PurchaseOrder[];
@@ -123,7 +124,7 @@ const DonutChart: React.FC<{ data: { label: string; value: number; color: string
                                     className={onSegmentClick ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}
                                     onClick={() => onSegmentClick?.(segment.label)}
                                 >
-                                    <title>{segment.label}: {isCurrency ? segment.value.toLocaleString('en-IN', { style: 'currency', currency: 'INR' }) : segment.value}</title>
+                                    <title>{segment.label}: {isCurrency ? formatCurrency(segment.value) : segment.value}</title>
                                 </circle>
                              );
                              acc.accumulatedLength += segmentLength;
@@ -132,7 +133,7 @@ const DonutChart: React.FC<{ data: { label: string; value: number; color: string
                     </g>
                      <text x="50" y="50" textAnchor="middle" dy=".3em" className="text-lg font-bold fill-current text-slate-800 dark:text-slate-100">
                        {isCurrency 
-                        ? total.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })
+                        ? formatCurrency(total, { notation: 'compact' })
                         : total.toLocaleString()}
                     </text>
                 </svg>
@@ -147,7 +148,7 @@ const DonutChart: React.FC<{ data: { label: string; value: number; color: string
                         <span className="w-3 h-3 rounded-full mr-2 shrink-0" style={{ backgroundColor: segment.color }}></span>
                         <span className="text-slate-600 dark:text-slate-400 font-medium truncate mr-4">{segment.label}</span>
                         <span className="ml-auto font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap">
-                            {((segment.value / total) * 100).toFixed(1)}% ({isCurrency ? segment.value.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' }) : segment.value})
+                            {((segment.value / total) * 100).toFixed(1)}% ({isCurrency ? formatCurrency(segment.value, { notation: 'compact' }) : segment.value})
                         </span>
                     </div>
                 ))}
@@ -162,7 +163,7 @@ const HorizontalBarChart: React.FC<{ data: { label: string; value: number }[], i
     }
     const maxValue = Math.max(...data.map(d => d.value), 1);
     const formatValue = (val: number) => isCurrency
-        ? val.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })
+        ? formatCurrency(val, { notation: 'compact' })
         : val.toLocaleString();
         
     return (
@@ -870,7 +871,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                         <span className="text-green-700 dark:text-green-400 font-semibold">POs</span>
                     </div>
                     <p className="text-2xl font-bold text-green-800 dark:text-green-200 mb-4">
-                        {dashboardData.fullyAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' })}
+                        {formatCurrency(dashboardData.fullyAvailableValue, { notation: 'compact' })}
                     </p>
                     <button 
                         onClick={() => onCardClick?.('FULLY_AVAILABLE')}
@@ -895,7 +896,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                         <span className="text-amber-700 dark:text-amber-400 font-semibold">POs</span>
                     </div>
                     <p className="text-2xl font-bold text-amber-800 dark:text-amber-200 mb-4">
-                        {dashboardData.partiallyAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' })}
+                        {formatCurrency(dashboardData.partiallyAvailableValue, { notation: 'compact' })}
                     </p>
                     <button 
                         onClick={() => onCardClick?.('PARTIALLY_AVAILABLE')}
@@ -920,7 +921,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                         <span className="text-red-700 dark:text-red-400 font-semibold">POs</span>
                     </div>
                     <p className="text-2xl font-bold text-red-800 dark:text-red-200 mb-4">
-                        {dashboardData.notAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' })}
+                        {formatCurrency(dashboardData.notAvailableValue, { notation: 'compact' })}
                     </p>
                     <button 
                         onClick={() => onCardClick?.('NOT_AVAILABLE')}
@@ -942,7 +943,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 />
                 <DashboardStatCard 
                     title="Active PO Value" 
-                    value={dashboardData.openPOValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })} 
+                    value={formatCurrency(dashboardData.openPOValue, { notation: 'compact' })} 
                     icon={<CurrencyRupeeIcon className="w-6 h-6 text-red-500" />} 
                     indicatorColor="bg-red-500"
                     trend={dashboardData.valueTrend}
@@ -950,7 +951,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 />
                 <DashboardStatCard 
                     title="Invoiced POs" 
-                    value={dashboardData.totalInvoicedValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })} 
+                    value={formatCurrency(dashboardData.totalInvoicedValue, { notation: 'compact' })} 
                     subValue={`${dashboardData.totalInvoicedPOs} POs`}
                     icon={<CheckCircleIcon className="w-6 h-6 text-slate-500" />} 
                     indicatorColor="bg-slate-500"
@@ -959,7 +960,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 />
                 <DashboardStatCard 
                     title="Ready to Execute" 
-                    value={dashboardData.fullyAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })} 
+                    value={formatCurrency(dashboardData.fullyAvailableValue, { notation: 'compact' })} 
                     subValue={`${dashboardData.fullyAvailablePOs} POs`}
                     icon={<CheckCircleIcon className="w-6 h-6 text-green-500" />} 
                     indicatorColor="bg-green-500"
@@ -968,8 +969,8 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 />
                 <DashboardStatCard 
                     title="Partially Available" 
-                    value={dashboardData.partiallyAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })} 
-                    subValue={`Avail: ${dashboardData.partialAvailableItemsValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })} | Gap: ${dashboardData.partialNotAvailableItemsValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })} | ${dashboardData.partiallyAvailablePOs} POs`}
+                    value={formatCurrency(dashboardData.partiallyAvailableValue, { notation: 'compact' })} 
+                    subValue={`Avail: ${formatCurrency(dashboardData.partialAvailableItemsValue, { notation: 'compact' })} | Gap: ${formatCurrency(dashboardData.partialNotAvailableItemsValue, { notation: 'compact' })} | ${dashboardData.partiallyAvailablePOs} POs`}
                     icon={<TruckIcon className="w-6 h-6 text-blue-500" />} 
                     indicatorColor="bg-blue-500"
                     trend={dashboardData.partialTrend}
@@ -977,7 +978,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 />
                 <DashboardStatCard 
                     title="100% Not Available" 
-                    value={dashboardData.notAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })} 
+                    value={formatCurrency(dashboardData.notAvailableValue, { notation: 'compact' })} 
                     subValue={`${dashboardData.notAvailablePOs} POs`}
                     icon={<NoSymbolIcon className="w-6 h-6 text-red-600" />} 
                     indicatorColor="bg-red-600"
@@ -998,7 +999,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     <div className="space-y-4">
                         <div className="flex justify-between items-center">
                             <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Oil Required</span>
-                            <span className="font-bold text-slate-800 dark:text-slate-100">{dashboardData.oilRequiredValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' })}</span>
+                            <span className="font-bold text-slate-800 dark:text-slate-100">{formatCurrency(dashboardData.oilRequiredValue, { notation: 'compact' })}</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Oil Item Count</span>
@@ -1012,7 +1013,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                             </div>
                             <div className="flex justify-between items-center mt-1">
                                 <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Value to Unlock</span>
-                                <span className="font-bold text-green-600">{dashboardData.posClosingWithOilValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' })}</span>
+                                <span className="font-bold text-green-600">{formatCurrency(dashboardData.posClosingWithOilValue, { notation: 'compact' })}</span>
                             </div>
                         </div>
                     </div>
@@ -1034,7 +1035,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                         </div>
                         <div className="flex items-baseline gap-2 mb-2">
                             <p className="text-4xl font-black text-white">
-                                {dashboardData.totalNotAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })}
+                                {formatCurrency(dashboardData.totalNotAvailableValue, { notation: 'compact' })}
                             </p>
                             <p className="text-lg font-bold text-red-400">Total Gap</p>
                         </div>
@@ -1067,7 +1068,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                         </p>
                         <div className="flex items-center gap-2 text-xs font-bold text-slate-300 uppercase tracking-widest bg-white/10 px-3 py-2 rounded-lg w-fit">
                             <CurrencyRupeeIcon className="w-4 h-4 text-red-500" />
-                            Value: {dashboardData.oilStuckValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2, notation: 'compact' })}
+                            Value: {formatCurrency(dashboardData.oilStuckValue, { notation: 'compact' })}
                         </div>
                     </div>
                 </div>
@@ -1136,7 +1137,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     <div className="flex justify-between items-center mb-4 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl">
                        <div>
                            <p className="text-xs font-bold text-slate-500 uppercase">Total Top 50 Value</p>
-                           <p className="text-lg font-bold text-slate-800 dark:text-white">{dashboardData.top50TotalValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
+                           <p className="text-lg font-bold text-slate-800 dark:text-white">{formatCurrency(dashboardData.top50TotalValue)}</p>
                        </div>
                        <div className="text-right">
                            <p className="text-xs font-bold text-slate-500 uppercase">Contribution %</p>
@@ -1196,7 +1197,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                                         <td className="px-4 py-3 text-slate-600 dark:text-slate-400 truncate max-w-[200px]">{part.description}</td>
                                         <td className="px-4 py-3 text-right font-bold text-red-500">{part.quantity}</td>
                                         <td className="px-4 py-3 text-right font-bold text-slate-700 dark:text-slate-300">
-                                            {part.value.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 })}
+                                            {formatCurrency(part.value)}
                                         </td>
                                     </tr>
                                 ))}
@@ -1238,7 +1239,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                                         <td className="px-4 py-3 text-slate-600 dark:text-slate-400 truncate max-w-[150px]">{po.customerName}</td>
                                         <td className="px-4 py-3 text-xs text-slate-500">{new Date(po.poDate).toLocaleDateString()}</td>
                                         <td className="px-4 py-3 text-right font-bold text-slate-700 dark:text-slate-300">
-                                            {po.items.reduce((acc, i) => acc + (i.quantity * i.rate), 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 })}
+                                            {formatCurrency(po.items.reduce((acc, i) => acc + (i.quantity * i.rate), 0))}
                                         </td>
                                     </tr>
                                 ))}

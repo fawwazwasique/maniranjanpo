@@ -4,7 +4,7 @@ import type { PurchaseOrder } from '../types';
 import { OverallPOStatus, FulfillmentStatus, POItemStatus, OrderStatus } from '../types';
 import { ChartBarIcon, CheckCircleIcon, ClockIcon, TruckIcon, ChartPieIcon, SparklesIcon, XMarkIcon, MagnifyingGlassIcon, ArrowDownTrayIcon, BeakerIcon } from './icons';
 import { isOilItem, isOilStuckPO } from '../utils/poUtils';
-import { formatToCr } from '../utils/currencyUtils';
+import { formatToCr, formatCurrency } from '../utils/currencyUtils';
 
 interface AnalysisPaneProps {
   purchaseOrders: PurchaseOrder[];
@@ -52,7 +52,7 @@ const ClosableOrdersModal: React.FC<{ isOpen: boolean; onClose: () => void; orde
             po.customerName,
             po.poDate,
             po.mainBranch || 'N/A',
-            po.items.reduce((acc, i) => acc + (Number(i.quantity) * Number(i.rate)), 0).toFixed(2)
+            formatCurrency(po.items.reduce((acc, i) => acc + (Number(i.quantity) * Number(i.rate)), 0))
         ]);
         
         const csvContent = [
@@ -109,7 +109,7 @@ const ClosableOrdersModal: React.FC<{ isOpen: boolean; onClose: () => void; orde
                                     <td className="p-4 font-bold text-slate-800 dark:text-white">{po.poNumber}</td>
                                     <td className="p-4">{po.customerName}</td>
                                     <td className="p-4 text-right font-semibold">
-                                        {formatToCr(po.items.reduce((acc, i) => acc + (Number(i.quantity) * Number(i.rate)), 0))}
+                                        {formatCurrency(po.items.reduce((acc, i) => acc + (Number(i.quantity) * Number(i.rate)), 0))}
                                     </td>
                                     <td className="p-4 text-center">
                                         <button 
@@ -146,7 +146,7 @@ const SimpleBarChart: React.FC<{ data: { label: string; value: number }[], color
 
     const formatValue = (value: number) => {
         if (isCurrency) {
-            return formatToCr(value);
+            return formatCurrency(value, { notation: 'compact' });
         }
         return value.toLocaleString('en-IN');
     };

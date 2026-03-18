@@ -1,6 +1,7 @@
 
 import { PurchaseOrder } from '../types';
 import { BULK_UPLOAD_HEADERS } from '../constants';
+import { truncateToTwoDecimals } from './currencyUtils';
 
 const convertToCSV = (data: PurchaseOrder[]): string => {
     const headers = BULK_UPLOAD_HEADERS;
@@ -51,11 +52,11 @@ const convertToCSV = (data: PurchaseOrder[]): string => {
                 safe(item.category),         // 31
                 safe(item.itemDesc),         // 32
                 safe(item.quantity),         // 33
-                safe(item.rate),             // 34
-                safe(item.discount),         // 35
-                safe(item.baseAmount),       // 36
-                safe(item.taxAmount),        // 37
-                safe(item.grossAmount),      // 38
+                safe(truncateToTwoDecimals(item.rate).toFixed(2)),             // 34
+                safe(truncateToTwoDecimals(item.discount).toFixed(2)),         // 35
+                safe(truncateToTwoDecimals(item.baseAmount).toFixed(2)),       // 36
+                safe(truncateToTwoDecimals(item.taxAmount).toFixed(2)),        // 37
+                safe(truncateToTwoDecimals(item.grossAmount).toFixed(2)),      // 38
                 safe(item.stockAvailable),    // 39
                 safe(item.stockInHand),      // 40
                 safe(item.status),           // 41
