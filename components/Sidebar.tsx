@@ -2,7 +2,7 @@
 import React from 'react';
 import { HomeIcon, ArrowUpTrayIcon, ChartBarIcon, ListBulletIcon, LogoIcon, DatabaseIcon, ClipboardDocumentListIcon, UserGroupIcon } from './icons';
 
-type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'topCustomers';
+type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'topCustomers' | 'detailedBreakdown';
 
 interface SidebarProps {
   activePane: Pane;
@@ -68,9 +68,15 @@ const Sidebar: React.FC<SidebarProps> = ({ activePane, setActivePane }) => {
                     />
                     <NavItem 
                         icon={<UserGroupIcon className="w-6 h-6" />}
-                        label="Top 50 Customers"
+                        label="Top 50 Customer"
                         isActive={activePane === 'topCustomers'}
                         onClick={() => setActivePane('topCustomers')}
+                    />
+                    <NavItem
+                        icon={<ListBulletIcon className="w-6 h-6" />}
+                        label="Detailed Breakdown"
+                        isActive={activePane === 'detailedBreakdown'}
+                        onClick={() => setActivePane('detailedBreakdown')}
                     />
                     <NavItem
                         icon={<ListBulletIcon className="w-6 h-6" />}
@@ -80,7 +86,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePane, setActivePane }) => {
                     />
                      <NavItem
                         icon={<ClipboardDocumentListIcon className="w-6 h-6" />}
-                        label="Reports"
+                        label="OA No Report"
                         isActive={activePane === 'reports'}
                         onClick={() => setActivePane('reports')}
                     />

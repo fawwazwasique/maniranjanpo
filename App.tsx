@@ -12,6 +12,7 @@ import AllOrdersPane from './components/AllOrdersPane';
 import TopCustomersPane from './components/TopCustomersPane';
 import DataManagementPane from './components/DataManagementPane';
 import ReportsPane from './components/ReportsPane';
+import DetailedBreakdownPane from './components/DetailedBreakdownPane';
 import ErrorBanner from './components/ErrorBanner';
 import useLocalStorage from './hooks/useLocalStorage';
 import { db, auth } from './services/firebase';
@@ -24,7 +25,7 @@ import type { PurchaseOrder, Notification, LogEntry, POItem, ProcurementSuggesti
 import { POItemStatus, OverallPOStatus, OrderStatus, FulfillmentStatus } from './types';
 
 type ModalType = 'none' | 'poDetail' | 'suggestion';
-type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'topCustomers';
+type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'topCustomers' | 'detailedBreakdown';
 type Theme = 'light' | 'dark';
 
 /**
@@ -365,6 +366,12 @@ function App() {
             {activePane === 'upload' && <UploadPane onSaveSingleOrder={handleSaveSingleOrder} onBulkUpload={handleBulkUpload} />}
             {activePane === 'analysis' && <AnalysisPane purchaseOrders={purchaseOrders} onSelectPO={handleSelectPO} />}
             {activePane === 'topCustomers' && <TopCustomersPane purchaseOrders={purchaseOrders} />}
+            {activePane === 'detailedBreakdown' && (
+                <DetailedBreakdownPane 
+                    purchaseOrders={purchaseOrders} 
+                    onSelectPO={handleSelectPO} 
+                />
+            )}
             {activePane === 'reports' && <ReportsPane purchaseOrders={purchaseOrders} onUpdatePO={handleUpdatePO} />}
             {activePane === 'dataManagement' && <DataManagementPane purchaseOrders={purchaseOrders} />}
         </main>

@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import type { PurchaseOrder } from '../types';
-import { OverallPOStatus, FulfillmentStatus, OrderStatus, POItemStatus } from '../types';
+import { OverallPOStatus, FulfillmentStatus, OrderStatus, POItemStatus, CustomerCategory } from '../types';
 import { CheckCircleIcon, ClockIcon, MagnifyingGlassIcon, TruckIcon, UserGroupIcon, XMarkIcon, ChartPieIcon, CalendarDaysIcon, CurrencyRupeeIcon, NoSymbolIcon, ArrowUpIcon, ArrowDownIcon, SparklesIcon, BeakerIcon } from './icons';
 import { MAIN_BRANCHES, BRANCH_STRUCTURE, ITEM_CATEGORIES, CUSTOMER_CATEGORIES, ZONES } from '../constants';
 import { isOilItem, isOilStuckPO, getPOFulfillmentStatus, getPOValue } from '../utils/poUtils';
@@ -429,17 +429,15 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         const notAvailableTrend = getTrend(purchaseOrders, filters, p => p.orderStatus !== OrderStatus.Invoiced && getPOFulfillmentStatus(p, filters.categories) === FulfillmentStatus.NotAvailable, p => p.length, false);
         const invoicedTrend = getTrend(purchaseOrders, filters, p => p.orderStatus === OrderStatus.Invoiced, p => p.length, true);
 
-        const checklistDataRaw = {
-            'B-Check': activePOs.filter(po => po.checklist?.bCheck).length,
-            'C-Check': activePOs.filter(po => po.checklist?.cCheck).length,
-            'D-Check': activePOs.filter(po => po.checklist?.dCheck).length,
-            'Battery': activePOs.filter(po => po.checklist?.battery).length,
-            'Spares': activePOs.filter(po => po.checklist?.spares).length,
-            'BD': activePOs.filter(po => po.checklist?.bd).length,
-            'Radiator': activePOs.filter(po => po.checklist?.radiatorDescaling).length,
-            'Others': activePOs.filter(po => po.checklist?.others).length,
-        };
-        const checklistColors = { 
+        const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
+
+        const checklistDataRaw: Record<string, number> = {};
+        ITEM_CATEGORIES.forEach(cat => {
+            checklistDataRaw[cat] = activePOs.filter(po => 
+                (po.items || []).some(item => item.category === cat)
+            ).length;
+        });
+        const checklistColors: Record<string, string> = { 
             'B-Check': '#34d399', 
             'C-Check': '#f59e0b', 
             'D-Check': '#ef4444', 
@@ -449,7 +447,31 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             'Radiator': '#14b8a6',
             'Others': '#9ca3af' 
         };
-        const checklistChartData = Object.entries(checklistDataRaw).map(([label, value]) => ({ label, value, color: checklistColors[label as keyof typeof checklistColors] || '#9ca3af' }));
+        const checklistChartData = Object.entries(checklistDataRaw)
+            .filter(([_, value]) => value > 0)
+            .map(([label, value]) => ({ 
+                label, 
+                value, 
+                color: checklistColors[label] || colors[Math.floor(Math.random() * colors.length)] 
+            }))
+            .sort((a, b) => b.value - a.value);
+
+        // Customer Category Chart Data
+        const customerCategoryDataRaw: Record<string, number> = {
+            [CustomerCategory.AMC]: activePOs.filter(po => po.customerCategory === CustomerCategory.AMC).length,
+            [CustomerCategory.NON_AMC]: activePOs.filter(po => po.customerCategory === CustomerCategory.NON_AMC).length,
+            [CustomerCategory.NEPI]: activePOs.filter(po => po.customerCategory === CustomerCategory.NEPI).length,
+        };
+        const customerCategoryColors: Record<string, string> = {
+            [CustomerCategory.AMC]: '#3b82f6',
+            [CustomerCategory.NON_AMC]: '#f59e0b',
+            [CustomerCategory.NEPI]: '#10b981',
+        };
+        const customerCategoryChartData = Object.entries(customerCategoryDataRaw).map(([label, value]) => ({
+            label,
+            value,
+            color: customerCategoryColors[label] || '#9ca3af'
+        }));
 
         const valueByFulfillment = activePOs.reduce((acc, po) => {
             const status = getPOFulfillmentStatus(po, filters.categories);
@@ -469,7 +491,9 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             acc[po.customerName] = (acc[po.customerName] || 0) + value;
             return acc;
         }, {} as { [key: string]: number });
-        const topCustomers = Object.entries(customerValue).map(([label, value]) => ({ label, value })).sort((a,b) => Number(b.value) - Number(a.value)).slice(0, 5);
+        const topCustomers = Object.entries(customerValue).map(([label, value]) => ({ label, value: Number(value) })).sort((a,b) => b.value - a.value).slice(0, 50);
+        const top50TotalValue = topCustomers.reduce((acc, c) => acc + c.value, 0);
+        const top50Contribution = openPOValue > 0 ? (top50TotalValue / openPOValue) * 100 : 0;
 
         const valueByPayment = activePOs.reduce((acc, po) => {
             const type = po.saleType || 'N/A';
@@ -549,9 +573,35 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         const avgSOtoInvoiceTrend = getTrend(purchaseOrders, filters, p => !!(p.soDate && p.invoiceDate), (pos) => getAvgDays(pos, 'soDate', 'invoiceDate'), false);
         const avgPOtoInvoiceTrend = getTrend(purchaseOrders, filters, p => !!(p.poDate && p.invoiceDate), (pos) => getAvgDays(pos, 'poDate', 'invoiceDate'), false);
 
-        const totalNotAvailableValue = partialNotAvailableItemsValue + notAvailableValue;
+        // Oil Required Analysis
+        let oilRequiredValue = 0;
+        let oilRequiredCount = 0;
+        let posClosingWithOilCount = 0;
+        let posClosingWithOilValue = 0;
 
-        const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
+        activePOs.forEach(po => {
+            const items = po.items || [];
+            const oilItems = items.filter(isOilItem);
+            const nonOilItems = items.filter(i => !isOilItem(i));
+            
+            const hasOilShortage = oilItems.some(i => i.status === POItemStatus.NotAvailable || i.status === POItemStatus.PartiallyAvailable);
+            
+            if (hasOilShortage) {
+                oilItems.forEach(i => {
+                    if (i.status === POItemStatus.NotAvailable || i.status === POItemStatus.PartiallyAvailable) {
+                        oilRequiredValue += (i.quantity * i.rate);
+                        oilRequiredCount++;
+                    }
+                });
+
+                // Check if providing oil would close the PO (all other items must be available)
+                const allOtherItemsAvailable = nonOilItems.every(i => i.status === POItemStatus.Available || i.status === POItemStatus.Dispatched);
+                if (allOtherItemsAvailable && nonOilItems.length > 0) {
+                    posClosingWithOilCount++;
+                    posClosingWithOilValue += getPOValue(po, filters.categories);
+                }
+            }
+        });
 
         const readyToExecuteSalesTypeTotals: Record<string, number> = {};
         fullyAvailablePOsList.forEach(po => {
@@ -574,17 +624,20 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             partialAvailableItemsValue,
             partialNotAvailableItemsValue,
             notAvailablePOs, notAvailableValue: isNaN(notAvailableValue) ? 0 : notAvailableValue,
-            totalNotAvailableValue,
+            totalNotAvailableValue: partialNotAvailableItemsValue + notAvailableValue,
             oilStuckPOs, oilStuckValue: isNaN(oilStuckValue) ? 0 : oilStuckValue,
             oilStuckPOsList,
+            oilRequiredValue, oilRequiredCount,
+            posClosingWithOilCount, posClosingWithOilValue,
             unavailablePartsList,
             checklistChartData, fulfillmentChartData, topCustomers, paymentTermsChartData, salesTypeCountChartData,
-            readyToExecuteChartData,
+            readyToExecuteChartData, customerCategoryChartData,
             poAgeingChartData, poAgeingValueChartData, branchPerformanceChartData,
             avgPOtoSO, avgSOtoInvoice, avgPOtoInvoice,
             openTrend, valueTrend, fullyTrend, partialTrend, notAvailableTrend,
             avgPOtoSOTrend, avgSOtoInvoiceTrend, avgPOtoInvoiceTrend,
-            totalInvoicedPOs, totalInvoicedValue, invoicedTrend
+            totalInvoicedPOs, totalInvoicedValue, invoicedTrend,
+            top50TotalValue, top50Contribution
         };
     }, [activePOs, invoicedPOs, purchaseOrders, filters]);
 
@@ -800,6 +853,84 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 </div>
             </div>
 
+            {/* Ready to Execute / Partial / Not Available Panes */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-2xl border border-green-100 dark:border-green-800 shadow-sm">
+                    <div className="flex justify-between items-start mb-4">
+                        <div>
+                            <p className="text-green-800 dark:text-green-300 font-bold text-lg">Ready to Execute</p>
+                            <p className="text-green-600 dark:text-green-400 text-sm font-medium">100% Items Available</p>
+                        </div>
+                        <div className="bg-green-100 dark:bg-green-800 p-2 rounded-lg">
+                            <CheckCircleIcon className="w-6 h-6 text-green-600 dark:text-green-400" />
+                        </div>
+                    </div>
+                    <div className="flex items-baseline gap-2 mb-4">
+                        <span className="text-3xl font-bold text-green-900 dark:text-green-100">{dashboardData.fullyAvailablePOs}</span>
+                        <span className="text-green-700 dark:text-green-400 font-semibold">POs</span>
+                    </div>
+                    <p className="text-2xl font-bold text-green-800 dark:text-green-200 mb-4">
+                        {dashboardData.fullyAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' })}
+                    </p>
+                    <button 
+                        onClick={() => onCardClick?.('FULLY_AVAILABLE')}
+                        className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-colors text-sm"
+                    >
+                        View Ready POs
+                    </button>
+                </div>
+
+                <div className="bg-amber-50 dark:bg-amber-900/20 p-6 rounded-2xl border border-amber-100 dark:border-amber-800 shadow-sm">
+                    <div className="flex justify-between items-start mb-4">
+                        <div>
+                            <p className="text-amber-800 dark:text-amber-300 font-bold text-lg">Partially Available</p>
+                            <p className="text-amber-600 dark:text-amber-400 text-sm font-medium">Some Items Missing</p>
+                        </div>
+                        <div className="bg-amber-100 dark:bg-amber-800 p-2 rounded-lg">
+                            <ClockIcon className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                        </div>
+                    </div>
+                    <div className="flex items-baseline gap-2 mb-4">
+                        <span className="text-3xl font-bold text-amber-900 dark:text-amber-100">{dashboardData.partiallyAvailablePOs}</span>
+                        <span className="text-amber-700 dark:text-amber-400 font-semibold">POs</span>
+                    </div>
+                    <p className="text-2xl font-bold text-amber-800 dark:text-amber-200 mb-4">
+                        {dashboardData.partiallyAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' })}
+                    </p>
+                    <button 
+                        onClick={() => onCardClick?.('PARTIALLY_AVAILABLE')}
+                        className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold transition-colors text-sm"
+                    >
+                        View Partial POs
+                    </button>
+                </div>
+
+                <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-2xl border border-red-100 dark:border-red-800 shadow-sm">
+                    <div className="flex justify-between items-start mb-4">
+                        <div>
+                            <p className="text-red-800 dark:text-red-300 font-bold text-lg">100% Not Available</p>
+                            <p className="text-red-600 dark:text-red-400 text-sm font-medium">No Items in Stock</p>
+                        </div>
+                        <div className="bg-red-100 dark:bg-red-800 p-2 rounded-lg">
+                            <NoSymbolIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
+                        </div>
+                    </div>
+                    <div className="flex items-baseline gap-2 mb-4">
+                        <span className="text-3xl font-bold text-red-900 dark:text-red-100">{dashboardData.notAvailablePOs}</span>
+                        <span className="text-red-700 dark:text-red-400 font-semibold">POs</span>
+                    </div>
+                    <p className="text-2xl font-bold text-red-800 dark:text-red-200 mb-4">
+                        {dashboardData.notAvailableValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' })}
+                    </p>
+                    <button 
+                        onClick={() => onCardClick?.('NOT_AVAILABLE')}
+                        className="w-full py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors text-sm"
+                    >
+                        View Missing POs
+                    </button>
+                </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 <DashboardStatCard 
                     title="Total No of PO's" 
@@ -857,6 +988,36 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
             {/* Detailed Fulfillment Insights */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-md border-l-4 border-amber-500">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="bg-amber-100 dark:bg-amber-900/50 p-2 rounded-lg">
+                            <BeakerIcon className="w-6 h-6 text-amber-600" />
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-white">Oil Required Analysis</h3>
+                    </div>
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                            <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Oil Required</span>
+                            <span className="font-bold text-slate-800 dark:text-slate-100">{dashboardData.oilRequiredValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' })}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Oil Item Count</span>
+                            <span className="font-bold text-slate-800 dark:text-slate-100">{dashboardData.oilRequiredCount} Items</span>
+                        </div>
+                        <div className="pt-3 border-t border-slate-100 dark:border-slate-700">
+                            <p className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase mb-2">Impact Analysis</p>
+                            <div className="flex justify-between items-center">
+                                <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">POs closing with Oil</span>
+                                <span className="font-bold text-green-600">{dashboardData.posClosingWithOilCount} POs</span>
+                            </div>
+                            <div className="flex justify-between items-center mt-1">
+                                <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Value to Unlock</span>
+                                <span className="font-bold text-green-600">{dashboardData.posClosingWithOilValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR', notation: 'compact' })}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div 
                     onClick={() => setSelectedBreakdown({ type: 'GAP', title: "Total Not Available Value" })}
                     className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-xl shadow-md border border-slate-700 relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-transform"
@@ -940,7 +1101,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                         onSegmentClick={(label) => onCardClick?.('SALE_TYPE', label)}
                     />
                  </ChartContainer>
-                 <ChartContainer title="Ready to Execute Breakdown (by Sales Type)">
+                 <ChartContainer title="Ready to Execute Breakdown (by Sales Type) - PO Count">
                     <DonutChart 
                         data={dashboardData.readyToExecuteChartData} 
                         isCurrency={false}
@@ -953,8 +1114,11 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                  <ChartContainer title="Fulfillment Status (by Value)">
                     <DonutChart data={dashboardData.fulfillmentChartData} />
                  </ChartContainer>
-                 <ChartContainer title="Checklist Compliance (by PO Count)">
+                 <ChartContainer title="Category Wise (PO Count)">
                     <DonutChart data={dashboardData.checklistChartData} isCurrency={false} />
+                 </ChartContainer>
+                 <ChartContainer title="Customer Category">
+                    <DonutChart data={dashboardData.customerCategoryChartData} isCurrency={false} />
                  </ChartContainer>
                  <ChartContainer title="Active PO Ageing (by PO Count)">
                     <HorizontalBarChart data={dashboardData.poAgeingChartData} />
@@ -968,8 +1132,20 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                  <ChartContainer title="Branch Performance (by Value)">
                     <HorizontalBarChart data={dashboardData.branchPerformanceChartData} isCurrency />
                  </ChartContainer>
-                 <ChartContainer title="Top 5 Customers (by Value)">
-                    <HorizontalBarChart data={dashboardData.topCustomers} isCurrency />
+                 <ChartContainer title="Top 50 Customers" className="lg:col-span-2">
+                    <div className="flex justify-between items-center mb-4 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl">
+                       <div>
+                           <p className="text-xs font-bold text-slate-500 uppercase">Total Top 50 Value</p>
+                           <p className="text-lg font-bold text-slate-800 dark:text-white">{dashboardData.top50TotalValue.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</p>
+                       </div>
+                       <div className="text-right">
+                           <p className="text-xs font-bold text-slate-500 uppercase">Contribution %</p>
+                           <p className="text-lg font-bold text-red-600">{dashboardData.top50Contribution.toFixed(1)}%</p>
+                       </div>
+                    </div>
+                    <div className="max-h-[400px] overflow-y-auto">
+                       <HorizontalBarChart data={dashboardData.topCustomers} isCurrency />
+                    </div>
                  </ChartContainer>
             </div>
 

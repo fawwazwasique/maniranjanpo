@@ -5,6 +5,7 @@ import { OverallPOStatus, FulfillmentStatus, OrderStatus, POItemStatus } from '.
 import { exportToCSV } from '../utils/export';
 import { formatDate, isDateInRange } from '../utils/dateUtils';
 import { formatToCr } from '../utils/currencyUtils';
+import { ITEM_CATEGORIES } from '../constants';
 import { ArrowDownTrayIcon, ClipboardDocumentListIcon, ExclamationTriangleIcon, TruckIcon, CheckCircleIcon, DatabaseIcon } from './icons';
 
 interface ReportsPaneProps {
@@ -21,15 +22,20 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState('');
 
     // General Filter Logic
     const filteredGeneralPOs = useMemo(() => {
         return purchaseOrders.filter(po => {
             if (!isDateInRange(po.poDate, startDate, endDate)) return false;
             if (statusFilter && po.status !== statusFilter) return false;
+            if (categoryFilter) {
+                const hasCategory = (po.items || []).some(item => item.category === categoryFilter);
+                if (!hasCategory) return false;
+            }
             return true;
         });
-    }, [purchaseOrders, startDate, endDate, statusFilter]);
+    }, [purchaseOrders, startDate, endDate, statusFilter, categoryFilter]);
 
     // Missing OA Logic
     const missingOAData = useMemo(() => {
@@ -260,7 +266,7 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                                 : 'text-slate-500 hover:bg-white/[0.12] hover:text-slate-700 dark:hover:text-slate-200'
                         }`}
                     >
-                        <CheckCircleIcon className="w-4 h-4" /> OA Numbers Filled
+                        <CheckCircleIcon className="w-4 h-4" /> OA No Report
                     </button>
                     <button
                         onClick={() => setActiveTab('missingOA')}
@@ -298,7 +304,7 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                 <div className="flex-1 overflow-auto">
                     {activeTab === 'general' && (
                         <div className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Start Date</label>
                                     <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none" />
@@ -314,12 +320,27 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                                         {Object.values(OverallPOStatus).map(s => <option key={s} value={s}>{s}</option>)}
                                     </select>
                                 </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Category</label>
+                                    <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none">
+                                        <option value="">All Categories</option>
+                                        {ITEM_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                    </select>
+                                </div>
                             </div>
                             <div className="flex items-center justify-between">
                                 <p className="text-slate-600 dark:text-slate-400">Total Matching Records: <span className="font-bold text-slate-800 dark:text-white">{filteredGeneralPOs.length}</span></p>
-                                <button onClick={() => exportToCSV(filteredGeneralPOs)} className="flex items-center gap-2 px-6 py-3 text-white bg-red-600 rounded-lg hover:bg-red-700 shadow-md">
-                                    <ArrowDownTrayIcon className="w-5 h-5" /> Export Filtered Data
-                                </button>
+                                <div className="flex gap-4">
+                                    <button 
+                                        onClick={() => { setStartDate(''); setEndDate(''); setStatusFilter(''); setCategoryFilter(''); }}
+                                        className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-red-600 transition-colors"
+                                    >
+                                        Reset Filters
+                                    </button>
+                                    <button onClick={() => exportToCSV(filteredGeneralPOs)} className="flex items-center gap-2 px-6 py-3 text-white bg-red-600 rounded-lg hover:bg-red-700 shadow-md">
+                                        <ArrowDownTrayIcon className="w-5 h-5" /> Export Filtered Data
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}

@@ -2,7 +2,7 @@
 import React, { useMemo, useState } from 'react';
 import type { PurchaseOrder } from '../types';
 import { OverallPOStatus, FulfillmentStatus, POItemStatus, OrderStatus } from '../types';
-import { ChartBarIcon, CheckCircleIcon, ClockIcon, TruckIcon, ChartPieIcon, SparklesIcon, XMarkIcon, MagnifyingGlassIcon, ArrowDownTrayIcon } from './icons';
+import { ChartBarIcon, CheckCircleIcon, ClockIcon, TruckIcon, ChartPieIcon, SparklesIcon, XMarkIcon, MagnifyingGlassIcon, ArrowDownTrayIcon, BeakerIcon } from './icons';
 import { isOilItem, isOilStuckPO } from '../utils/poUtils';
 import { formatToCr } from '../utils/currencyUtils';
 
@@ -209,12 +209,20 @@ const AnalysisPane: React.FC<AnalysisPaneProps> = ({ purchaseOrders, onSelectPO 
         // --- Valvoline (Oil) Impact Calculation ---
         const closablePOs: PurchaseOrder[] = [];
         let valvolineRecoveryValue = 0;
+        let totalOilRequired = 0;
  
         activePOs.forEach(po => {
             if (isOilStuckPO(po)) {
                 closablePOs.push(po);
                 valvolineRecoveryValue += po.items.reduce((acc, item) => acc + (Number(item.quantity) * Number(item.rate)), 0);
             }
+            
+            // Calculate total oil required across all active POs
+            (po.items || []).forEach(item => {
+                if (isOilItem(item) && (item.status === POItemStatus.NotAvailable || item.status === POItemStatus.PartiallyAvailable)) {
+                    totalOilRequired += (item.quantity - (item.allocatedQuantity || 0));
+                }
+            });
         });
 
         return {
@@ -225,7 +233,8 @@ const AnalysisPane: React.FC<AnalysisPaneProps> = ({ purchaseOrders, onSelectPO 
             valueOverTime: sortedValueOverTime,
             valvolineImpact: {
                 closableOrders: closablePOs,
-                value: valvolineRecoveryValue
+                value: valvolineRecoveryValue,
+                totalOilRequired
             }
         };
     }, [purchaseOrders]);
@@ -255,7 +264,7 @@ const AnalysisPane: React.FC<AnalysisPaneProps> = ({ purchaseOrders, onSelectPO 
                         <span className="ml-2 px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-xs font-bold uppercase tracking-widest border border-red-500/30">Stock Gap Recovery</span>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <ImpactCard 
                             title="Total Orders Where only oil is Required" 
                             value={stats.valvolineImpact.closableOrders.length} 
@@ -268,6 +277,12 @@ const AnalysisPane: React.FC<AnalysisPaneProps> = ({ purchaseOrders, onSelectPO 
                             value={formatToCr(stats.valvolineImpact.value)} 
                             color="border-blue-500" 
                             icon={<TruckIcon className="w-6 h-6 text-blue-500" />}
+                        />
+                        <ImpactCard 
+                            title="Total Oil Required (Ltrs/Units)" 
+                            value={stats.valvolineImpact.totalOilRequired.toLocaleString()} 
+                            color="border-amber-500" 
+                            icon={<BeakerIcon className="w-6 h-6 text-amber-500" />}
                         />
                     </div>
 

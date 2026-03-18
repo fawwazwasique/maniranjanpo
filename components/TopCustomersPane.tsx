@@ -55,10 +55,14 @@ const TopCustomersPane: React.FC<TopCustomersPaneProps> = ({ purchaseOrders }) =
         );
     };
 
-    const customerAnalysis = useMemo(() => {
+    const { customerAnalysis, totalActiveValue, top50TotalValue } = useMemo(() => {
         const analysisMap: Record<string, CustomerAnalysis> = {};
+        let totalActiveValue = 0;
 
         purchaseOrders.forEach(po => {
+            const poValue = (po.items || []).reduce((acc, item) => acc + (item.quantity || 0) * (item.rate || 0), 0);
+            totalActiveValue += poValue;
+
             // Inclusive category check: PO must contain at least one selected category
             if (selectedCategories.length > 0) {
                 const hasMatchingCategory = (po.items || []).some(item => selectedCategories.includes(item.category || ''));
@@ -91,10 +95,18 @@ const TopCustomersPane: React.FC<TopCustomersPaneProps> = ({ purchaseOrders }) =
             });
         });
 
-        return Object.values(analysisMap)
+        const sorted = Object.values(analysisMap)
             .sort((a, b) => b.totalValue - a.totalValue)
             .slice(0, 50);
-    }, [purchaseOrders, selectedCategories]);
+        
+        const top50TotalValue = sorted.reduce((acc, a) => acc + a.totalValue, 0);
+
+        return {
+            customerAnalysis: sorted,
+            totalActiveValue,
+            top50TotalValue
+        };
+    }, [purchaseOrders, selectedCategories, selectedStatuses]);
 
     const filteredAnalysis = useMemo(() => {
         if (!searchTerm) return customerAnalysis;
@@ -102,6 +114,8 @@ const TopCustomersPane: React.FC<TopCustomersPaneProps> = ({ purchaseOrders }) =
             a.customerName.toLowerCase().includes(searchTerm.toLowerCase())
         );
     }, [customerAnalysis, searchTerm]);
+
+    const contributionPercentage = totalActiveValue > 0 ? (top50TotalValue / totalActiveValue) * 100 : 0;
 
     const handleExport = () => {
         const exportData = filteredAnalysis.map(a => ({
@@ -118,11 +132,21 @@ const TopCustomersPane: React.FC<TopCustomersPaneProps> = ({ purchaseOrders }) =
                 <div>
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                         <UserGroupIcon className="w-7 h-7 text-red-500" />
-                        Top 50 Customers Analysis
+                        Top 50 Customer
                     </h2>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">
-                        Analysis of top 50 customers by total order value, including parts and oil requirements.
-                    </p>
+                    <div className="flex flex-wrap items-center gap-4 mt-2">
+                        <p className="text-slate-500 dark:text-slate-400">
+                            Analysis of top 50 customers by total order value.
+                        </p>
+                        <div className="flex items-center gap-2 px-3 py-1 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-full">
+                            <span className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">Total Value:</span>
+                            <span className="text-sm font-black text-red-700 dark:text-red-300">{formatToCr(top50TotalValue)}</span>
+                        </div>
+                        <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-full">
+                            <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Contribution:</span>
+                            <span className="text-sm font-black text-blue-700 dark:text-blue-300">{contributionPercentage.toFixed(1)}% of Total POs</span>
+                        </div>
+                    </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
                     <div className="relative flex-1 md:w-48" ref={dropdownRef}>
