@@ -507,8 +507,8 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                                         onChange={toggleSelectAll}
                                     />
                                 </th>
-                                <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('poNumber')}>PO Number {getSortIndicator('poNumber')}</th>
-                                <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('customerName')}>Customer {getSortIndicator('customerName')}</th>
+                                <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('poNumber')}>PO No {getSortIndicator('poNumber')}</th>
+                                <th scope="col" className="p-4 cursor-pointer" onClick={() => requestSort('customerName')}>Cust Name {getSortIndicator('customerName')}</th>
                                 <th scope="col" className="p-4">Bucket</th>
                                 <th scope="col" className="p-4">Category / Zone</th>
                                 <th scope="col" className="p-4">Branch</th>

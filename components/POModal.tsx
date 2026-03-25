@@ -218,7 +218,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                         <h3 className="text-lg font-medium text-slate-800 dark:text-white">PO Information</h3>
                         <div className="grid grid-cols-2 gap-4">
                              <div>
-                                <label htmlFor="customerName" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Customer Name</label>
+                                <label htmlFor="customerName" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Cust Name</label>
                                  <input type="text" id="customerName" name="customerName" value={formData.customerName || ''} onChange={handleInputChange} required className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
                             </div>
                              <div>
@@ -231,7 +231,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor="poNumber" className="block text-sm font-medium text-slate-700 dark:text-slate-300">PO Number</label>
+                                <label htmlFor="poNumber" className="block text-sm font-medium text-slate-700 dark:text-slate-300">PO No</label>
                                 <input type="text" id="poNumber" name="poNumber" value={formData.poNumber || ''} onChange={handleInputChange} required className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
                             </div>
                              <div>
@@ -268,13 +268,13 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                             </div>
                         )}
 
-                         <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor="salesOrderNumber" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Sales Order No.</label>
+                                <label htmlFor="salesOrderNumber" className="block text-sm font-medium text-slate-700 dark:text-slate-300">SO No</label>
                                 <input type="text" id="salesOrderNumber" name="salesOrderNumber" value={formData.salesOrderNumber || ''} onChange={handleInputChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
                             </div>
                             <div>
-                                <label htmlFor="soDate" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Sales Order Date</label>
+                                <label htmlFor="soDate" className="block text-sm font-medium text-slate-700 dark:text-slate-300">SO Date</label>
                                 <input type="date" id="soDate" name="soDate" value={formData.soDate || ''} onChange={handleInputChange} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
                             </div>
                             <div>

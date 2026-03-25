@@ -33,12 +33,12 @@ const initialItemState = {
 const initialOrderState = {
     mainBranch: '',
     subBranch: '',
-    accountName: '',
-    poNo: '',
+    customerName: '',
+    poNumber: '',
     poDate: new Date().toISOString().split('T')[0],
-    soNo: '',
+    salesOrderNumber: '',
     soDate: new Date().toISOString().split('T')[0],
-    poStatus: OverallPOStatus.Available,
+    status: OverallPOStatus.Available,
     orderStatus: OrderStatus.OpenOrders,
     generalRemarks: '',
     etaAvailable: '',
@@ -87,18 +87,19 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
             const rawHeaders = lines[0].split(',');
             const headers = rawHeaders.map(h => h.replace(/^\uFEFF/, '').trim().toLowerCase());
             
-            const getColIdx = (exactHeader: string) => {
-                return headers.indexOf(exactHeader.toLowerCase());
+            const getColIdx = (exactHeader: string, aliases: string[] = []) => {
+                const searchNames = [exactHeader, ...aliases].map(n => n.toLowerCase());
+                return headers.findIndex(h => searchNames.includes(h));
             };
 
-            const branchIdx = getColIdx('Main -Branch');
-            const subBranchIdx = getColIdx('Sub - branch');
-            const accountIdx = getColIdx('Account Name');
-            const soNoIdx = getColIdx('SO.NO');
-            const soDateIdx = getColIdx('SO DATE');
-            const poNoIdx = getColIdx('PO.NO');
-            const poDateIdx = getColIdx('PO DATE');
-            const poStatusIdx = getColIdx('Po Status');
+            const branchIdx = getColIdx('Main -Branch', ['Branch', 'Main Branch']);
+            const subBranchIdx = getColIdx('Sub - branch', ['Sub Branch']);
+            const accountIdx = getColIdx('Account Name', ['Cust Name', 'Customer Name', 'Account']);
+            const soNoIdx = getColIdx('SO.NO', ['SO No', 'Sales Order Number', 'SO']);
+            const soDateIdx = getColIdx('SO DATE', ['SO Date']);
+            const poNoIdx = getColIdx('PO.NO', ['PO No', 'Purchase Order Number', 'PO']);
+            const poDateIdx = getColIdx('PO DATE', ['PO Date']);
+            const poStatusIdx = getColIdx('Po Status', ['Status', 'PO Status']);
             const orderStatusIdx = getColIdx('Order Status');
             const saleTypeIdx = getColIdx('Sale Type');
             const creditDaysIdx = getColIdx('Credit Days');
@@ -122,13 +123,13 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
             const othersIdx = getColIdx('Others');
             const dispatchRemIdx = getColIdx('Dispatch Remarks');
             
-            const nameIdx = getColIdx('Item: Item Name');
-            const typeIdx = getColIdx('Item: Item Type');
+            const nameIdx = getColIdx('Item: Item Name', ['Item Name', 'Part Number', 'Item']);
+            const typeIdx = getColIdx('Item: Item Type', ['Item Type']);
             const catIdx = getColIdx('Category');
-            const descIdx = getColIdx('Item: Item Description');
-            const qtyIdx = getColIdx('Quantity');
-            const priceIdx = getColIdx('Unit Price');
-            const discIdx = getColIdx('Discount Amount');
+            const descIdx = getColIdx('Item: Item Description', ['Description', 'Item Description']);
+            const qtyIdx = getColIdx('Quantity', ['Qty']);
+            const priceIdx = getColIdx('Unit Price', ['Rate', 'Price']);
+            const discIdx = getColIdx('Discount Amount', ['Discount']);
             const baseAmtIdx = getColIdx('Base Amount');
             const taxAmtIdx = getColIdx('Tax Amount');
             const grossAmtIdx = getColIdx('Gross Amount');
@@ -341,12 +342,12 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                             <div className="md:col-span-3"><h3 className="text-lg font-bold text-slate-800 dark:text-white border-b pb-2 mb-2">Basic Information</h3></div>
                             {renderField("Main -Branch", "mainBranch", "select", MAIN_BRANCHES.map(b => ({value: b, label: b})), true)}
                             {renderField("Sub - branch", "subBranch", "select", order.mainBranch ? BRANCH_STRUCTURE[order.mainBranch].map(sb => ({value: sb, label: sb})) : [], true)}
-                            {renderField("Account Name", "accountName", "text", [], true)}
-                            {renderField("SO.NO", "soNo", "text", [], true)}
-                            {renderField("SO DATE", "soDate", "date", [], true)}
-                            {renderField("PO.NO", "poNo", "text", [], true)}
-                            {renderField("PO DATE", "poDate", "date", [], true)}
-                            {renderField("Po Status", "poStatus", "select", Object.values(OverallPOStatus).map(s => ({value: s, label: s})))}
+                            {renderField("Cust Name", "customerName", "text", [], true)}
+                            {renderField("SO No", "salesOrderNumber", "text", [], true)}
+                            {renderField("SO Date", "soDate", "date", [], true)}
+                            {renderField("PO No", "poNumber", "text", [], true)}
+                            {renderField("PO Date", "poDate", "date", [], true)}
+                            {renderField("PO Status", "status", "select", Object.values(OverallPOStatus).map(s => ({value: s, label: s})))}
                             {renderField("Order Status", "orderStatus", "select", Object.values(OrderStatus).map(s => ({value: s, label: s})))}
                             
                             <div>
