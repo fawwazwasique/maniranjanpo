@@ -49,7 +49,7 @@ interface AllOrdersPaneProps {
   }>>;
 }
 
-type SortKeys = 'poNumber' | 'customerName' | 'poDate' | 'totalValue' | 'status' | 'fulfillmentStatus' | 'orderStatus';
+type SortKeys = 'poNumber' | 'customerName' | 'poDate' | 'soDate' | 'invoiceDate' | 'totalValue' | 'status' | 'fulfillmentStatus' | 'orderStatus';
 
 const getDynamicFulfillmentStatus = (items: POItem[]) => {
     if (items.length === 0) return FulfillmentStatus.NotAvailable;

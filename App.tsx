@@ -24,6 +24,57 @@ import { getProcurementSuggestion } from './services/geminiService';
 import type { PurchaseOrder, Notification, LogEntry, POItem, ProcurementSuggestion, StockItem, StockMovement } from './types';
 import { POItemStatus, OverallPOStatus, OrderStatus, FulfillmentStatus } from './types';
 
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId: string | undefined;
+    email: string | null | undefined;
+    emailVerified: boolean | undefined;
+    isAnonymous: boolean | undefined;
+    tenantId: string | null | undefined;
+    providerInfo: {
+      providerId: string;
+      displayName: string | null;
+      email: string | null;
+      photoUrl: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData.map(provider => ({
+        providerId: provider.providerId,
+        displayName: provider.displayName,
+        email: provider.email,
+        photoUrl: provider.photoURL
+      })) || []
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
 type ModalType = 'none' | 'poDetail' | 'suggestion';
 type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'topCustomers' | 'detailedBreakdown';
 type Theme = 'light' | 'dark';
@@ -137,6 +188,11 @@ function App() {
   useEffect(() => {
     signInAnonymously(auth).catch(err => {
         console.warn("Auth check failed:", err.message);
+        if (err.code === 'auth/configuration-not-found') {
+            setFirestoreError('Firebase Auth is not enabled for this project. Please enable "Anonymous" sign-in in your Firebase Console.');
+        } else if (err.code === 'auth/network-request-failed') {
+            setFirestoreError('Network error: Could not connect to Firebase. Please check your internet connection.');
+        }
     });
 
     const handleError = (error: any) => {
@@ -148,17 +204,17 @@ function App() {
     const unsubPO = onSnapshot(query(collection(db, "purchaseOrders"), orderBy("createdAt", "desc")), (snapshot) => {
         const pos = snapshot.docs.map(doc => sanitizeData({ ...doc.data(), id: doc.id }) as PurchaseOrder);
         setPurchaseOrders(pos);
-    }, handleError);
+    }, (error) => handleFirestoreError(error, OperationType.GET, "purchaseOrders"));
 
     const unsubLogs = onSnapshot(query(collection(db, "logs"), orderBy("timestamp", "desc")), (snapshot) => {
         const logsData = snapshot.docs.map(doc => sanitizeData({ ...doc.data(), id: doc.id }) as LogEntry);
         setLogs(logsData);
-    }, handleError);
+    }, (error) => handleFirestoreError(error, OperationType.GET, "logs"));
 
     const unsubNotifs = onSnapshot(query(collection(db, "notifications"), orderBy("createdAt", "desc")), (snapshot) => {
         const notifs = snapshot.docs.map(doc => sanitizeData({ ...doc.data(), id: doc.id }) as Notification);
         setNotifications(notifs);
-    }, handleError);
+    }, (error) => handleFirestoreError(error, OperationType.GET, "notifications"));
 
     return () => {
         unsubPO(); unsubLogs(); unsubNotifs();
@@ -166,15 +222,23 @@ function App() {
 }, [theme]);
 
   const addLog = async (poId: string, action: string) => {
-    await addDoc(collection(db, "logs"), { poId, action, timestamp: serverTimestamp() });
+    try {
+      await addDoc(collection(db, "logs"), { poId, action, timestamp: serverTimestamp() });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, "logs");
+    }
   };
 
   const handleUpdatePO = useCallback(async (updatedPO: PurchaseOrder) => {
-    // Sanitize data before sending to Firestore just in case
-    const cleanPO = sanitizeData(updatedPO);
-    const poRef = doc(db, "purchaseOrders", cleanPO.id);
-    await updateDoc(poRef, { ...cleanPO });
-    addLog(cleanPO.id, "PO updated.");
+    try {
+      // Sanitize data before sending to Firestore just in case
+      const cleanPO = sanitizeData(updatedPO);
+      const poRef = doc(db, "purchaseOrders", cleanPO.id);
+      await updateDoc(poRef, { ...cleanPO });
+      addLog(cleanPO.id, "PO updated.");
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, "purchaseOrders");
+    }
   }, []);
 
   const handleDeletePO = useCallback(async (poId: string | string[]) => {
@@ -193,13 +257,15 @@ function App() {
             
             // Also delete logs associated with this PO
             const logsQuery = query(collection(db, "logs"), where("poId", "==", id));
-            const logsSnapshot = await getDocs(logsQuery);
-            logsSnapshot.forEach((logDoc) => {
-                batch.delete(logDoc.ref);
-            });
+            const logsSnapshot = await getDocs(logsQuery).catch(error => handleFirestoreError(error, OperationType.GET, "logs"));
+            if (logsSnapshot) {
+                logsSnapshot.forEach((logDoc) => {
+                    batch.delete(logDoc.ref);
+                });
+            }
         }
         
-        await batch.commit();
+        await batch.commit().catch(error => handleFirestoreError(error, OperationType.WRITE, "bulk delete"));
         setIsDeleteModalOpen(false);
         setPoToDelete(null);
     } catch (error) {
@@ -249,7 +315,7 @@ function App() {
           alert("Order saved successfully.");
       } catch (e) {
           console.error("Error saving order:", e);
-          alert("Error saving order.");
+          handleFirestoreError(e, OperationType.CREATE, "purchaseOrders");
       }
   };
 
@@ -274,8 +340,7 @@ function App() {
           setActivePane('dashboard');
       } catch (e: any) {
           console.error("Bulk upload error:", e);
-          const errorMsg = e.message || "Unknown error";
-          alert(`Failed to process bulk upload: ${errorMsg}`);
+          handleFirestoreError(e, OperationType.WRITE, "purchaseOrders bulk upload");
       }
   };
 

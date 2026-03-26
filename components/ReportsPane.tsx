@@ -550,7 +550,7 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                                                     <td className="p-3">{formatDate(po.invoiceDate || po.poDate)}</td>
                                                     <td className="p-3">{formatToCr(po.items.reduce((acc, i) => acc + (i.quantity * i.rate), 0))}</td>
                                                     <td className="p-3">
-                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${po.paymentStatus === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${po.paymentStatus === 'Received' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
                                                             {po.paymentStatus || 'Pending'}
                                                         </span>
                                                     </td>

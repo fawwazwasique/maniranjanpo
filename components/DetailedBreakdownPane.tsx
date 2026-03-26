@@ -96,7 +96,7 @@ const DetailedBreakdownPane: React.FC<DetailedBreakdownPaneProps> = ({ purchaseO
                         >
                             <div className="flex justify-between items-start mb-4">
                                 <div className={`p-3 rounded-lg ${config.bgColor} dark:bg-slate-700`}>
-                                    {React.cloneElement(config.icon as React.ReactElement, { className: `w-6 h-6 ${config.color}` })}
+                                    {React.cloneElement(config.icon as React.ReactElement<any>, { className: `w-6 h-6 ${config.color}` })}
                                 </div>
                                 <span className={`text-2xl font-black ${isActive ? 'text-slate-800 dark:text-white' : 'text-slate-400'}`}>{count}</span>
                             </div>
@@ -153,7 +153,7 @@ const DetailedBreakdownPane: React.FC<DetailedBreakdownPaneProps> = ({ purchaseO
                                                     <span className="text-red-600 font-bold">Gap: {formatToCr(gapValue)}</span>
                                                 </div>
                                             ) : (
-                                                <div className="text-[10px] text-slate-400 uppercase tracking-tighter">{po.paymentTerms}</div>
+                                                <div className="text-[10px] text-slate-400 uppercase tracking-tighter">{po.paymentNotes}</div>
                                             )}
                                         </td>
                                         <td className="px-6 py-4 text-center">

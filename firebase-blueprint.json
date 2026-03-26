@@ -1,0 +1,86 @@
+{
+  "entities": {
+    "PurchaseOrder": {
+      "title": "Purchase Order",
+      "description": "A purchase order containing items and status information.",
+      "type": "object",
+      "properties": {
+        "poNumber": { "type": "string" },
+        "customerName": { "type": "string" },
+        "poDate": { "type": "string" },
+        "items": { "type": "array" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "saleType": { "type": "string" },
+        "paymentStatus": { "type": "string" },
+        "paymentNotes": { "type": "string" },
+        "creditTerms": { "type": "number" },
+        "mainBranch": { "type": "string" },
+        "subBranch": { "type": "string" },
+        "salesOrderNumber": { "type": "string" },
+        "soDate": { "type": "string" },
+        "generalRemarks": { "type": "string" },
+        "oaNo": { "type": "string" },
+        "oaDate": { "type": "string" },
+        "etaAvailable": { "type": "string" },
+        "billingPlan": { "type": "string" },
+        "materials": { "type": "string" },
+        "quoteNumber": { "type": "string" },
+        "billingAddress": { "type": "string" },
+        "billToGSTIN": { "type": "string" },
+        "shippingAddress": { "type": "string" },
+        "shipToGSTIN": { "type": "string" },
+        "orderStatus": { "type": "string" },
+        "fulfillmentStatus": { "type": "string" },
+        "fulfillmentBucket": { "type": "string" },
+        "dispatchRemarks": { "type": "string" },
+        "pfAvailable": { "type": "boolean" },
+        "invoiceDate": { "type": "string" },
+        "invoiceNumber": { "type": "string" },
+        "systemRemarks": { "type": "string" },
+        "customerCategory": { "type": "string" },
+        "zone": { "type": "string" },
+        "checklist": { "type": "object" },
+        "checklistRemarks": { "type": "string" }
+      },
+      "required": ["poNumber", "customerName", "items", "status", "createdAt"]
+    },
+    "LogEntry": {
+      "title": "Log Entry",
+      "description": "A log of an action taken on a purchase order.",
+      "type": "object",
+      "properties": {
+        "timestamp": { "type": "string" },
+        "action": { "type": "string" },
+        "poId": { "type": "string" }
+      },
+      "required": ["timestamp", "action", "poId"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "A notification for a user regarding a purchase order.",
+      "type": "object",
+      "properties": {
+        "message": { "type": "string" },
+        "poId": { "type": "string" },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["message", "poId", "read", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/purchaseOrders/{poId}": {
+      "schema": "PurchaseOrder",
+      "description": "Collection of purchase orders."
+    },
+    "/logs/{logId}": {
+      "schema": "LogEntry",
+      "description": "Collection of activity logs."
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "Collection of notifications."
+    }
+  }
+}

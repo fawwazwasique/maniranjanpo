@@ -1,0 +1,164 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: purchaseOrders
+    // Fields:
+    //   - poNumber: string (required)
+    //   - customerName: string (required)
+    //   - poDate: string
+    //   - items: list (required)
+    //   - status: string (required)
+    //   - createdAt: string (required)
+    //   - saleType: string
+    //   - paymentStatus: string
+    //   - paymentNotes: string
+    //   - creditTerms: number
+    //   - mainBranch: string
+    //   - subBranch: string
+    //   - salesOrderNumber: string
+    //   - soDate: string
+    //   - generalRemarks: string
+    //   - oaNo: string
+    //   - oaDate: string
+    //   - etaAvailable: string
+    //   - billingPlan: string
+    //   - materials: string
+    //   - quoteNumber: string
+    //   - billingAddress: string
+    //   - billToGSTIN: string
+    //   - shippingAddress: string
+    //   - shipToGSTIN: string
+    //   - orderStatus: string
+    //   - fulfillmentStatus: string
+    //   - fulfillmentBucket: string
+    //   - dispatchRemarks: string
+    //   - pfAvailable: bool
+    //   - invoiceDate: string
+    //   - invoiceNumber: string
+    //   - systemRemarks: string
+    //   - customerCategory: string
+    //   - zone: string
+    //   - checklist: map
+    //   - checklistRemarks: string
+    //
+    // Collection: logs
+    // Fields:
+    //   - timestamp: timestamp (required)
+    //   - action: string (required)
+    //   - poId: string (required)
+    //
+    // Collection: notifications
+    // Fields:
+    //   - message: string (required)
+    //   - poId: string (required)
+    //   - read: bool (required)
+    //   - createdAt: string (required)
+    //
+    // Collection: users
+    // Fields:
+    //   - role: string (required)
+    //   - email: string (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "maniranjangroup@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidPurchaseOrder(data) {
+      return hasRequiredFields(['poNumber', 'customerName', 'items', 'status', 'createdAt']) &&
+             data.poNumber is string && data.poNumber.size() < 100 &&
+             data.customerName is string && data.customerName.size() < 200 &&
+             data.items is list && data.items.size() < 500 &&
+             data.status is string &&
+             data.createdAt is string;
+    }
+
+    function isValidLog(data) {
+      return hasRequiredFields(['timestamp', 'action', 'poId']) &&
+             data.action is string && data.action.size() < 500 &&
+             data.poId is string;
+    }
+
+    function isValidNotification(data) {
+      return hasRequiredFields(['message', 'poId', 'read', 'createdAt']) &&
+             data.message is string && data.message.size() < 1000 &&
+             data.poId is string &&
+             data.read is bool &&
+             data.createdAt is string;
+    }
+
+    function isValidUser(data) {
+      return hasRequiredFields(['role', 'email']) &&
+             data.role in ['admin', 'user'] &&
+             isValidEmail(data.email);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /purchaseOrders/{poId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidPurchaseOrder(request.resource.data);
+      allow update: if isAuthenticated() && isValidPurchaseOrder(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /logs/{logId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidLog(request.resource.data);
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidNotification(request.resource.data);
+      allow update: if isAuthenticated() && isValidNotification(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && (request.auth.uid == userId && request.resource.data.role == 'user' || isAdmin());
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && (isAdmin() || (request.auth.uid == userId && request.resource.data.role == resource.data.role));
+      allow delete: if isAdmin();
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

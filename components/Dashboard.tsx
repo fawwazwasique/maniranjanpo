@@ -33,7 +33,7 @@ interface DashboardProps {
     zones: string[];
   }>>;
   customers: string[];
-  onCardClick?: (type: string) => void;
+  onCardClick?: (type: string, value?: string) => void;
 }
 
 interface TrendData {
