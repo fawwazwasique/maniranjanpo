@@ -14,6 +14,7 @@ import DataManagementPane from './components/DataManagementPane';
 import ReportsPane from './components/ReportsPane';
 import DetailedBreakdownPane from './components/DetailedBreakdownPane';
 import ErrorBanner from './components/ErrorBanner';
+import WelcomeScreen from './components/WelcomeScreen';
 import useLocalStorage from './hooks/useLocalStorage';
 import { db, auth } from './services/firebase';
 import { collection, onSnapshot, addDoc, doc, updateDoc, writeBatch, query, where, getDocs, serverTimestamp, Timestamp, orderBy, setDoc } from 'firebase/firestore';
@@ -77,7 +78,8 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 
 type ModalType = 'none' | 'poDetail' | 'suggestion';
 type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'topCustomers' | 'detailedBreakdown';
-type Theme = 'light' | 'dark';
+type ThemeMode = 'light' | 'dark';
+type ThemeColor = 'classic' | 'emerald' | 'midnight' | 'sunset' | 'ocean';
 
 /**
  * Strict data sanitizer. 
@@ -133,7 +135,9 @@ function App() {
 
   const [activeModal, setActiveModal] = useState<ModalType>('none');
   const [activePane, setActivePane] = useState<Pane>('dashboard');
-  const [theme, setTheme] = useLocalStorage<Theme>('theme', 'light');
+  const [themeMode, setThemeMode] = useLocalStorage<ThemeMode>('themeMode', 'light');
+  const [themeColor, setThemeColor] = useLocalStorage<ThemeColor>('themeColor', 'classic');
+  const [showWelcome, setShowWelcome] = useState(true);
 
   const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
   const [poToDelete, setPoToDelete] = useState<string | string[] | null>(null);
@@ -181,9 +185,10 @@ function App() {
 
   useEffect(() => {
     const root = window.document.documentElement;
-    root.classList.remove(theme === 'light' ? 'dark' : 'light');
-    root.classList.add(theme);
-  }, [theme]);
+    root.classList.remove('light', 'dark');
+    root.classList.add(themeMode);
+    root.setAttribute('data-theme', themeColor);
+  }, [themeMode, themeColor]);
 
   useEffect(() => {
     signInAnonymously(auth).catch(err => {
@@ -219,7 +224,7 @@ function App() {
     return () => {
         unsubPO(); unsubLogs(); unsubNotifs();
     };
-}, [theme]);
+}, []);
 
   const addLog = async (poId: string, action: string) => {
     try {
@@ -384,10 +389,21 @@ function App() {
 
   return (
     <div className="flex h-screen bg-slate-100 dark:bg-gray-900 text-slate-900 dark:text-slate-100 overflow-hidden">
+       {showWelcome && <WelcomeScreen onComplete={() => setShowWelcome(false)} />}
        {firestoreError && <ErrorBanner projectId="ethenpo-3afb3" message={firestoreError} onDismiss={() => setFirestoreError(null)} />}
-      <Sidebar activePane={activePane} setActivePane={setActivePane} />
+      <Sidebar 
+        activePane={activePane} 
+        setActivePane={setActivePane} 
+        themeColor={themeColor}
+        setThemeColor={setThemeColor}
+      />
        <div className="flex-1 flex flex-col">
-        <Header notifications={notifications} onMarkNotificationsAsRead={() => {}} theme={theme} setTheme={setTheme} />
+        <Header 
+            notifications={notifications} 
+            onMarkNotificationsAsRead={() => {}} 
+            theme={themeMode} 
+            setTheme={setThemeMode} 
+        />
         <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900">
             {activePane === 'dashboard' && <Dashboard purchaseOrders={purchaseOrders} filters={filters} setFilters={setFilters} customers={uniqueCustomers} onCardClick={handleDashboardCardClick} />}
             {activePane === 'allOrders' && (

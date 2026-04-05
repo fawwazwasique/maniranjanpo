@@ -354,7 +354,7 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                         <div className="space-y-4 h-full flex flex-col">
                             <div className="flex justify-between items-center mb-2">
                                 <p className="text-slate-600 dark:text-slate-400">System-wide record of stock quantities assigned to specific Purchase Orders.</p>
-                                <button onClick={exportAllocationReport} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-lg">
+                                <button onClick={exportAllocationReport} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-dark bg-primary/10 hover:bg-primary/20 rounded-lg">
                                     <ArrowDownTrayIcon className="w-4 h-4" /> Export Allocation Report
                                 </button>
                             </div>
@@ -379,11 +379,11 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                                                         <td className="p-3 font-medium text-slate-900 dark:text-white">{po.poNumber}</td>
                                                         <td className="p-3">{po.customerName}</td>
                                                         <td className="p-3 font-bold">{item.partNumber}</td>
-                                                        <td className="p-3 text-right font-black text-indigo-600">{item.allocatedQuantity}</td>
+                                                        <td className="p-3 text-right font-black text-primary">{item.allocatedQuantity}</td>
                                                         <td className="p-3 text-right">{item.quantity}</td>
                                                         <td className="p-3">
                                                             <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 max-w-[100px]">
-                                                                <div className="bg-indigo-600 h-2.5 rounded-full" style={{ width: `${percent}%` }}></div>
+                                                                <div className="bg-primary h-2.5 rounded-full" style={{ width: `${percent}%` }}></div>
                                                             </div>
                                                             <span className="text-[10px] text-slate-500">{percent}%</span>
                                                         </td>
@@ -429,7 +429,7 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                             </div>
                             <div className="flex justify-between items-center mb-2">
                                 <p className="text-slate-600 dark:text-slate-400">Total OA Entries: <span className="font-bold text-green-600">{oaFilledData.reduce((acc, d) => acc + d.items.length, 0)}</span> items across <span className="font-bold">{oaFilledData.length}</span> POs.</p>
-                                <button onClick={exportOAFilled} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded-lg">
+                                <button onClick={exportOAFilled} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-dark bg-primary/10 hover:bg-primary/20 rounded-lg">
                                     <ArrowDownTrayIcon className="w-4 h-4" /> Export OA Report
                                 </button>
                             </div>
@@ -454,7 +454,7 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                                                             <td className="p-3 font-medium">{po.poNumber}</td>
                                                             <td className="p-3">{po.customerName}</td>
                                                             <td className="p-3">{item.partNumber}</td>
-                                                            <td className="p-3 font-bold text-green-600">{item.oaNo}</td>
+                                                            <td className="p-3 font-bold text-primary">{item.oaNo}</td>
                                                             <td className="p-3">{item.oaDate}</td>
                                                             <td className="p-3">{item.status}</td>
                                                         </tr>
@@ -474,7 +474,7 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                         <div className="space-y-4 h-full flex flex-col">
                             <div className="flex justify-between items-center mb-2">
                                 <p className="text-slate-600 dark:text-slate-400">Missing OA details for unavailable items in pending POs.</p>
-                                <button onClick={exportMissingOA} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 rounded-lg">
+                                <button onClick={exportMissingOA} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-dark bg-primary/10 hover:bg-primary/20 rounded-lg">
                                     <ArrowDownTrayIcon className="w-4 h-4" /> Export Report
                                 </button>
                             </div>

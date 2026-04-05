@@ -34,16 +34,15 @@ const Header: React.FC<HeaderProps> = ({ notifications, onMarkNotificationsAsRea
                 <LogoIcon className="w-8 h-8" />
              </div>
              <div className="flex flex-col">
-                <h1 className="text-xl font-black text-slate-800 dark:text-white tracking-tight leading-none">ETHEN</h1>
-                <p className="text-[8px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-widest leading-none mt-1">POWER SOLUTIONNS</p>
+                <h1 className="text-xl font-black text-slate-800 dark:text-white tracking-tight leading-none">Ethen Group</h1>
+                <p className="text-[8px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-widest leading-none mt-1">PO Dashboard</p>
              </div>
              <span className="hidden sm:block h-6 w-[2px] bg-slate-200 dark:bg-slate-600 mx-2"></span>
-             <p className="hidden md:block text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">PO Dashboard</p>
           </div>
           <div className="flex items-center space-x-2">
              <button
                 onClick={toggleTheme}
-                className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-100 dark:focus:ring-offset-slate-800 focus:ring-red-500"
+                className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-100 dark:focus:ring-offset-slate-800 focus:ring-primary"
                 aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
               >
                 {theme === 'light' ? <MoonIcon className="w-6 h-6"/> : <SunIcon className="w-6 h-6"/>}
@@ -51,12 +50,12 @@ const Header: React.FC<HeaderProps> = ({ notifications, onMarkNotificationsAsRea
             <div className="relative">
               <button
                 onClick={handleBellClick}
-                className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-100 dark:focus:ring-offset-slate-800 focus:ring-red-500"
+                className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-100 dark:focus:ring-offset-slate-800 focus:ring-primary"
                 aria-label={`Notifications (${unreadCount} unread)`}
               >
                 <BellIcon />
                 {unreadCount > 0 && (
-                  <span className="absolute top-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-[#C1272D] text-xs font-medium text-white ring-2 ring-white dark:ring-slate-800">
+                  <span className="absolute top-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs font-medium text-white ring-2 ring-white dark:ring-slate-800">
                     {unreadCount}
                   </span>
                 )}
@@ -67,7 +66,7 @@ const Header: React.FC<HeaderProps> = ({ notifications, onMarkNotificationsAsRea
                   <ul className="max-h-96 overflow-y-auto">
                     {notifications.length > 0 ? (
                       notifications.slice().reverse().map(n => (
-                        <li key={n.id} className={`px-4 py-3 border-b dark:border-slate-700/50 text-base transition-colors duration-200 ${!n.read ? 'bg-red-50 dark:bg-red-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}>
+                        <li key={n.id} className={`px-4 py-3 border-b dark:border-slate-700/50 text-base transition-colors duration-200 ${!n.read ? 'bg-primary/5 dark:bg-primary/10' : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}>
                           <p className="font-medium text-slate-800 dark:text-slate-100">{n.message}</p>
                           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">PO: {n.poId} &middot; {new Date(n.createdAt).toLocaleString()}</p>
                         </li>

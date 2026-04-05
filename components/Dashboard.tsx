@@ -51,7 +51,7 @@ const DashboardStatCard: React.FC<{ title: string; value: string | number; subVa
         {indicatorColor && (
             <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${indicatorColor}`}></div>
         )}
-        <div className="bg-red-100 dark:bg-red-900/50 p-3 rounded-full">
+        <div className="bg-primary/10 dark:bg-primary/20 p-3 rounded-full">
             {icon}
         </div>
         <div className="flex-1">
@@ -89,7 +89,7 @@ const DashboardStatCard: React.FC<{ title: string; value: string | number; subVa
 const ChartContainer: React.FC<{ title: string; children: React.ReactNode, className?: string }> = ({ title, children, className }) => (
     <div className={`bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md ${className}`}>
         <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
-            <ChartPieIcon className="w-5 h-5 text-red-500" /> {title}
+            <ChartPieIcon className="w-5 h-5 text-primary" /> {title}
         </h3>
         {children}
     </div>
@@ -913,26 +913,26 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     </button>
                 </div>
 
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border-t-4 border-red-500 shadow-lg hover:shadow-xl transition-shadow">
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border-t-4 border-primary shadow-lg hover:shadow-xl transition-shadow">
                     <div className="flex justify-between items-start mb-4">
                         <div>
                             <p className="text-slate-500 dark:text-slate-400 font-bold text-sm uppercase tracking-wider">100% Not Available</p>
-                            <p className="text-red-600 dark:text-red-400 text-xs font-medium">No Items in Stock</p>
+                            <p className="text-primary dark:text-primary-dark text-xs font-medium">No Items in Stock</p>
                         </div>
-                        <div className="bg-red-100 dark:bg-red-900/30 p-2 rounded-lg">
-                            <NoSymbolIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
+                        <div className="bg-primary/10 dark:bg-primary/30 p-2 rounded-lg">
+                            <NoSymbolIcon className="w-6 h-6 text-primary dark:text-primary-dark" />
                         </div>
                     </div>
                     <div className="flex items-baseline gap-2 mb-2">
                         <span className="text-3xl font-black text-slate-800 dark:text-white">{dashboardData.notAvailablePOs}</span>
                         <span className="text-slate-400 font-semibold text-sm">POs</span>
                     </div>
-                    <p className="text-2xl font-bold text-red-600 mb-4">
+                    <p className="text-2xl font-bold text-primary mb-4">
                         {formatCurrency(dashboardData.notAvailableValue, { notation: 'compact' })}
                     </p>
                     <button 
                         onClick={() => onCardClick?.('NOT_AVAILABLE')}
-                        className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-all active:scale-95 text-sm shadow-md shadow-red-600/20"
+                        className="w-full py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold transition-all active:scale-95 text-sm shadow-md shadow-primary/20"
                     >
                         View Missing POs
                     </button>
@@ -951,8 +951,8 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 <DashboardStatCard 
                     title="Active PO Value" 
                     value={formatCurrency(dashboardData.openPOValue, { notation: 'compact' })} 
-                    icon={<CurrencyRupeeIcon className="w-6 h-6 text-red-500" />} 
-                    indicatorColor="bg-red-500"
+                    icon={<CurrencyRupeeIcon className="w-6 h-6 text-primary" />} 
+                    indicatorColor="bg-primary"
                     trend={dashboardData.valueTrend}
                     onClick={() => setSelectedBreakdown({ type: 'OPEN', title: "Active PO Value" })}
                 />
@@ -1049,7 +1049,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     <div className="relative z-10">
                         <div className="flex justify-between items-start mb-4">
                             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Total Not Available Value</h3>
-                            <div className="p-2 bg-red-600 rounded-lg">
+                            <div className="p-2 bg-primary rounded-lg">
                                 <NoSymbolIcon className="w-5 h-5 text-white" />
                             </div>
                         </div>
@@ -1057,10 +1057,10 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                             <p className="text-4xl font-black text-white">
                                 {formatCurrency(dashboardData.totalNotAvailableValue, { notation: 'compact' })}
                             </p>
-                            <p className="text-sm font-bold text-red-400 uppercase">Total Gap</p>
+                            <p className="text-sm font-bold text-primary uppercase">Total Gap</p>
                         </div>
                         <p className="text-xs text-slate-400 font-medium leading-relaxed">
-                            Combined value of <span className="text-red-400 font-bold">all missing items</span> across Partial and 100% Not Available POs.
+                            Combined value of <span className="text-primary font-bold">all missing items</span> across Partial and 100% Not Available POs.
                         </p>
                     </div>
                 </div>
@@ -1075,19 +1075,19 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     <div className="relative z-10">
                         <div className="flex justify-between items-start mb-4">
                             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Oil-Stuck POs</h3>
-                            <div className="p-2 bg-red-500 rounded-lg">
+                            <div className="p-2 bg-primary-dark rounded-lg">
                                 <SparklesIcon className="w-5 h-5 text-white" />
                             </div>
                         </div>
                         <div className="flex items-baseline gap-2 mb-2">
                             <p className="text-4xl font-black text-white">{dashboardData.oilStuckPOs}</p>
-                            <p className="text-sm font-bold text-red-400 uppercase">POs</p>
+                            <p className="text-sm font-bold text-primary uppercase">POs</p>
                         </div>
                         <p className="text-xs text-slate-400 font-medium leading-relaxed">
-                            Orders where <span className="text-green-400 font-bold">all parts are available</span> except for <span className="text-red-400 font-bold">Valvoline Oil</span>.
+                            Orders where <span className="text-green-400 font-bold">all parts are available</span> except for <span className="text-primary font-bold">Valvoline Oil</span>.
                         </p>
                         <div className="mt-4 flex items-center gap-2 text-[10px] font-bold text-slate-300 uppercase tracking-widest bg-white/10 px-3 py-2 rounded-lg w-fit">
-                            <CurrencyRupeeIcon className="w-4 h-4 text-red-500" />
+                            <CurrencyRupeeIcon className="w-4 h-4 text-primary" />
                             Value: {formatCurrency(dashboardData.oilStuckValue, { notation: 'compact' })}
                         </div>
                     </div>
