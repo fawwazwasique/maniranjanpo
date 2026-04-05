@@ -3,7 +3,8 @@ import React, { useState, useCallback } from 'react';
 import { ArrowUpTrayIcon, DocumentPlusIcon, PlusIcon, XMarkIcon, ArrowDownTrayIcon } from './icons';
 import { MAIN_BRANCHES, BRANCH_STRUCTURE, BULK_UPLOAD_HEADERS, ITEM_CATEGORIES, SALE_TYPES, CUSTOMER_CATEGORIES, ZONES } from '../constants';
 import { downloadTemplate } from '../utils/export';
-import { OrderStatus, OverallPOStatus, FulfillmentStatus, POItemStatus } from '../types';
+import { OrderStatus, OverallPOStatus, FulfillmentStatus, POItemStatus, CustomerCategory, Zone } from '../types';
+import { normalizeToAllowedValue, normalizeEnum } from '../utils/stringUtils';
 
 interface UploadPaneProps {
     onSaveSingleOrder: (order: any) => void;
@@ -185,7 +186,7 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                 const items = group.map(row => ({
                     partNumber: getStr(row, nameIdx, 'N/A'),
                     itemType: getStr(row, typeIdx),
-                    category: getStr(row, catIdx),
+                    category: normalizeToAllowedValue(getStr(row, catIdx), ITEM_CATEGORIES),
                     itemDesc: getStr(row, descIdx),
                     quantity: getNum(row, qtyIdx, 1),
                     rate: getNum(row, priceIdx),
@@ -195,33 +196,36 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                     grossAmount: getNum(row, grossAmtIdx),
                     stockAvailable: getNum(row, stockAvailIdx),
                     stockInHand: getNum(row, stockHandIdx),
-                    status: getStr(row, itemStatusIdx) as POItemStatus || POItemStatus.NotAvailable,
+                    status: normalizeEnum(getStr(row, itemStatusIdx), POItemStatus) as POItemStatus || POItemStatus.NotAvailable,
                     oaNo: getStr(row, oaNoIdx),
                     oaDate: getStr(row, oaDateIdx),
                     itemRemarks: getStr(row, itemRemIdx),
                 }));
 
+                const rawSaleType = getStr(first, saleTypeIdx, 'Credit');
+                const normalizedSaleType = normalizeToAllowedValue(rawSaleType, SALE_TYPES) as any;
+
                 return {
-                    mainBranch: getStr(first, branchIdx, 'Unassigned'),
+                    mainBranch: normalizeToAllowedValue(getStr(first, branchIdx, 'Unassigned'), MAIN_BRANCHES),
                     subBranch: getStr(first, subBranchIdx),
                     customerName: getStr(first, accountIdx, 'Unknown'),
                     salesOrderNumber: getStr(first, soNoIdx),
                     soDate: getStr(first, soDateIdx),
                     poNumber: poNumber,
                     poDate: getStr(first, poDateIdx, new Date().toISOString().split('T')[0]),
-                    status: getStr(first, poStatusIdx) as OverallPOStatus || OverallPOStatus.Available,
-                    poStatus: getStr(first, poStatusIdx) as OverallPOStatus || OverallPOStatus.Available,
-                    orderStatus: getStr(first, orderStatusIdx) as OrderStatus || OrderStatus.OpenOrders,
-                    saleType: getStr(first, saleTypeIdx, 'Credit') as any,
-                    paymentStatus: (getStr(first, saleTypeIdx) === 'Cash' || getStr(first, saleTypeIdx) === 'Awaiting Payment') ? 'Pending' : null,
+                    status: normalizeEnum(getStr(first, poStatusIdx), OverallPOStatus) as OverallPOStatus || OverallPOStatus.Available,
+                    poStatus: normalizeEnum(getStr(first, poStatusIdx), OverallPOStatus) as OverallPOStatus || OverallPOStatus.Available,
+                    orderStatus: normalizeEnum(getStr(first, orderStatusIdx), OrderStatus) as OrderStatus || OrderStatus.OpenOrders,
+                    saleType: normalizedSaleType,
+                    paymentStatus: (normalizedSaleType === 'Cash' || normalizedSaleType === 'Awaiting Payment') ? 'Pending' : null,
                     creditTerms: getNum(first, creditDaysIdx, 30),
                     billingPlan: getStr(first, billPlanIdx),
-                    materials: getStr(first, materialsIdx) as FulfillmentStatus || FulfillmentStatus.Available,
-                    fulfillmentStatus: getStr(first, materialsIdx) as FulfillmentStatus || FulfillmentStatus.Available,
+                    materials: normalizeEnum(getStr(first, materialsIdx), FulfillmentStatus) as FulfillmentStatus || FulfillmentStatus.Available,
+                    fulfillmentStatus: normalizeEnum(getStr(first, materialsIdx), FulfillmentStatus) as FulfillmentStatus || FulfillmentStatus.Available,
                     invoiceNumber: getStr(first, invNoIdx),
                     invoiceDate: getStr(first, invDateIdx),
-                    customerCategory: getStr(first, custCatIdx) as any,
-                    zone: getStr(first, zoneIdx) as any,
+                    customerCategory: normalizeEnum(getStr(first, custCatIdx), CustomerCategory) as any,
+                    zone: normalizeEnum(getStr(first, zoneIdx), Zone) as any,
                     etaAvailable: getStr(first, etaIdx),
                     generalRemarks: getStr(first, genRemIdx),
                     pfAvailable: getBool(first, pfIdx),

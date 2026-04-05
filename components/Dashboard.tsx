@@ -3,10 +3,11 @@ import React, { useMemo } from 'react';
 import type { PurchaseOrder } from '../types';
 import { OverallPOStatus, FulfillmentStatus, OrderStatus, POItemStatus, CustomerCategory } from '../types';
 import { CheckCircleIcon, ClockIcon, MagnifyingGlassIcon, TruckIcon, UserGroupIcon, XMarkIcon, ChartPieIcon, CalendarDaysIcon, CurrencyRupeeIcon, NoSymbolIcon, ArrowUpIcon, ArrowDownIcon, SparklesIcon, BeakerIcon } from './icons';
-import { MAIN_BRANCHES, BRANCH_STRUCTURE, ITEM_CATEGORIES, CUSTOMER_CATEGORIES, ZONES } from '../constants';
+import { MAIN_BRANCHES, BRANCH_STRUCTURE, ITEM_CATEGORIES, CUSTOMER_CATEGORIES, ZONES, SALE_TYPES } from '../constants';
 import { isOilItem, isOilStuckPO, getPOFulfillmentStatus, getPOValue } from '../utils/poUtils';
 import { isDateInRange } from '../utils/dateUtils';
 import { formatCurrency } from '../utils/currencyUtils';
+import { normalizeToAllowedValue, normalizeEnum } from '../utils/stringUtils';
 
 interface DashboardProps {
   purchaseOrders: PurchaseOrder[];
@@ -440,7 +441,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         const checklistDataRaw: Record<string, number> = {};
         ITEM_CATEGORIES.forEach(cat => {
             checklistDataRaw[cat] = activePOs.filter(po => 
-                (po.items || []).some(item => item.category === cat)
+                (po.items || []).some(item => normalizeToAllowedValue(item.category, ITEM_CATEGORIES) === cat)
             ).length;
         });
         const checklistColors: Record<string, string> = { 
@@ -464,9 +465,9 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
         // Customer Category Chart Data
         const customerCategoryDataRaw: Record<string, number> = {
-            [CustomerCategory.AMC]: activePOs.filter(po => po.customerCategory === CustomerCategory.AMC).length,
-            [CustomerCategory.NON_AMC]: activePOs.filter(po => po.customerCategory === CustomerCategory.NON_AMC).length,
-            [CustomerCategory.NEPI]: activePOs.filter(po => po.customerCategory === CustomerCategory.NEPI).length,
+            [CustomerCategory.AMC]: activePOs.filter(po => normalizeEnum(po.customerCategory, CustomerCategory) === CustomerCategory.AMC).length,
+            [CustomerCategory.NON_AMC]: activePOs.filter(po => normalizeEnum(po.customerCategory, CustomerCategory) === CustomerCategory.NON_AMC).length,
+            [CustomerCategory.NEPI]: activePOs.filter(po => normalizeEnum(po.customerCategory, CustomerCategory) === CustomerCategory.NEPI).length,
         };
         const customerCategoryColors: Record<string, string> = {
             [CustomerCategory.AMC]: '#3b82f6',
@@ -502,14 +503,16 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         const top50Contribution = openPOValue > 0 ? (top50TotalValue / openPOValue) * 100 : 0;
 
         const valueByPayment = activePOs.reduce((acc, po) => {
-            const type = po.saleType || 'N/A';
+            const rawType = po.saleType || 'N/A';
+            const type = normalizeToAllowedValue(rawType, SALE_TYPES);
             const value = getPOValue(po, filters.categories);
             acc[type] = (acc[type] || 0) + value;
             return acc;
         }, {} as Record<string, number>);
 
         const countByPayment = activePOs.reduce((acc, po) => {
-            const type = po.saleType || 'N/A';
+            const rawType = po.saleType || 'N/A';
+            const type = normalizeToAllowedValue(rawType, SALE_TYPES);
             acc[type] = (acc[type] || 0) + 1;
             return acc;
         }, {} as Record<string, number>);
@@ -560,7 +563,8 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         const poAgeingValueChartData = Object.entries(ageingValue).map(([label, value]) => ({ label, value }));
 
         const valueByBranch = activePOs.reduce((acc, po) => {
-            const branch = po.mainBranch || 'Unassigned';
+            const rawBranch = po.mainBranch || 'Unassigned';
+            const branch = normalizeToAllowedValue(rawBranch, MAIN_BRANCHES);
             const value = getPOValue(po, filters.categories);
             acc[branch] = (acc[branch] || 0) + value;
             return acc;
@@ -670,16 +674,17 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
         pos.forEach(po => {
             (po.items || []).forEach(item => {
-                if (filters.categories.length > 0 && !filters.categories.includes(item.category)) return;
+                const normalizedCategory = normalizeToAllowedValue(item.category, ITEM_CATEGORIES) || 'Others';
+                if (filters.categories.length > 0 && !filters.categories.includes(normalizedCategory)) return;
                 
                 const val = (Number(item.quantity || 0) * Number(item.rate || 0));
                 
                 if (isGap) {
                     if (item.status === POItemStatus.NotAvailable || item.status === POItemStatus.PartiallyAvailable) {
-                        categoryTotals[item.category] = (categoryTotals[item.category] || 0) + val;
+                        categoryTotals[normalizedCategory] = (categoryTotals[normalizedCategory] || 0) + val;
                     }
                 } else {
-                    categoryTotals[item.category] = (categoryTotals[item.category] || 0) + val;
+                    categoryTotals[normalizedCategory] = (categoryTotals[normalizedCategory] || 0) + val;
                 }
             });
         });
