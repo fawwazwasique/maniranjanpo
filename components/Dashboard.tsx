@@ -360,6 +360,11 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         const totalInvoicedPOs = invoicedPOs.length;
         const totalInvoicedValue = calculateValue(invoicedPOs);
 
+        // Partial Invoices PO
+        const partialInvoicedPOsList = filteredPOs.filter(po => po.orderStatus === OrderStatus.PartiallyInvoiced);
+        const partialInvoicedPOs = partialInvoicedPOsList.length;
+        const partialInvoicedValue = calculateValue(partialInvoicedPOsList);
+
         // 1. 100% Available (Ready to Execute)
         const fullyAvailablePOsList = activePOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.Available);
         const fullyAvailablePOs = fullyAvailablePOsList.length;
@@ -638,6 +643,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             openTrend, valueTrend, fullyTrend, partialTrend, notAvailableTrend,
             avgPOtoSOTrend, avgSOtoInvoiceTrend, avgPOtoInvoiceTrend,
             totalInvoicedPOs, totalInvoicedValue, invoicedTrend,
+            partialInvoicedPOs, partialInvoicedValue,
             top50TotalValue, top50Contribution
         };
     }, [activePOs, invoicedPOs, purchaseOrders, filters]);
@@ -653,6 +659,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         else if (type === 'ANY_SHORTAGE') pos = activePOs.filter(po => getPOFulfillmentStatus(po, filters.categories) !== FulfillmentStatus.Available);
         else if (type === 'OIL_STUCK') pos = activePOs.filter(isOilStuckPO);
         else if (type === 'INVOICED') pos = invoicedPOs;
+        else if (type === 'PARTIAL_INVOICED') pos = filteredPOs.filter(po => po.orderStatus === OrderStatus.PartiallyInvoiced);
         else if (type === 'GAP') {
             pos = activePOs;
             isGap = true;
@@ -856,83 +863,83 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
             {/* Ready to Execute / Partial / Not Available Panes */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-2xl border border-green-100 dark:border-green-800 shadow-sm">
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border-t-4 border-green-500 shadow-lg hover:shadow-xl transition-shadow">
                     <div className="flex justify-between items-start mb-4">
                         <div>
-                            <p className="text-green-800 dark:text-green-300 font-bold text-lg">Ready to Execute</p>
-                            <p className="text-green-600 dark:text-green-400 text-sm font-medium">100% Items Available</p>
+                            <p className="text-slate-500 dark:text-slate-400 font-bold text-sm uppercase tracking-wider">Ready to Execute</p>
+                            <p className="text-green-600 dark:text-green-400 text-xs font-medium">100% Items Available</p>
                         </div>
-                        <div className="bg-green-100 dark:bg-green-800 p-2 rounded-lg">
+                        <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded-lg">
                             <CheckCircleIcon className="w-6 h-6 text-green-600 dark:text-green-400" />
                         </div>
                     </div>
-                    <div className="flex items-baseline gap-2 mb-4">
-                        <span className="text-3xl font-bold text-green-900 dark:text-green-100">{dashboardData.fullyAvailablePOs}</span>
-                        <span className="text-green-700 dark:text-green-400 font-semibold">POs</span>
+                    <div className="flex items-baseline gap-2 mb-2">
+                        <span className="text-3xl font-black text-slate-800 dark:text-white">{dashboardData.fullyAvailablePOs}</span>
+                        <span className="text-slate-400 font-semibold text-sm">POs</span>
                     </div>
-                    <p className="text-2xl font-bold text-green-800 dark:text-green-200 mb-4">
+                    <p className="text-2xl font-bold text-green-600 mb-4">
                         {formatCurrency(dashboardData.fullyAvailableValue, { notation: 'compact' })}
                     </p>
                     <button 
                         onClick={() => onCardClick?.('FULLY_AVAILABLE')}
-                        className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-colors text-sm"
+                        className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all active:scale-95 text-sm shadow-md shadow-green-600/20"
                     >
                         View Ready POs
                     </button>
                 </div>
 
-                <div className="bg-amber-50 dark:bg-amber-900/20 p-6 rounded-2xl border border-amber-100 dark:border-amber-800 shadow-sm">
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border-t-4 border-amber-500 shadow-lg hover:shadow-xl transition-shadow">
                     <div className="flex justify-between items-start mb-4">
                         <div>
-                            <p className="text-amber-800 dark:text-amber-300 font-bold text-lg">Partially Available</p>
-                            <p className="text-amber-600 dark:text-amber-400 text-sm font-medium">Some Items Missing</p>
+                            <p className="text-slate-500 dark:text-slate-400 font-bold text-sm uppercase tracking-wider">Partially Available</p>
+                            <p className="text-amber-600 dark:text-amber-400 text-xs font-medium">Some Items Missing</p>
                         </div>
-                        <div className="bg-amber-100 dark:bg-amber-800 p-2 rounded-lg">
+                        <div className="bg-amber-100 dark:bg-amber-900/30 p-2 rounded-lg">
                             <ClockIcon className="w-6 h-6 text-amber-600 dark:text-amber-400" />
                         </div>
                     </div>
-                    <div className="flex items-baseline gap-2 mb-4">
-                        <span className="text-3xl font-bold text-amber-900 dark:text-amber-100">{dashboardData.partiallyAvailablePOs}</span>
-                        <span className="text-amber-700 dark:text-amber-400 font-semibold">POs</span>
+                    <div className="flex items-baseline gap-2 mb-2">
+                        <span className="text-3xl font-black text-slate-800 dark:text-white">{dashboardData.partiallyAvailablePOs}</span>
+                        <span className="text-slate-400 font-semibold text-sm">POs</span>
                     </div>
-                    <p className="text-2xl font-bold text-amber-800 dark:text-amber-200 mb-4">
+                    <p className="text-2xl font-bold text-amber-600 mb-4">
                         {formatCurrency(dashboardData.partiallyAvailableValue, { notation: 'compact' })}
                     </p>
                     <button 
                         onClick={() => onCardClick?.('PARTIALLY_AVAILABLE')}
-                        className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold transition-colors text-sm"
+                        className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold transition-all active:scale-95 text-sm shadow-md shadow-amber-600/20"
                     >
                         View Partial POs
                     </button>
                 </div>
 
-                <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-2xl border border-red-100 dark:border-red-800 shadow-sm">
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border-t-4 border-red-500 shadow-lg hover:shadow-xl transition-shadow">
                     <div className="flex justify-between items-start mb-4">
                         <div>
-                            <p className="text-red-800 dark:text-red-300 font-bold text-lg">100% Not Available</p>
-                            <p className="text-red-600 dark:text-red-400 text-sm font-medium">No Items in Stock</p>
+                            <p className="text-slate-500 dark:text-slate-400 font-bold text-sm uppercase tracking-wider">100% Not Available</p>
+                            <p className="text-red-600 dark:text-red-400 text-xs font-medium">No Items in Stock</p>
                         </div>
-                        <div className="bg-red-100 dark:bg-red-800 p-2 rounded-lg">
+                        <div className="bg-red-100 dark:bg-red-900/30 p-2 rounded-lg">
                             <NoSymbolIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
                         </div>
                     </div>
-                    <div className="flex items-baseline gap-2 mb-4">
-                        <span className="text-3xl font-bold text-red-900 dark:text-red-100">{dashboardData.notAvailablePOs}</span>
-                        <span className="text-red-700 dark:text-red-400 font-semibold">POs</span>
+                    <div className="flex items-baseline gap-2 mb-2">
+                        <span className="text-3xl font-black text-slate-800 dark:text-white">{dashboardData.notAvailablePOs}</span>
+                        <span className="text-slate-400 font-semibold text-sm">POs</span>
                     </div>
-                    <p className="text-2xl font-bold text-red-800 dark:text-red-200 mb-4">
+                    <p className="text-2xl font-bold text-red-600 mb-4">
                         {formatCurrency(dashboardData.notAvailableValue, { notation: 'compact' })}
                     </p>
                     <button 
                         onClick={() => onCardClick?.('NOT_AVAILABLE')}
-                        className="w-full py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors text-sm"
+                        className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-all active:scale-95 text-sm shadow-md shadow-red-600/20"
                     >
                         View Missing POs
                     </button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <DashboardStatCard 
                     title="Total No of PO's" 
                     value={dashboardData.totalOpenPOs} 
@@ -950,6 +957,14 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     onClick={() => setSelectedBreakdown({ type: 'OPEN', title: "Active PO Value" })}
                 />
                 <DashboardStatCard 
+                    title="Partial Invoices PO" 
+                    value={formatCurrency(dashboardData.partialInvoicedValue, { notation: 'compact' })} 
+                    subValue={`${dashboardData.partialInvoicedPOs} POs`}
+                    icon={<SparklesIcon className="w-6 h-6 text-purple-500" />} 
+                    indicatorColor="bg-purple-500"
+                    onClick={() => setSelectedBreakdown({ type: 'PARTIAL_INVOICED', title: "Partial Invoices PO" })}
+                />
+                <DashboardStatCard 
                     title="Invoiced POs" 
                     value={formatCurrency(dashboardData.totalInvoicedValue, { notation: 'compact' })} 
                     subValue={`${dashboardData.totalInvoicedPOs} POs`}
@@ -958,6 +973,9 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     trend={dashboardData.invoicedTrend}
                     onClick={() => setSelectedBreakdown({ type: 'INVOICED', title: "Invoiced POs" })}
                 />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <DashboardStatCard 
                     title="Ready to Execute" 
                     value={formatCurrency(dashboardData.fullyAvailableValue, { notation: 'compact' })} 
@@ -988,32 +1006,34 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             </div>
 
             {/* Detailed Fulfillment Insights */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-md border-l-4 border-amber-500">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="bg-amber-100 dark:bg-amber-900/50 p-2 rounded-lg">
-                            <BeakerIcon className="w-6 h-6 text-amber-600" />
-                        </div>
-                        <h3 className="text-lg font-bold text-slate-800 dark:text-white">Oil Required Analysis</h3>
-                    </div>
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                            <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Oil Required</span>
-                            <span className="font-bold text-slate-800 dark:text-slate-100">{formatCurrency(dashboardData.oilRequiredValue, { notation: 'compact' })}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Oil Item Count</span>
-                            <span className="font-bold text-slate-800 dark:text-slate-100">{dashboardData.oilRequiredCount} Items</span>
-                        </div>
-                        <div className="pt-3 border-t border-slate-100 dark:border-slate-700">
-                            <p className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase mb-2">Impact Analysis</p>
-                            <div className="flex justify-between items-center">
-                                <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">POs closing with Oil</span>
-                                <span className="font-bold text-green-600">{dashboardData.posClosingWithOilCount} POs</span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-lg border-t-4 border-amber-500 flex flex-col justify-between">
+                    <div>
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="bg-amber-100 dark:bg-amber-900/50 p-2 rounded-lg">
+                                <BeakerIcon className="w-6 h-6 text-amber-600" />
                             </div>
-                            <div className="flex justify-between items-center mt-1">
-                                <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Value to Unlock</span>
-                                <span className="font-bold text-green-600">{formatCurrency(dashboardData.posClosingWithOilValue, { notation: 'compact' })}</span>
+                            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Oil Required Analysis</h3>
+                        </div>
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center">
+                                <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Oil Required</span>
+                                <span className="font-bold text-slate-800 dark:text-slate-100">{formatCurrency(dashboardData.oilRequiredValue, { notation: 'compact' })}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Oil Item Count</span>
+                                <span className="font-bold text-slate-800 dark:text-slate-100">{dashboardData.oilRequiredCount} Items</span>
+                            </div>
+                            <div className="pt-3 border-t border-slate-100 dark:border-slate-700">
+                                <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase mb-2 tracking-widest">Impact Analysis</p>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">POs closing with Oil</span>
+                                    <span className="font-bold text-green-600">{dashboardData.posClosingWithOilCount} POs</span>
+                                </div>
+                                <div className="flex justify-between items-center mt-1">
+                                    <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Value to Unlock</span>
+                                    <span className="font-bold text-green-600">{formatCurrency(dashboardData.posClosingWithOilValue, { notation: 'compact' })}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1021,14 +1041,14 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
                 <div 
                     onClick={() => setSelectedBreakdown({ type: 'GAP', title: "Total Not Available Value" })}
-                    className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-xl shadow-md border border-slate-700 relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-transform"
+                    className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-2xl shadow-xl border border-slate-700 relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-all flex flex-col justify-between"
                 >
                     <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
                         <NoSymbolIcon className="w-32 h-32 text-white" />
                     </div>
                     <div className="relative z-10">
                         <div className="flex justify-between items-start mb-4">
-                            <h3 className="text-lg font-bold text-white uppercase tracking-tight">Total Not Available Value</h3>
+                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Total Not Available Value</h3>
                             <div className="p-2 bg-red-600 rounded-lg">
                                 <NoSymbolIcon className="w-5 h-5 text-white" />
                             </div>
@@ -1037,9 +1057,9 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                             <p className="text-4xl font-black text-white">
                                 {formatCurrency(dashboardData.totalNotAvailableValue, { notation: 'compact' })}
                             </p>
-                            <p className="text-lg font-bold text-red-400">Total Gap</p>
+                            <p className="text-sm font-bold text-red-400 uppercase">Total Gap</p>
                         </div>
-                        <p className="text-sm text-slate-400 font-medium mb-4">
+                        <p className="text-xs text-slate-400 font-medium leading-relaxed">
                             Combined value of <span className="text-red-400 font-bold">all missing items</span> across Partial and 100% Not Available POs.
                         </p>
                     </div>
@@ -1047,26 +1067,26 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
                 <div 
                     onClick={() => setSelectedBreakdown({ type: 'OIL_STUCK', title: "Oil-Stuck POs" })}
-                    className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-xl shadow-md border border-slate-700 relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-transform"
+                    className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-2xl shadow-xl border border-slate-700 relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-all flex flex-col justify-between"
                 >
                     <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
                         <BeakerIcon className="w-32 h-32 text-white" />
                     </div>
                     <div className="relative z-10">
                         <div className="flex justify-between items-start mb-4">
-                            <h3 className="text-lg font-bold text-white uppercase tracking-tight">Oil-Stuck POs</h3>
+                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Oil-Stuck POs</h3>
                             <div className="p-2 bg-red-500 rounded-lg">
                                 <SparklesIcon className="w-5 h-5 text-white" />
                             </div>
                         </div>
                         <div className="flex items-baseline gap-2 mb-2">
                             <p className="text-4xl font-black text-white">{dashboardData.oilStuckPOs}</p>
-                            <p className="text-lg font-bold text-red-400">POs</p>
+                            <p className="text-sm font-bold text-red-400 uppercase">POs</p>
                         </div>
-                        <p className="text-sm text-slate-400 font-medium mb-4">
+                        <p className="text-xs text-slate-400 font-medium leading-relaxed">
                             Orders where <span className="text-green-400 font-bold">all parts are available</span> except for <span className="text-red-400 font-bold">Valvoline Oil</span>.
                         </p>
-                        <div className="flex items-center gap-2 text-xs font-bold text-slate-300 uppercase tracking-widest bg-white/10 px-3 py-2 rounded-lg w-fit">
+                        <div className="mt-4 flex items-center gap-2 text-[10px] font-bold text-slate-300 uppercase tracking-widest bg-white/10 px-3 py-2 rounded-lg w-fit">
                             <CurrencyRupeeIcon className="w-4 h-4 text-red-500" />
                             Value: {formatCurrency(dashboardData.oilStuckValue, { notation: 'compact' })}
                         </div>
@@ -1074,7 +1094,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 </div>
             </div>
 
-            <div className="flex flex-col md:flex-row justify-center gap-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                  <DashboardStatCard 
                     title="Avg. PO → SO" 
                     value={dashboardData.avgPOtoSO} 
@@ -1163,96 +1183,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 }}
             />
 
-            {/* Operational Lists */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-                {/* Critical Part Shortages List */}
-                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden">
-                    <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex justify-between items-center">
-                        <h3 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                            <NoSymbolIcon className="w-4 h-4 text-red-500" />
-                            Parts Requiring Primary Order (Not Available)
-                        </h3>
-                        <span className="text-xs font-bold text-slate-500 bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded">
-                            Sorted by Value
-                        </span>
-                    </div>
-                    <div className="overflow-x-auto max-h-[400px]">
-                        <table className="w-full text-left text-sm">
-                            <thead className="sticky top-0 bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 text-xs uppercase font-bold">
-                                <tr>
-                                    <th className="px-4 py-3">Part Number</th>
-                                    <th className="px-4 py-3">Description</th>
-                                    <th className="px-4 py-3 text-right">Qty</th>
-                                    <th className="px-4 py-3 text-right">Value</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                                {dashboardData.unavailablePartsList.slice(0, 20).map((part, idx) => (
-                                    <tr 
-                                        key={idx} 
-                                        onClick={() => onCardClick?.('PART_SHORTAGE', part.partNumber)}
-                                        className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
-                                    >
-                                        <td className="px-4 py-3 font-mono text-xs font-bold text-slate-700 dark:text-slate-300">{part.partNumber}</td>
-                                        <td className="px-4 py-3 text-slate-600 dark:text-slate-400 truncate max-w-[200px]">{part.description}</td>
-                                        <td className="px-4 py-3 text-right font-bold text-red-500">{part.quantity}</td>
-                                        <td className="px-4 py-3 text-right font-bold text-slate-700 dark:text-slate-300">
-                                            {formatCurrency(part.value)}
-                                        </td>
-                                    </tr>
-                                ))}
-                                {dashboardData.unavailablePartsList.length === 0 && (
-                                    <tr>
-                                        <td colSpan={4} className="px-4 py-8 text-center text-slate-400 italic">No critical shortages found</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                {/* Oil-Stuck Orders List */}
-                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden">
-                    <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex justify-between items-center">
-                        <h3 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                            <SparklesIcon className="w-4 h-4 text-amber-500" />
-                            Oil-Stuck Orders
-                        </h3>
-                        <span className="text-xs font-bold text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-2 py-1 rounded">
-                            Ready if Oil Available
-                        </span>
-                    </div>
-                    <div className="overflow-x-auto max-h-[400px]">
-                        <table className="w-full text-left text-sm">
-                            <thead className="sticky top-0 bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 text-xs uppercase font-bold">
-                                <tr>
-                                    <th className="px-4 py-3">PO Number</th>
-                                    <th className="px-4 py-3">Customer</th>
-                                    <th className="px-4 py-3">Date</th>
-                                    <th className="px-4 py-3 text-right">Value</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                                {dashboardData.oilStuckPOsList.map((po, idx) => (
-                                    <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                                        <td className="px-4 py-3 font-bold text-slate-700 dark:text-slate-300">{po.poNumber}</td>
-                                        <td className="px-4 py-3 text-slate-600 dark:text-slate-400 truncate max-w-[150px]">{po.customerName}</td>
-                                        <td className="px-4 py-3 text-xs text-slate-500">{new Date(po.poDate).toLocaleDateString()}</td>
-                                        <td className="px-4 py-3 text-right font-bold text-slate-700 dark:text-slate-300">
-                                            {formatCurrency(po.items.reduce((acc, i) => acc + (i.quantity * i.rate), 0))}
-                                        </td>
-                                    </tr>
-                                ))}
-                                {dashboardData.oilStuckPOsList.length === 0 && (
-                                    <tr>
-                                        <td colSpan={4} className="px-4 py-8 text-center text-slate-400 italic">No oil-stuck orders found</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+            {/* Operational Lists Removed as per request */}
         </div>
     );
 };

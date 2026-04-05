@@ -23,6 +23,8 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
     const [endDate, setEndDate] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('');
+    const [oaMainBranchFilter, setOaMainBranchFilter] = useState('');
+    const [oaStatusFilter, setOaStatusFilter] = useState('');
 
     // General Filter Logic
     const filteredGeneralPOs = useMemo(() => {
@@ -57,13 +59,16 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
     const oaFilledData = useMemo(() => {
         const results: { po: PurchaseOrder, items: any[] }[] = [];
         purchaseOrders.forEach(po => {
+            if (oaMainBranchFilter && po.mainBranch !== oaMainBranchFilter) return;
+            if (oaStatusFilter && po.status !== oaStatusFilter) return;
+
             const filledItems = po.items.filter(item => item.oaNo && item.oaDate);
             if (filledItems.length > 0) {
                 results.push({ po, items: filledItems });
             }
         });
         return results;
-    }, [purchaseOrders]);
+    }, [purchaseOrders, oaMainBranchFilter, oaStatusFilter]);
 
     // Allocation Logic (New Report)
     const allocationData = useMemo(() => {
@@ -396,6 +401,32 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
 
                     {activeTab === 'oaFilled' && (
                         <div className="space-y-4 h-full flex flex-col">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg mb-2">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Main Branch</label>
+                                    <select 
+                                        value={oaMainBranchFilter} 
+                                        onChange={e => setOaMainBranchFilter(e.target.value)} 
+                                        className="mt-1 block w-full text-sm px-3 py-2 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none"
+                                    >
+                                        <option value="">All Branches</option>
+                                        {Array.from(new Set(purchaseOrders.map(po => po.mainBranch).filter(Boolean))).map(branch => (
+                                            <option key={branch} value={branch}>{branch}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Status</label>
+                                    <select 
+                                        value={oaStatusFilter} 
+                                        onChange={e => setOaStatusFilter(e.target.value)} 
+                                        className="mt-1 block w-full text-sm px-3 py-2 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none"
+                                    >
+                                        <option value="">All Statuses</option>
+                                        {Object.values(OverallPOStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                                    </select>
+                                </div>
+                            </div>
                             <div className="flex justify-between items-center mb-2">
                                 <p className="text-slate-600 dark:text-slate-400">Total OA Entries: <span className="font-bold text-green-600">{oaFilledData.reduce((acc, d) => acc + d.items.length, 0)}</span> items across <span className="font-bold">{oaFilledData.length}</span> POs.</p>
                                 <button onClick={exportOAFilled} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded-lg">
