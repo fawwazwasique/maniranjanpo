@@ -5,6 +5,8 @@ import { OverallPOStatus, FulfillmentStatus, POItemStatus, OrderStatus } from '.
 import { ChartBarIcon, CheckCircleIcon, ClockIcon, TruckIcon, ChartPieIcon, SparklesIcon, XMarkIcon, MagnifyingGlassIcon, ArrowDownTrayIcon, BeakerIcon } from './icons';
 import { isOilItem, isOilStuckPO } from '../utils/poUtils';
 import { formatToCr, formatCurrency } from '../utils/currencyUtils';
+import { normalizeToAllowedValue } from '../utils/stringUtils';
+import { MAIN_BRANCHES } from '../constants';
 
 interface AnalysisPaneProps {
   purchaseOrders: PurchaseOrder[];
@@ -182,9 +184,10 @@ const AnalysisPane: React.FC<AnalysisPaneProps> = ({ purchaseOrders, onSelectPO 
         const avgOrderValue = totalPOs > 0 ? totalValue / totalPOs : 0;
         
         const valueByBranch = activePOs.reduce((acc, po) => {
-            if (!po.mainBranch) return acc;
+            const rawBranch = po.mainBranch || 'Unassigned';
+            const branch = normalizeToAllowedValue(rawBranch, MAIN_BRANCHES);
             const value = po.items.reduce((itemAcc, item) => itemAcc + (Number(item.quantity) * Number(item.rate)), 0);
-            acc[po.mainBranch] = (acc[po.mainBranch] || 0) + value;
+            acc[branch] = (acc[branch] || 0) + value;
             return acc;
         }, {} as Record<string, number>);
  

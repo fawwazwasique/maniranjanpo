@@ -150,6 +150,7 @@ function App() {
       partNumber?: string;
       hasAnyShortage?: boolean;
       isInvoiced?: boolean;
+      isPartiallyInvoiced?: boolean;
       showGapOnly?: boolean;
       saleType?: string;
   } | null>(null);
@@ -375,6 +376,7 @@ function App() {
     else if (type === 'ANY_SHORTAGE') setOrdersFilter({ hasAnyShortage: true, isInvoiced: false });
     else if (type === 'OIL_STUCK') setOrdersFilter({ isOilStuck: true, isInvoiced: false });
     else if (type === 'PART_SHORTAGE') setOrdersFilter({ partNumber: payload, isInvoiced: false });
+    else if (type === 'PARTIAL_INVOICED') setOrdersFilter({ isPartiallyInvoiced: true });
     else if (type === 'INVOICED') setOrdersFilter({ isInvoiced: true });
     else if (type === 'GAP') setOrdersFilter({ showGapOnly: true, isInvoiced: false });
     else if (type === 'SALE_TYPE') setOrdersFilter({ saleType: payload, isInvoiced: false });

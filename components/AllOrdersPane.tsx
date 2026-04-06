@@ -20,6 +20,7 @@ interface AllOrdersPaneProps {
       partNumber?: string,
       hasAnyShortage?: boolean,
       isInvoiced?: boolean,
+      isPartiallyInvoiced?: boolean,
       showGapOnly?: boolean,
       saleType?: string
   } | null;
@@ -142,6 +143,8 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
             }
             if (filter.isInvoiced !== undefined) {
                 sortableItems = sortableItems.filter(po => filter.isInvoiced ? po.orderStatus === OrderStatus.Invoiced : po.orderStatus !== OrderStatus.Invoiced);
+            } else if (filter.isPartiallyInvoiced) {
+                sortableItems = sortableItems.filter(po => po.orderStatus === OrderStatus.PartiallyInvoiced);
             } else {
                 // If not explicitly filtering for invoiced, only show active ones by default if no other status filter is present
                 // This keeps the list "Active" unless we are viewing invoiced orders
@@ -427,6 +430,13 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                                     </span>
                                 </div>
                             )}
+                            {filter?.isPartiallyInvoiced && (
+                                <div className="flex flex-wrap gap-1">
+                                    <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-bold rounded-full uppercase">
+                                        Partially Invoiced Only
+                                    </span>
+                                </div>
+                            )}
                             {filter?.saleType && (
                                 <div className="flex flex-wrap gap-1">
                                     <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-full uppercase">
@@ -557,7 +567,16 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                                         <td className="p-4">{po.mainBranch}{po.subBranch && ` / ${po.subBranch}`}</td>
                                         <td className="p-4">{formatDate(po.poDate)}</td>
                                         <td className="p-4 text-right font-semibold">{formatCurrency(po.totalValue)}</td>
-                                        <td className="p-4 font-medium">{po.orderStatus}</td>
+                                        <td className="p-4 font-medium">
+                                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                                po.orderStatus === OrderStatus.Invoiced ? 'bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400' :
+                                                po.orderStatus === OrderStatus.PartiallyInvoiced ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                                                po.orderStatus === OrderStatus.Cancelled ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                                'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                                            }`}>
+                                                {po.orderStatus}
+                                            </span>
+                                        </td>
                                         <td className="p-4">
                                             <div className="flex flex-col gap-1 w-full max-w-[200px]">
                                                 <div className="flex text-xs font-semibold text-white overflow-hidden rounded-full h-4 w-full bg-slate-200 dark:bg-slate-700">

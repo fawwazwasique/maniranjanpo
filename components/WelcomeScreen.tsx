@@ -51,9 +51,9 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1, duration: 0.5 }}
-              className="text-4xl md:text-6xl font-black tracking-tighter mb-4"
+              className="text-4xl md:text-5xl font-black tracking-tighter mb-4"
             >
-              Welcome to <span className="text-primary">Ethen Group</span>
+              Welcome to <span className="text-primary">Ethen Group</span> PO Dashboard
             </motion.h1>
             
             <motion.p
@@ -61,22 +61,6 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
               animate={{ opacity: 1 }}
               transition={{ delay: 1.5, duration: 0.5 }}
               className="text-xl md:text-2xl font-bold text-slate-400 uppercase tracking-[0.3em] mb-12"
-            >
-              PO Dashboard
-            </motion.p>
-            
-            <motion.div
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ delay: 2, duration: 1, ease: "circOut" }}
-              className="w-48 h-1 bg-primary rounded-full mb-8 origin-center"
-            />
-            
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 2.5, duration: 0.5 }}
-              className="text-slate-500 font-medium italic"
             >
               by Fawwaz Creation
             </motion.p>

@@ -139,7 +139,14 @@ const DetailedBreakdownPane: React.FC<DetailedBreakdownPaneProps> = ({ purchaseO
                                     <tr key={po.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="font-bold text-slate-800 dark:text-white">{po.poNumber}</div>
-                                            <div className="text-xs text-slate-500">{po.poDate}</div>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <span className="text-xs text-slate-500">{po.poDate}</span>
+                                                {po.orderStatus === OrderStatus.PartiallyInvoiced && (
+                                                    <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[10px] font-black rounded uppercase border border-purple-200 dark:border-purple-800">
+                                                        Partially Invoiced
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="font-medium text-slate-700 dark:text-slate-200">{po.customerName}</div>

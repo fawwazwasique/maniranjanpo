@@ -493,12 +493,21 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         };
         const fulfillmentChartData = Object.entries(valueByFulfillment).map(([label, value]) => ({ label, value, color: fulfillmentColors[label] || '#9ca3af' }));
 
-        const customerValue = activePOs.reduce((acc, po) => {
+        const customerValueMap: Record<string, { name: string, value: number }> = {};
+        activePOs.forEach(po => {
             const value = getPOValue(po, filters.categories);
-            acc[po.customerName] = (acc[po.customerName] || 0) + value;
-            return acc;
-        }, {} as { [key: string]: number });
-        const topCustomers = Object.entries(customerValue).map(([label, value]) => ({ label, value: Number(value) })).sort((a,b) => b.value - a.value).slice(0, 50);
+            const name = (po.customerName || 'Unknown').trim();
+            const key = name.toLowerCase();
+            if (!customerValueMap[key]) {
+                customerValueMap[key] = { name, value: 0 };
+            }
+            customerValueMap[key].value += value;
+        });
+
+        const topCustomers = Object.values(customerValueMap)
+            .map(item => ({ label: item.name, value: item.value }))
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 50);
         const top50TotalValue = topCustomers.reduce((acc, c) => acc + c.value, 0);
         const top50Contribution = openPOValue > 0 ? (top50TotalValue / openPOValue) * 100 : 0;
 
@@ -948,6 +957,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 <DashboardStatCard 
                     title="Total No of PO's" 
                     value={dashboardData.totalOpenPOs} 
+                    subValue={`${dashboardData.partialInvoicedPOs} Partially Invoiced`}
                     icon={<ClockIcon className="w-6 h-6 text-amber-500" />} 
                     indicatorColor="bg-amber-500"
                     trend={dashboardData.openTrend}

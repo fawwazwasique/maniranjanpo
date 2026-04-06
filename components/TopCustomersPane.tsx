@@ -6,6 +6,7 @@ import { ChartPieIcon, UserGroupIcon, MagnifyingGlassIcon, ArrowDownTrayIcon, Ch
 import { exportDataToCSV } from '../utils/export';
 import { ITEM_CATEGORIES } from '../constants';
 import { formatToCr, truncateToTwoDecimals } from '../utils/currencyUtils';
+import { normalizeToAllowedValue, normalizeEnum } from '../utils/stringUtils';
 
 interface TopCustomersPaneProps {
     purchaseOrders: PurchaseOrder[];
@@ -77,16 +78,17 @@ const TopCustomersPane: React.FC<TopCustomersPaneProps> = ({ purchaseOrders }) =
 
             if (filteredItems.length === 0) return;
 
-            const customer = po.customerName || 'Unknown Customer';
-            if (!analysisMap[customer]) {
-                analysisMap[customer] = {
+            const customer = (po.customerName || 'Unknown Customer').trim();
+            const key = customer.toLowerCase();
+            if (!analysisMap[key]) {
+                analysisMap[key] = {
                     customerName: customer,
                     totalValue: 0,
                     poCount: 0
                 };
             }
 
-            const analysis = analysisMap[customer];
+            const analysis = analysisMap[key];
             analysis.poCount += 1;
 
             filteredItems.forEach(item => {
