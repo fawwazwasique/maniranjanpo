@@ -23,26 +23,32 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
     const [endDate, setEndDate] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('');
-    const [oaMainBranchFilter, setOaMainBranchFilter] = useState('');
+    const [branchFilter, setBranchFilter] = useState('');
     const [oaStatusFilter, setOaStatusFilter] = useState('');
+
+    const branches = useMemo(() => {
+        return Array.from(new Set(purchaseOrders.map(po => po.mainBranch).filter(Boolean))).sort();
+    }, [purchaseOrders]);
 
     // General Filter Logic
     const filteredGeneralPOs = useMemo(() => {
         return purchaseOrders.filter(po => {
             if (!isDateInRange(po.poDate, startDate, endDate)) return false;
             if (statusFilter && po.status !== statusFilter) return false;
+            if (branchFilter && po.mainBranch !== branchFilter) return false;
             if (categoryFilter) {
                 const hasCategory = (po.items || []).some(item => item.category === categoryFilter);
                 if (!hasCategory) return false;
             }
             return true;
         });
-    }, [purchaseOrders, startDate, endDate, statusFilter, categoryFilter]);
+    }, [purchaseOrders, startDate, endDate, statusFilter, categoryFilter, branchFilter]);
 
     // Missing OA Logic
     const missingOAData = useMemo(() => {
         const results: { po: PurchaseOrder, items: any[] }[] = [];
         purchaseOrders.forEach(po => {
+            if (branchFilter && po.mainBranch !== branchFilter) return;
             // Fix: FulfillmentStatus.Partial does not exist. Replaced with FulfillmentStatus.PartiallyAvailable.
             if (po.fulfillmentStatus === FulfillmentStatus.PartiallyAvailable || po.fulfillmentStatus === FulfillmentStatus.NotAvailable) {
                 const missingItems = po.items.filter(item => {
@@ -53,13 +59,13 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
             }
         });
         return results;
-    }, [purchaseOrders]);
+    }, [purchaseOrders, branchFilter]);
 
     // OA Filled Logic
     const oaFilledData = useMemo(() => {
         const results: { po: PurchaseOrder, items: any[] }[] = [];
         purchaseOrders.forEach(po => {
-            if (oaMainBranchFilter && po.mainBranch !== oaMainBranchFilter) return;
+            if (branchFilter && po.mainBranch !== branchFilter) return;
             if (oaStatusFilter && po.status !== oaStatusFilter) return;
 
             const filledItems = po.items.filter(item => item.oaNo && item.oaDate);
@@ -68,12 +74,13 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
             }
         });
         return results;
-    }, [purchaseOrders, oaMainBranchFilter, oaStatusFilter]);
+    }, [purchaseOrders, branchFilter, oaStatusFilter]);
 
     // Allocation Logic (New Report)
     const allocationData = useMemo(() => {
         const results: { po: PurchaseOrder, item: any }[] = [];
         purchaseOrders.forEach(po => {
+            if (branchFilter && po.mainBranch !== branchFilter) return;
             (po.items || []).forEach(item => {
                 if ((item.allocatedQuantity || 0) > 0) {
                     results.push({ po, item });
@@ -81,22 +88,26 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
             });
         });
         return results;
-    }, [purchaseOrders]);
+    }, [purchaseOrders, branchFilter]);
 
     // Dispatch Pending Logic (Fully Available but Not Shipped)
     const dispatchPendingPOs = useMemo(() => {
         return purchaseOrders.filter(po => {
+            if (branchFilter && po.mainBranch !== branchFilter) return false;
             // Fix: FulfillmentStatus.Fulfillment does not exist. Replaced with FulfillmentStatus.Available.
             const isFullyAvailable = po.fulfillmentStatus === FulfillmentStatus.Available;
             const isNotShipped = po.orderStatus !== OrderStatus.ShippedInSystemDC && po.orderStatus !== OrderStatus.Invoiced;
             return isFullyAvailable && isNotShipped;
         });
-    }, [purchaseOrders]);
+    }, [purchaseOrders, branchFilter]);
 
     // Invoiced Data Logic
     const invoicedPOs = useMemo(() => {
-        return purchaseOrders.filter(po => po.orderStatus === OrderStatus.Invoiced);
-    }, [purchaseOrders]);
+        return purchaseOrders.filter(po => {
+            if (branchFilter && po.mainBranch !== branchFilter) return false;
+            return po.orderStatus === OrderStatus.Invoiced;
+        });
+    }, [purchaseOrders, branchFilter]);
 
     // Local state for remarks editing in Dispatch Pending tab
     const [remarksEdits, setRemarksEdits] = useState<Record<string, string>>({});
@@ -309,7 +320,7 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                 <div className="flex-1 overflow-auto">
                     {activeTab === 'general' && (
                         <div className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                            <div className="grid grid-cols-1 md:grid-cols-5 gap-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Start Date</label>
                                     <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none" />
@@ -332,12 +343,19 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                                         {ITEM_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                                     </select>
                                 </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Branch</label>
+                                    <select value={branchFilter} onChange={e => setBranchFilter(e.target.value)} className="mt-1 block w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none">
+                                        <option value="">All Branches</option>
+                                        {branches.map(branch => <option key={branch} value={branch}>{branch}</option>)}
+                                    </select>
+                                </div>
                             </div>
                             <div className="flex items-center justify-between">
                                 <p className="text-slate-600 dark:text-slate-400">Total Matching Records: <span className="font-bold text-slate-800 dark:text-white">{filteredGeneralPOs.length}</span></p>
                                 <div className="flex gap-4">
                                     <button 
-                                        onClick={() => { setStartDate(''); setEndDate(''); setStatusFilter(''); setCategoryFilter(''); }}
+                                        onClick={() => { setStartDate(''); setEndDate(''); setStatusFilter(''); setCategoryFilter(''); setBranchFilter(''); }}
                                         className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-red-600 transition-colors"
                                     >
                                         Reset Filters
@@ -352,6 +370,19 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
 
                     {activeTab === 'allocation' && (
                         <div className="space-y-4 h-full flex flex-col">
+                            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg mb-2">
+                                <div className="max-w-xs">
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Branch</label>
+                                    <select 
+                                        value={branchFilter} 
+                                        onChange={e => setBranchFilter(e.target.value)} 
+                                        className="mt-1 block w-full text-sm px-3 py-2 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none"
+                                    >
+                                        <option value="">All Branches</option>
+                                        {branches.map(branch => <option key={branch} value={branch}>{branch}</option>)}
+                                    </select>
+                                </div>
+                            </div>
                             <div className="flex justify-between items-center mb-2">
                                 <p className="text-slate-600 dark:text-slate-400">System-wide record of stock quantities assigned to specific Purchase Orders.</p>
                                 <button onClick={exportAllocationReport} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-dark bg-primary/10 hover:bg-primary/20 rounded-lg">
@@ -405,12 +436,12 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Main Branch</label>
                                     <select 
-                                        value={oaMainBranchFilter} 
-                                        onChange={e => setOaMainBranchFilter(e.target.value)} 
+                                        value={branchFilter} 
+                                        onChange={e => setBranchFilter(e.target.value)} 
                                         className="mt-1 block w-full text-sm px-3 py-2 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none"
                                     >
                                         <option value="">All Branches</option>
-                                        {Array.from(new Set(purchaseOrders.map(po => po.mainBranch).filter(Boolean))).map(branch => (
+                                        {branches.map(branch => (
                                             <option key={branch} value={branch}>{branch}</option>
                                         ))}
                                     </select>
@@ -472,6 +503,19 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
 
                     {activeTab === 'missingOA' && (
                         <div className="space-y-4 h-full flex flex-col">
+                            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg mb-2">
+                                <div className="max-w-xs">
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Branch</label>
+                                    <select 
+                                        value={branchFilter} 
+                                        onChange={e => setBranchFilter(e.target.value)} 
+                                        className="mt-1 block w-full text-sm px-3 py-2 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none"
+                                    >
+                                        <option value="">All Branches</option>
+                                        {branches.map(branch => <option key={branch} value={branch}>{branch}</option>)}
+                                    </select>
+                                </div>
+                            </div>
                             <div className="flex justify-between items-center mb-2">
                                 <p className="text-slate-600 dark:text-slate-400">Missing OA details for unavailable items in pending POs.</p>
                                 <button onClick={exportMissingOA} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-dark bg-primary/10 hover:bg-primary/20 rounded-lg">
@@ -515,6 +559,19 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
 
                     {activeTab === 'dispatchPending' && (
                         <div className="space-y-4 h-full flex flex-col">
+                             <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg mb-2">
+                                <div className="max-w-xs">
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Branch</label>
+                                    <select 
+                                        value={branchFilter} 
+                                        onChange={e => setBranchFilter(e.target.value)} 
+                                        className="mt-1 block w-full text-sm px-3 py-2 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none"
+                                    >
+                                        <option value="">All Branches</option>
+                                        {branches.map(branch => <option key={branch} value={branch}>{branch}</option>)}
+                                    </select>
+                                </div>
+                            </div>
                              <div className="flex justify-between items-center mb-2">
                                 <p className="text-slate-600 dark:text-slate-400">Orders Fully Available but not yet shipped.</p>
                                 <button onClick={exportDispatchPending} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-lg">
@@ -553,6 +610,19 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                     )}
                     {activeTab === 'invoiced' && (
                         <div className="space-y-4 h-full flex flex-col">
+                             <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg mb-2">
+                                <div className="max-w-xs">
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Branch</label>
+                                    <select 
+                                        value={branchFilter} 
+                                        onChange={e => setBranchFilter(e.target.value)} 
+                                        className="mt-1 block w-full text-sm px-3 py-2 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none"
+                                    >
+                                        <option value="">All Branches</option>
+                                        {branches.map(branch => <option key={branch} value={branch}>{branch}</option>)}
+                                    </select>
+                                </div>
+                            </div>
                              <div className="flex justify-between items-center mb-2">
                                 <p className="text-slate-600 dark:text-slate-400">Orders that have been successfully invoiced.</p>
                                 <button onClick={exportInvoicedData} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-700 bg-purple-100 hover:bg-purple-200 rounded-lg">
