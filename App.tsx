@@ -21,6 +21,7 @@ import { collection, onSnapshot, addDoc, doc, updateDoc, writeBatch, query, wher
 import { signInAnonymously } from 'firebase/auth';
 
 import { getProcurementSuggestion } from './services/geminiService';
+import { performMonthlyInvoicedCleanup } from './utils/cleanupUtils';
 
 import type { PurchaseOrder, Notification, LogEntry, POItem, ProcurementSuggestion, StockItem, StockMovement } from './types';
 import { POItemStatus, OverallPOStatus, OrderStatus, FulfillmentStatus } from './types';
@@ -132,6 +133,11 @@ function App() {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  // Cleanup logic on mount
+  useEffect(() => {
+    performMonthlyInvoicedCleanup();
+  }, []);
 
   const [activeModal, setActiveModal] = useState<ModalType>('none');
   const [activePane, setActivePane] = useState<Pane>('dashboard');

@@ -155,8 +155,8 @@ const SimpleBarChart: React.FC<{ data: { label: string; value: number }[], color
 
     return (
         <div className="space-y-4">
-            {data.map(item => (
-                <div key={item.label} className="grid grid-cols-4 gap-4 items-center">
+            {data.map((item, index) => (
+                <div key={`${item.label}-${index}`} className="grid grid-cols-4 gap-4 items-center">
                     <div className="col-span-1 text-base text-slate-600 dark:text-slate-400 text-right truncate" title={item.label}>{item.label}</div>
                     <div className="col-span-3">
                         <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-8 flex items-center">

@@ -110,12 +110,12 @@ const DonutChart: React.FC<{ data: { label: string; value: number; color: string
             <div className="relative">
                 <svg width="180" height="180" viewBox="0 0 100 100">
                     <g transform="rotate(-90 50 50)">
-                        {data.reduce((acc, segment) => {
+                        {data.reduce((acc, segment, index) => {
                              const segmentLength = (segment.value / total) * circumference;
                              
                              acc.elements.push(
                                 <circle
-                                    key={segment.label}
+                                    key={`${segment.label}-${index}`}
                                     cx="50" cy="50" r={radius}
                                     fill="transparent"
                                     stroke={segment.color}
@@ -140,9 +140,9 @@ const DonutChart: React.FC<{ data: { label: string; value: number; color: string
                 </svg>
             </div>
             <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
-                {data.filter(d => d.value > 0).map(segment => (
+                {data.filter(d => d.value > 0).map((segment, index) => (
                     <div 
-                        key={segment.label} 
+                        key={`${segment.label}-${index}`} 
                         className={`flex items-center text-sm ${onSegmentClick ? 'cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-1 rounded transition-colors' : ''}`}
                         onClick={() => onSegmentClick?.(segment.label)}
                     >
@@ -169,8 +169,8 @@ const HorizontalBarChart: React.FC<{ data: { label: string; value: number }[], i
         
     return (
         <div className="space-y-4 pr-4">
-            {data.map(item => (
-                <div key={item.label} className="space-y-1.5">
+            {data.map((item, index) => (
+                <div key={`${item.label}-${index}`} className="space-y-1.5">
                      <div className="flex justify-between text-base font-medium text-slate-600 dark:text-slate-300">
                         <span title={item.label} className="truncate">{item.label}</span>
                         <span>{formatValue(item.value)}</span>
