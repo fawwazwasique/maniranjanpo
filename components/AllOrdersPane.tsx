@@ -22,7 +22,8 @@ interface AllOrdersPaneProps {
       isInvoiced?: boolean,
       isPartiallyInvoiced?: boolean,
       showGapOnly?: boolean,
-      saleType?: string
+      saleType?: string,
+      category?: string
   } | null;
   onClearFilter?: () => void;
   selectedCategories?: string[];
@@ -75,7 +76,10 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
             setViewMode('parts');
             setPartsFilter('notAvailable');
         }
-    }, [filter?.showGapOnly]);
+        if (filter?.category) {
+            setSelectedCategory(filter.category);
+        }
+    }, [filter]);
 
     const mainBranches = useMemo(() => {
         const branches = new Set<string>();
@@ -95,9 +99,11 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
 
     const posWithValues = useMemo(() => {
         return purchaseOrders.map(po => {
-            let relevantItems = (po.items || []).filter(item => 
-                selectedCategories.length === 0 || selectedCategories.includes(item.category)
-            );
+            let relevantItems = (po.items || []).filter(item => {
+                const matchesDashboardCategories = selectedCategories.length === 0 || selectedCategories.includes(item.category);
+                const matchesSpecificCategory = !filter?.category || item.category === filter.category;
+                return matchesDashboardCategories && matchesSpecificCategory;
+            });
 
             if (filter?.showGapOnly) {
                 relevantItems = relevantItems.filter(item => 
@@ -127,11 +133,18 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
 
         // Apply external filter
         if (filter) {
+            if (filter.saleType) {
+                sortableItems = sortableItems.filter(po => po.saleType === filter.saleType);
+            }
+            if (filter.category) {
+                sortableItems = sortableItems.filter(po => po.items.some(item => item.category === filter.category));
+            }
             if (filter.status) {
                 sortableItems = sortableItems.filter(po => po.status === filter.status);
             }
             if (filter.fulfillmentStatus) {
-                sortableItems = sortableItems.filter(po => getPOFulfillmentStatus(po, selectedCategories) === filter.fulfillmentStatus);
+                const catsToUse = filter.category ? [filter.category] : selectedCategories;
+                sortableItems = sortableItems.filter(po => getPOFulfillmentStatus(po, catsToUse) === filter.fulfillmentStatus);
             }
             if (filter.isOilStuck) {
                 sortableItems = sortableItems.filter(po => isOilStuckPO(po));

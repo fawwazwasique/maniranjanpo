@@ -28,7 +28,6 @@ export const ITEM_CATEGORIES = [
     'Battery',
     'Oil',
     'Local Parts',
-    'Auto Parts',
     'Growth Parts',
     'Service'
 ];

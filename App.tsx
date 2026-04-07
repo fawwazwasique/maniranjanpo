@@ -153,6 +153,7 @@ function App() {
       isPartiallyInvoiced?: boolean;
       showGapOnly?: boolean;
       saleType?: string;
+      category?: string;
   } | null>(null);
 
   const [suggestionItem, setSuggestionItem] = useState<POItem | null>(null);
@@ -362,25 +363,26 @@ function App() {
     setSuggestion(null);
   }, []);
 
-  const handleDashboardCardClick = useCallback((type: string, payload?: any) => {
-    if (type === 'OPEN') setOrdersFilter({ isInvoiced: false });
+  const handleDashboardCardClick = useCallback((type: string, payload?: any, category?: string) => {
+    if (type === 'OPEN') setOrdersFilter({ isInvoiced: false, category });
     else if (type === 'FULLY_AVAILABLE') {
         setOrdersFilter({ 
             fulfillmentStatus: FulfillmentStatus.Available, 
             isInvoiced: false,
-            saleType: payload 
+            saleType: payload,
+            category
         });
     }
-    else if (type === 'PARTIALLY_AVAILABLE') setOrdersFilter({ fulfillmentStatus: FulfillmentStatus.PartiallyAvailable, isInvoiced: false });
-    else if (type === 'NOT_AVAILABLE') setOrdersFilter({ fulfillmentStatus: FulfillmentStatus.NotAvailable, isInvoiced: false });
-    else if (type === 'ANY_SHORTAGE') setOrdersFilter({ hasAnyShortage: true, isInvoiced: false });
-    else if (type === 'OIL_STUCK') setOrdersFilter({ isOilStuck: true, isInvoiced: false });
-    else if (type === 'PART_SHORTAGE') setOrdersFilter({ partNumber: payload, isInvoiced: false });
-    else if (type === 'PARTIAL_INVOICED') setOrdersFilter({ isPartiallyInvoiced: true });
-    else if (type === 'INVOICED') setOrdersFilter({ isInvoiced: true });
-    else if (type === 'GAP') setOrdersFilter({ showGapOnly: true, isInvoiced: false });
-    else if (type === 'SALE_TYPE') setOrdersFilter({ saleType: payload, isInvoiced: false });
-    else setOrdersFilter(null);
+    else if (type === 'PARTIALLY_AVAILABLE') setOrdersFilter({ fulfillmentStatus: FulfillmentStatus.PartiallyAvailable, isInvoiced: false, category });
+    else if (type === 'NOT_AVAILABLE') setOrdersFilter({ fulfillmentStatus: FulfillmentStatus.NotAvailable, isInvoiced: false, category });
+    else if (type === 'ANY_SHORTAGE') setOrdersFilter({ hasAnyShortage: true, isInvoiced: false, category });
+    else if (type === 'OIL_STUCK') setOrdersFilter({ isOilStuck: true, isInvoiced: false, category });
+    else if (type === 'PART_SHORTAGE') setOrdersFilter({ partNumber: payload, isInvoiced: false, category });
+    else if (type === 'PARTIAL_INVOICED') setOrdersFilter({ isPartiallyInvoiced: true, category });
+    else if (type === 'INVOICED') setOrdersFilter({ isInvoiced: true, category });
+    else if (type === 'GAP') setOrdersFilter({ showGapOnly: true, isInvoiced: false, category });
+    else if (type === 'SALE_TYPE') setOrdersFilter({ saleType: payload, isInvoiced: false, category });
+    else setOrdersFilter(category ? { category } : null);
     setActivePane('allOrders');
   }, []);
 
