@@ -667,9 +667,18 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
         if (type === 'OPEN') pos = activePOs;
         else if (type === 'FULLY_AVAILABLE') pos = activePOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.Available);
-        else if (type === 'PARTIALLY_AVAILABLE') pos = activePOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.PartiallyAvailable);
-        else if (type === 'NOT_AVAILABLE') pos = activePOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.NotAvailable);
-        else if (type === 'ANY_SHORTAGE') pos = activePOs.filter(po => getPOFulfillmentStatus(po, filters.categories) !== FulfillmentStatus.Available);
+        else if (type === 'PARTIALLY_AVAILABLE') {
+            pos = activePOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.PartiallyAvailable);
+            isGap = true;
+        }
+        else if (type === 'NOT_AVAILABLE') {
+            pos = activePOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.NotAvailable);
+            isGap = true;
+        }
+        else if (type === 'ANY_SHORTAGE') {
+            pos = activePOs.filter(po => getPOFulfillmentStatus(po, filters.categories) !== FulfillmentStatus.Available);
+            isGap = true;
+        }
         else if (type === 'OIL_STUCK') pos = activePOs.filter(isOilStuckPO);
         else if (type === 'INVOICED') pos = invoicedPOs;
         else if (type === 'PARTIAL_INVOICED') pos = filteredPOs.filter(po => po.orderStatus === OrderStatus.PartiallyInvoiced);

@@ -67,6 +67,7 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
     const [sortConfig, setSortConfig] = useState<{ key: SortKeys; direction: 'ascending' | 'descending' } | null>({ key: 'poDate', direction: 'descending' });
     const [viewMode, setViewMode] = useState<'orders' | 'parts'>('orders');
     const [partsFilter, setPartsFilter] = useState<'all' | 'available' | 'notAvailable'>('all');
+    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [selectedPOIds, setSelectedPOIds] = useState<string[]>([]);
 
     React.useEffect(() => {
@@ -232,7 +233,7 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
     }, [posWithValues, searchTerm, sortConfig, filter, dashboardFilters]);
     
     const partsBreakdown = useMemo(() => {
-        const partsMap: Record<string, { partNumber: string, description: string, quantity: number, value: number, poCount: number, status: 'available' | 'notAvailable' }> = {};
+        const partsMap: Record<string, { partNumber: string, description: string, quantity: number, value: number, poCount: number, status: 'available' | 'notAvailable', category: string }> = {};
         filteredAndSortedPOs.forEach(po => {
             po.filteredItems.forEach(item => {
                 const isAvail = item.status === POItemStatus.Available || item.status === POItemStatus.Dispatched;
@@ -246,16 +247,39 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                         quantity: 0,
                         value: 0,
                         poCount: 0,
-                        status: statusKey
+                        status: statusKey,
+                        category: item.category || 'Uncategorized'
                     };
                 }
-                partsMap[key].quantity += item.quantity;
-                partsMap[key].value += (item.quantity * item.rate);
+                partsMap[key].quantity += (item.quantity || 0);
+                partsMap[key].value += ((item.quantity || 0) * (item.rate || 0));
                 partsMap[key].poCount += 1;
             });
         });
         return Object.values(partsMap)
-            .filter(part => partsFilter === 'all' || part.status === partsFilter)
+            .filter(part => (partsFilter === 'all' || part.status === partsFilter) && (!selectedCategory || part.category === selectedCategory))
+            .sort((a, b) => b.value - a.value);
+    }, [filteredAndSortedPOs, partsFilter, selectedCategory]);
+
+    const categoryBreakdown = useMemo(() => {
+        const breakdown: Record<string, { count: number, value: number }> = {};
+        filteredAndSortedPOs.forEach(po => {
+            po.filteredItems.forEach(item => {
+                const isAvail = item.status === POItemStatus.Available || item.status === POItemStatus.Dispatched;
+                const statusKey = isAvail ? 'available' : 'notAvailable';
+                
+                if (partsFilter !== 'all' && statusKey !== partsFilter) return;
+
+                const cat = item.category || 'Uncategorized';
+                if (!breakdown[cat]) {
+                    breakdown[cat] = { count: 0, value: 0 };
+                }
+                breakdown[cat].count += 1;
+                breakdown[cat].value += ((item.quantity || 0) * (item.rate || 0));
+            });
+        });
+        return Object.entries(breakdown)
+            .map(([category, stats]) => ({ category, ...stats }))
             .sort((a, b) => b.value - a.value);
     }, [filteredAndSortedPOs, partsFilter]);
 
@@ -364,12 +388,38 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                             View Orders
                         </button>
                         <button 
-                            onClick={() => setViewMode('parts')}
+                            onClick={() => {
+                                setViewMode('parts');
+                                setSelectedCategory(null);
+                            }}
                             className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${viewMode === 'parts' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                         >
                             View Parts Breakdown
                         </button>
                     </div>
+
+                    {viewMode === 'parts' && (
+                        <div className="mt-4 flex flex-wrap gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <button
+                                onClick={() => setSelectedCategory(null)}
+                                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${!selectedCategory ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'}`}
+                            >
+                                All Categories
+                            </button>
+                            {categoryBreakdown.map(cat => (
+                                <button
+                                    key={cat.category}
+                                    onClick={() => setSelectedCategory(prev => prev === cat.category ? null : cat.category)}
+                                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border flex items-center gap-2 ${selectedCategory === cat.category ? 'bg-red-600 text-white border-red-600' : 'bg-white text-slate-600 border-slate-200 hover:border-red-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'}`}
+                                >
+                                    <span>{cat.category}</span>
+                                    <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${selectedCategory === cat.category ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-700'}`}>
+                                        {formatCurrency(cat.value, { notation: 'compact' })}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -615,6 +665,7 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                         <thead className="text-sm text-slate-700 dark:text-slate-300 uppercase bg-slate-50 dark:bg-slate-800 sticky top-0 z-10">
                             <tr>
                                 <th scope="col" className="p-4">Part Number</th>
+                                <th scope="col" className="p-4">Category</th>
                                 <th scope="col" className="p-4">Description</th>
                                 <th scope="col" className="p-4">Status</th>
                                 <th scope="col" className="p-4 text-right">Qty</th>
@@ -626,6 +677,11 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                             {partsBreakdown.map((part, idx) => (
                                 <tr key={idx} className="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50">
                                     <td className="p-4 font-mono text-xs font-bold text-slate-900 dark:text-white">{part.partNumber}</td>
+                                    <td className="p-4">
+                                        <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold rounded uppercase">
+                                            {part.category}
+                                        </span>
+                                    </td>
                                     <td className="p-4">{part.description}</td>
                                     <td className="p-4">
                                         <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${part.status === 'available' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
