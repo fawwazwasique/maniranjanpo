@@ -53,7 +53,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
               transition={{ delay: 1, duration: 0.5 }}
               className="text-4xl md:text-5xl font-black tracking-tighter mb-4"
             >
-              Welcome to <span className="text-primary">Ethen Group</span> PO Dashboard
+              Welcome to <span className="text-primary">ETHEN POWER SOLUTIONNS</span>
             </motion.h1>
             
             <motion.p
@@ -62,7 +62,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
               transition={{ delay: 1.5, duration: 0.5 }}
               className="text-xl md:text-2xl font-bold text-slate-400 uppercase tracking-[0.3em] mb-12"
             >
-              by Fawwaz Creation
+              POWER SOLUTIONNS
             </motion.p>
           </motion.div>
 

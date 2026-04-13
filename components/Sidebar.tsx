@@ -54,8 +54,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activePane, setActivePane, themeColor
                     <LogoIcon className="h-12 w-12 flex-shrink-0" />
                 </div>
                 <div className="ml-3">
-                    <h1 className="text-xl font-black text-white leading-none tracking-tight">Ethen Group</h1>
-                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.2em] mt-1">PO Dashboard</p>
+                    <h1 className="text-xl font-black text-white leading-none tracking-tight">ETHEN</h1>
+                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-[0.2em] mt-1">POWER SOLUTIONNS</p>
                 </div>
             </div>
             <div className="flex-1 overflow-y-auto py-6 px-3">
@@ -127,7 +127,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePane, setActivePane, themeColor
                 </div>
             </div>
             <div className="p-4 border-t border-slate-700 text-center">
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">© {new Date().getFullYear()} Fawwaz Creations</p>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">© {new Date().getFullYear()} ETHEN POWER SOLUTIONNS</p>
             </div>
         </aside>
     );

@@ -129,17 +129,17 @@ export const ListBulletIcon: React.FC<{ className?: string }> = ({ className }) 
 );
 
 /**
- * Recreated Ethen Power Solutions logo based on provided branding image.
+ * Recreated ETHEN POWER SOLUTIONNS logo based on provided branding image.
  * Uses ETHEN_BLUE, ETHEN_GREEN, and ETHEN_ORANGE.
  */
 export const LogoIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" className={className || "w-10 h-10"}>
     {/* Blue Top Segment */}
-    <path d="M176 170.6C176 123.6 211.2 85.3 256 85.3H426.6V170.6L341.3 213.3H176V170.6Z" fill={ETHEN_BLUE} />
+    <path d="M120 170 Q120 160 135 156 L345 104 Q360 100 360 110 L360 160 Q360 170 345 174 L135 226 Q120 230 120 220 Z" fill={ETHEN_BLUE} />
     {/* Green Middle Segment */}
-    <path d="M176 298.6C176 251.6 211.2 213.3 256 213.3H426.6V298.6L341.3 341.3H176V298.6Z" fill={ETHEN_GREEN} />
+    <path d="M120 270 Q120 260 135 256 L345 204 Q360 200 360 210 L360 260 Q360 270 345 274 L135 326 Q120 330 120 320 Z" fill={ETHEN_GREEN} />
     {/* Orange Bottom Segment */}
-    <path d="M176 426.6C176 379.6 211.2 341.3 256 341.3H426.6V426.6L341.3 469.3H176V426.6Z" fill={ETHEN_ORANGE} />
+    <path d="M120 370 Q120 360 135 356 L345 304 Q360 300 360 310 L360 360 Q360 370 345 374 L135 426 Q120 430 120 420 Z" fill={ETHEN_ORANGE} />
   </svg>
 );
 
