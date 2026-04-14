@@ -429,7 +429,6 @@ function App() {
                 />
             )}
             {activePane === 'upload' && <UploadPane onSaveSingleOrder={handleSaveSingleOrder} onBulkUpload={handleBulkUpload} />}
-            {activePane === 'analysis' && <AnalysisPane purchaseOrders={purchaseOrders} onSelectPO={handleSelectPO} />}
             {activePane === 'topCustomers' && <TopCustomersPane purchaseOrders={purchaseOrders} />}
             {activePane === 'detailedBreakdown' && (
                 <DetailedBreakdownPane 

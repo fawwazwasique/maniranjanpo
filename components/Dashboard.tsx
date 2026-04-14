@@ -597,30 +597,43 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         let oilRequiredCount = 0;
         let posClosingWithOilCount = 0;
         let posClosingWithOilValue = 0;
+        const oilStuckCategoryBreakdown: Record<string, number> = {};
 
         activePOs.forEach(po => {
             const items = po.items || [];
             const oilItems = items.filter(isOilItem);
             const nonOilItems = items.filter(i => !isOilItem(i));
             
-            const hasOilShortage = oilItems.some(i => i.status === POItemStatus.NotAvailable || i.status === POItemStatus.PartiallyAvailable);
-            
-            if (hasOilShortage) {
-                oilItems.forEach(i => {
-                    if (i.status === POItemStatus.NotAvailable || i.status === POItemStatus.PartiallyAvailable) {
-                        oilRequiredValue += (i.quantity * i.rate);
-                        oilRequiredCount++;
-                    }
-                });
+            const hasUnavailableOil = oilItems.some(i => i.status === POItemStatus.NotAvailable || i.status === POItemStatus.PartiallyAvailable);
+            const hasUnavailableNonOil = nonOilItems.some(i => i.status === POItemStatus.NotAvailable || i.status === POItemStatus.PartiallyAvailable);
 
-                // Check if providing oil would close the PO (all other items must be available)
-                const allOtherItemsAvailable = nonOilItems.every(i => i.status === POItemStatus.Available || i.status === POItemStatus.Dispatched);
-                if (allOtherItemsAvailable && nonOilItems.length > 0) {
+            if (hasUnavailableOil) {
+                // Stuck ONLY due to Oil
+                if (!hasUnavailableNonOil) {
                     posClosingWithOilCount++;
                     posClosingWithOilValue += getPOValue(po, filters.categories);
+                    
+                    oilItems.forEach(i => {
+                        if (i.status === POItemStatus.NotAvailable || i.status === POItemStatus.PartiallyAvailable) {
+                            oilRequiredValue += (i.quantity * i.rate);
+                            oilRequiredCount++;
+                        }
+                    });
+
+                    // Calculate bifurcation for these POs
+                    items.forEach(item => {
+                        if (!isOilItem(item)) {
+                            const normalizedCategory = normalizeToAllowedValue(item.category, ITEM_CATEGORIES) || 'Others';
+                            oilStuckCategoryBreakdown[normalizedCategory] = (oilStuckCategoryBreakdown[normalizedCategory] || 0) + (item.quantity * item.rate);
+                        }
+                    });
                 }
             }
         });
+
+        const oilStuckBifurcation = Object.entries(oilStuckCategoryBreakdown)
+            .map(([label, value]) => ({ label, value }))
+            .sort((a, b) => b.value - a.value);
 
         const readyToExecuteSalesTypeTotals: Record<string, number> = {};
         fullyAvailablePOsList.forEach(po => {
@@ -648,6 +661,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             oilStuckPOsList,
             oilRequiredValue, oilRequiredCount,
             posClosingWithOilCount, posClosingWithOilValue,
+            oilStuckBifurcation,
             unavailablePartsList,
             checklistChartData, fulfillmentChartData, topCustomers, paymentTermsChartData, salesTypeCountChartData,
             readyToExecuteChartData, customerCategoryChartData,
@@ -1077,25 +1091,33 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                             <div className="bg-amber-100 dark:bg-amber-900/50 p-2 rounded-lg">
                                 <BeakerIcon className="w-6 h-6 text-amber-600" />
                             </div>
-                            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Oil Required Analysis</h3>
+                            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Oil Analysis (Stuck POs)</h3>
                         </div>
                         <div className="space-y-3">
                             <div className="flex justify-between items-center">
-                                <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Oil Required</span>
-                                <span className="font-bold text-slate-800 dark:text-slate-100">{formatCurrency(dashboardData.oilRequiredValue, { notation: 'compact' })}</span>
+                                <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">POs Stuck ONLY for Oil</span>
+                                <span className="font-bold text-red-600">{dashboardData.posClosingWithOilCount} POs</span>
                             </div>
                             <div className="flex justify-between items-center">
-                                <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Oil Item Count</span>
-                                <span className="font-bold text-slate-800 dark:text-slate-100">{dashboardData.oilRequiredCount} Items</span>
+                                <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Missing Oil Value</span>
+                                <span className="font-bold text-slate-800 dark:text-slate-100">{formatCurrency(dashboardData.oilRequiredValue, { notation: 'compact' })}</span>
                             </div>
                             <div className="pt-3 border-t border-slate-100 dark:border-slate-700">
-                                <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase mb-2 tracking-widest">Impact Analysis</p>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">POs closing with Oil</span>
-                                    <span className="font-bold text-green-600">{dashboardData.posClosingWithOilCount} POs</span>
+                                <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase mb-2 tracking-widest">Billing Bifurcation (If Oil Provided)</p>
+                                <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1 mb-3">
+                                    {dashboardData.oilStuckBifurcation.length > 0 ? (
+                                        dashboardData.oilStuckBifurcation.map((item: any) => (
+                                            <div key={item.label} className="flex justify-between items-center text-xs">
+                                                <span className="text-slate-500 dark:text-slate-400 truncate mr-2">{item.label}</span>
+                                                <span className="font-bold text-slate-700 dark:text-slate-200">{formatCurrency(item.value, { notation: 'compact' })}</span>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-xs text-slate-400 italic">No billable parts found</p>
+                                    )}
                                 </div>
-                                <div className="flex justify-between items-center mt-1">
-                                    <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">Value to Unlock</span>
+                                <div className="flex justify-between items-center pt-2 border-t border-slate-50 dark:border-slate-800">
+                                    <span className="text-slate-600 dark:text-slate-300 text-sm font-bold">Total Billable Value</span>
                                     <span className="font-bold text-green-600">{formatCurrency(dashboardData.posClosingWithOilValue, { notation: 'compact' })}</span>
                                 </div>
                             </div>
@@ -1103,31 +1125,6 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     </div>
                 </div>
 
-                <div 
-                    onClick={() => setSelectedBreakdown({ type: 'GAP', title: "Total Not Available Value" })}
-                    className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-2xl shadow-xl border border-slate-700 relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-all flex flex-col justify-between"
-                >
-                    <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
-                        <NoSymbolIcon className="w-32 h-32 text-white" />
-                    </div>
-                    <div className="relative z-10">
-                        <div className="flex justify-between items-start mb-4">
-                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Total Not Available Value</h3>
-                            <div className="p-2 bg-primary rounded-lg">
-                                <NoSymbolIcon className="w-5 h-5 text-white" />
-                            </div>
-                        </div>
-                        <div className="flex items-baseline gap-2 mb-2">
-                            <p className="text-4xl font-black text-white">
-                                {formatCurrency(dashboardData.totalNotAvailableValue, { notation: 'compact' })}
-                            </p>
-                            <p className="text-sm font-bold text-primary uppercase">Total Gap</p>
-                        </div>
-                        <p className="text-xs text-slate-400 font-medium leading-relaxed">
-                            Combined value of <span className="text-primary font-bold">all missing items</span> across Partial and 100% Not Available POs.
-                        </p>
-                    </div>
-                </div>
 
                 <div 
                     onClick={() => setSelectedBreakdown({ type: 'OIL_STUCK', title: "Oil-Stuck POs" })}
@@ -1158,26 +1155,6 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                 <DashboardStatCard 
-                    title="Avg. PO → SO" 
-                    value={dashboardData.avgPOtoSO} 
-                    icon={<CalendarDaysIcon className="w-6 h-6 text-indigo-500" />} 
-                    trend={dashboardData.avgPOtoSOTrend}
-                 />
-                 <DashboardStatCard 
-                    title="Avg. SO → Invoice" 
-                    value={dashboardData.avgSOtoInvoice} 
-                    icon={<CalendarDaysIcon className="w-6 h-6 text-indigo-500" />} 
-                    trend={dashboardData.avgSOtoInvoiceTrend}
-                 />
-                 <DashboardStatCard 
-                    title="Avg. PO → Invoice" 
-                    value={dashboardData.avgPOtoInvoice} 
-                    icon={<CalendarDaysIcon className="w-6 h-6 text-indigo-500" />} 
-                    trend={dashboardData.avgPOtoInvoiceTrend}
-                 />
-            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                  <ChartContainer title="Value by Payment Terms">

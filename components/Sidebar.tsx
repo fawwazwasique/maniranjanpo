@@ -72,12 +72,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activePane, setActivePane, themeColor
                         isActive={activePane === 'upload'}
                         onClick={() => setActivePane('upload')}
                     />
-                     <NavItem 
-                        icon={<ChartBarIcon className="w-6 h-6" />}
-                        label="Performance Analysis"
-                        isActive={activePane === 'analysis'}
-                        onClick={() => setActivePane('analysis')}
-                    />
                     <NavItem 
                         icon={<UserGroupIcon className="w-6 h-6" />}
                         label="Top 50 Customer"
