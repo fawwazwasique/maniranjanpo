@@ -25,7 +25,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, onClose, 
           </button>
         </div>
         <div className="p-6">
-          <p className="text-base text-slate-600 dark:text-slate-300">{children}</p>
+          <div className="text-base text-slate-600 dark:text-slate-300">{children}</div>
         </div>
         <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t dark:border-slate-700 flex justify-end gap-3 rounded-b-xl">
           <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white dark:bg-slate-700 dark:text-slate-200 border dark:border-slate-600 rounded-md hover:bg-slate-50 dark:hover:bg-slate-600">

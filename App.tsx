@@ -13,6 +13,7 @@ import TopCustomersPane from './components/TopCustomersPane';
 import DataManagementPane from './components/DataManagementPane';
 import ReportsPane from './components/ReportsPane';
 import DetailedBreakdownPane from './components/DetailedBreakdownPane';
+import PrimaryPlanPane from './components/PrimaryPlanPane';
 import ErrorBanner from './components/ErrorBanner';
 import WelcomeScreen from './components/WelcomeScreen';
 import useLocalStorage from './hooks/useLocalStorage';
@@ -23,7 +24,7 @@ import { signInAnonymously } from 'firebase/auth';
 import { getProcurementSuggestion } from './services/geminiService';
 import { performMonthlyInvoicedCleanup } from './utils/cleanupUtils';
 
-import type { PurchaseOrder, Notification, LogEntry, POItem, ProcurementSuggestion, StockItem, StockMovement } from './types';
+import type { PurchaseOrder, Notification, LogEntry, POItem, ProcurementSuggestion, StockItem, StockMovement, BranchStock } from './types';
 import { POItemStatus, OverallPOStatus, OrderStatus, FulfillmentStatus } from './types';
 
 enum OperationType {
@@ -78,7 +79,7 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 }
 
 type ModalType = 'none' | 'poDetail' | 'suggestion';
-type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'topCustomers' | 'detailedBreakdown';
+type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'topCustomers' | 'detailedBreakdown' | 'primaryPlan';
 type ThemeMode = 'light' | 'dark';
 type ThemeColor = 'classic' | 'emerald' | 'midnight' | 'sunset' | 'ocean';
 
@@ -131,6 +132,7 @@ const sanitizeData = (data: any): any => {
 
 function App() {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
+  const [branchStock, setBranchStock] = useState<BranchStock[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
@@ -229,8 +231,13 @@ function App() {
         setNotifications(notifs);
     }, (error) => handleFirestoreError(error, OperationType.GET, "notifications"));
 
+    const unsubBranchStock = onSnapshot(collection(db, "branchStock"), (snapshot) => {
+        const stockData = snapshot.docs.map(doc => sanitizeData({ ...doc.data(), id: doc.id }) as BranchStock);
+        setBranchStock(stockData);
+    }, (error) => handleFirestoreError(error, OperationType.GET, "branchStock"));
+
     return () => {
-        unsubPO(); unsubLogs(); unsubNotifs();
+        unsubPO(); unsubLogs(); unsubNotifs(); unsubBranchStock();
     };
 }, []);
 
@@ -430,6 +437,12 @@ function App() {
             )}
             {activePane === 'upload' && <UploadPane onSaveSingleOrder={handleSaveSingleOrder} onBulkUpload={handleBulkUpload} />}
             {activePane === 'topCustomers' && <TopCustomersPane purchaseOrders={purchaseOrders} />}
+            {activePane === 'primaryPlan' && (
+                <PrimaryPlanPane 
+                    purchaseOrders={purchaseOrders} 
+                    branchStock={branchStock}
+                />
+            )}
             {activePane === 'detailedBreakdown' && (
                 <DetailedBreakdownPane 
                     purchaseOrders={purchaseOrders} 

@@ -196,8 +196,8 @@ export const downloadTemplate = (): void => {
 };
 
 export const downloadStockTemplate = (): void => {
-    const headers = ['Part Number', 'Description', 'Quantity'];
-    const exampleRow = ['VALV-5W30-4L', 'Valvoline 5W30 Motor Oil 4L', '50'];
+    const headers = ['Item Name', 'Item Description', 'Quantity', 'Branch'];
+    const exampleRow = ['VALV-5W30-4L', 'Valvoline 5W30 Motor Oil 4L', '50', 'Bengaluru'];
     
     const csvContent = [
         headers.join(','), 

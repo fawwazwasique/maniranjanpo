@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { HomeIcon, ArrowUpTrayIcon, ChartBarIcon, ListBulletIcon, LogoIcon, DatabaseIcon, ClipboardDocumentListIcon, UserGroupIcon } from './icons';
+import { HomeIcon, ArrowUpTrayIcon, ChartBarIcon, ListBulletIcon, LogoIcon, DatabaseIcon, ClipboardDocumentListIcon, UserGroupIcon, TruckIcon } from './icons';
 
-type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'topCustomers' | 'detailedBreakdown';
+type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'topCustomers' | 'detailedBreakdown' | 'primaryPlan';
 
 type ThemeColor = 'classic' | 'emerald' | 'midnight' | 'sunset' | 'ocean';
 
@@ -89,6 +89,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activePane, setActivePane, themeColor
                         label="All Purchase Orders"
                         isActive={activePane === 'allOrders'}
                         onClick={() => setActivePane('allOrders')}
+                    />
+                    <NavItem 
+                        icon={<TruckIcon className="w-6 h-6" />}
+                        label="Primary Plan"
+                        isActive={activePane === 'primaryPlan'}
+                        onClick={() => setActivePane('primaryPlan')}
                     />
                      <NavItem
                         icon={<ClipboardDocumentListIcon className="w-6 h-6" />}

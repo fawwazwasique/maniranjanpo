@@ -63,6 +63,14 @@ service cloud.firestore {
     //   - role: string (required)
     //   - email: string (required)
     //
+    // Collection: branchStock
+    // Fields:
+    //   - partNumber: string (required)
+    //   - description: string
+    //   - quantity: number (required)
+    //   - branch: string (required)
+    //   - updatedAt: string (required)
+    //
     // ===============================================================
 
     // ===============================================================
@@ -124,6 +132,14 @@ service cloud.firestore {
              isValidEmail(data.email);
     }
 
+    function isValidBranchStock(data) {
+      return hasRequiredFields(['partNumber', 'quantity', 'branch', 'updatedAt']) &&
+             data.partNumber is string &&
+             data.quantity is number &&
+             data.branch is string &&
+             data.updatedAt is string;
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -154,6 +170,11 @@ service cloud.firestore {
       allow create: if isAuthenticated() && isValidUser(request.resource.data) && (request.auth.uid == userId && request.resource.data.role == 'user' || isAdmin());
       allow update: if isAuthenticated() && isValidUser(request.resource.data) && (isAdmin() || (request.auth.uid == userId && request.resource.data.role == resource.data.role));
       allow delete: if isAdmin();
+    }
+
+    match /branchStock/{stockId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isValidBranchStock(request.resource.data);
     }
 
     // Default deny

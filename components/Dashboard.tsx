@@ -1153,6 +1153,49 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                         </div>
                     </div>
                 </div>
+
+                <div 
+                    onClick={() => setSelectedBreakdown({ type: 'ANY_SHORTAGE', title: "Total Shortage Analysis" })}
+                    className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-lg border-t-4 border-red-600 flex flex-col justify-between group cursor-pointer hover:scale-[1.02] transition-all"
+                >
+                    <div>
+                        <div className="flex justify-between items-start mb-4">
+                            <div>
+                                <p className="text-slate-500 dark:text-slate-400 font-bold text-sm uppercase tracking-wider">Total Shortage Value</p>
+                                <p className="text-red-600 dark:text-red-400 text-xs font-medium">Combined Partial & 100% Missing</p>
+                            </div>
+                            <div className="bg-red-100 dark:bg-red-900/30 p-2 rounded-lg">
+                                <NoSymbolIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
+                            </div>
+                        </div>
+                        <div className="flex items-baseline gap-2 mb-4">
+                            <span className="text-4xl font-black text-slate-800 dark:text-white">
+                                {formatCurrency(dashboardData.totalNotAvailableValue, { notation: 'compact' })}
+                            </span>
+                        </div>
+                        <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-700">
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-slate-500 dark:text-slate-400">From Partial POs</span>
+                                <span className="font-bold text-amber-600">{formatCurrency(dashboardData.partialNotAvailableItemsValue, { notation: 'compact' })}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-slate-500 dark:text-slate-400">From 100% Missing POs</span>
+                                <span className="font-bold text-primary">{formatCurrency(dashboardData.notAvailableValue, { notation: 'compact' })}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="mt-6">
+                        <button 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onCardClick?.('ANY_SHORTAGE');
+                            }}
+                            className="w-full py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-all active:scale-95 text-xs shadow-md shadow-red-600/20"
+                        >
+                            View All Shortage POs
+                        </button>
+                    </div>
+                </div>
             </div>
 
 

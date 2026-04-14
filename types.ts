@@ -119,6 +119,15 @@ export interface PurchaseOrder {
   checklistRemarks?: string;
 }
 
+export interface BranchStock {
+  id: string;
+  partNumber: string;
+  description: string;
+  quantity: number;
+  branch: string;
+  updatedAt: string;
+}
+
 export interface StockItem {
   id: string;
   partNumber: string;
