@@ -14,7 +14,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
     const timer = setTimeout(() => {
       setIsVisible(false);
       setTimeout(onComplete, 1000); // Wait for exit animation
-    }, 4000); // Show for 4 seconds
+    }, 5000); // Show for 5 seconds
 
     return () => clearTimeout(timer);
   }, [onComplete]);
@@ -64,6 +64,27 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
             >
               POWER SOLUTIONNS
             </motion.p>
+
+            {/* Fawwaz Creations Credit */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 2.2, duration: 0.8 }}
+              className="flex flex-col items-center"
+            >
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em] mb-2">Designed & Developed by</p>
+              <motion.div
+                animate={{ 
+                  opacity: [0.7, 1, 0.7],
+                }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                className="flex items-center gap-1.5"
+              >
+                <span className="text-sm font-black tracking-tighter text-white">FAWWAZ</span>
+                <div className="h-1 w-1 rounded-full bg-primary" />
+                <span className="text-sm font-black tracking-tighter text-primary">CREATIONS</span>
+              </motion.div>
+            </motion.div>
           </motion.div>
 
           {/* Loading Indicator */}
