@@ -53,12 +53,8 @@ export interface POItem {
   itemDesc?: string; // Maps to Item: Item Description
   discount?: number; // Maps to Discount Amount
   gst?: number; // Maps to Tax % (derived from Tax Amount if needed)
-  stockAvailable?: number; // Maps to Stock Available
-  stockInHand?: number; // Maps to Stock In Hand
-  allocatedQuantity?: number;
   deliveryQuantity?: number;
   invoicedQuantity?: number;
-  stockStatus?: 'Available' | 'Unavailable';
   oaDate?: string;
   oaNo?: string;
   itemType?: string; // Maps to Item: Item Type
@@ -117,38 +113,6 @@ export interface PurchaseOrder {
     others: boolean;
   };
   checklistRemarks?: string;
-}
-
-export interface BranchStock {
-  id: string;
-  partNumber: string;
-  description: string;
-  quantity: number;
-  minThreshold?: number;
-  branch: string;
-  updatedAt: string;
-}
-
-export interface StockItem {
-  id: string;
-  partNumber: string;
-  description: string;
-  totalQuantity: number;
-  allocatedQuantity: number;
-  updatedAt: string;
-}
-
-export interface StockMovement {
-  id: string;
-  partNumber: string;
-  type: 'INWARD' | 'OUTWARD' | 'ALLOCATION' | 'TRANSFER' | 'DEALLOCATION';
-  quantity: number;
-  sourceBranch?: string;
-  destinationBranch?: string;
-  branch?: string;
-  referenceId?: string;
-  remarks: string;
-  timestamp: any;
 }
 
 export interface QuotationItem {

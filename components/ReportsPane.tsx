@@ -7,13 +7,14 @@ import { formatDate, isDateInRange } from '../utils/dateUtils';
 import { formatToCr } from '../utils/currencyUtils';
 import { ITEM_CATEGORIES } from '../constants';
 import { ArrowDownTrayIcon, ClipboardDocumentListIcon, ExclamationTriangleIcon, TruckIcon, CheckCircleIcon, DatabaseIcon } from './icons';
+import { getPOValue } from '../utils/poUtils';
 
 interface ReportsPaneProps {
     purchaseOrders: PurchaseOrder[];
     onUpdatePO: (po: PurchaseOrder) => void;
 }
 
-type TabType = 'general' | 'missingOA' | 'dispatchPending' | 'oaFilled' | 'allocation' | 'invoiced';
+type TabType = 'general' | 'missingOA' | 'dispatchPending' | 'oaFilled' | 'invoiced';
 
 const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO }) => {
     const [activeTab, setActiveTab] = useState<TabType>('general');
@@ -52,7 +53,7 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
             // Fix: FulfillmentStatus.Partial does not exist. Replaced with FulfillmentStatus.PartiallyAvailable.
             if (po.fulfillmentStatus === FulfillmentStatus.PartiallyAvailable || po.fulfillmentStatus === FulfillmentStatus.NotAvailable) {
                 const missingItems = po.items.filter(item => {
-                    const isUnavailable = item.status === POItemStatus.NotAvailable || item.stockStatus === 'Unavailable';
+                    const isUnavailable = item.status === POItemStatus.NotAvailable;
                     return isUnavailable && (!item.oaNo || !item.oaDate);
                 });
                 if (missingItems.length > 0) results.push({ po, items: missingItems });
@@ -75,20 +76,6 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
         });
         return results;
     }, [purchaseOrders, branchFilter, oaStatusFilter]);
-
-    // Allocation Logic (New Report)
-    const allocationData = useMemo(() => {
-        const results: { po: PurchaseOrder, item: any }[] = [];
-        purchaseOrders.forEach(po => {
-            if (branchFilter && po.mainBranch !== branchFilter) return;
-            (po.items || []).forEach(item => {
-                if ((item.allocatedQuantity || 0) > 0) {
-                    results.push({ po, item });
-                }
-            });
-        });
-        return results;
-    }, [purchaseOrders, branchFilter]);
 
     // Dispatch Pending Logic (Fully Available but Not Shipped)
     const dispatchPendingPOs = useMemo(() => {
@@ -177,34 +164,13 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
         link.click();
     };
 
-    const exportAllocationReport = () => {
-        const rows = allocationData.map(({ po, item }) => ({
-            'PO Number': po.poNumber,
-            'Customer': po.customerName,
-            'Part Number': item.partNumber,
-            'Allocated Qty': item.allocatedQuantity,
-            'Total Required': item.quantity,
-            'Item Status': item.status,
-            'Branch': po.mainBranch || 'N/A'
-        }));
-        if (rows.length === 0) return alert("No allocation data found");
-        const headers = Object.keys(rows[0]).join(',');
-        const csvRows = rows.map(row => Object.values(row).map(v => `"${v}"`).join(',')).join('\n');
-        const csvContent = `${headers}\n${csvRows}`;
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = 'stock_allocation_report.csv';
-        link.click();
-    };
-
     const exportDispatchPending = () => {
         const rows = dispatchPendingPOs.map(po => ({
             'PO Number': po.poNumber,
             'Date': po.poDate,
             'Customer': po.customerName,
             'Branch': po.mainBranch,
-            'Value': po.items.reduce((acc, i) => acc + (i.quantity * i.rate), 0),
+            'Value': getPOValue(po),
             'Dispatch Remarks': remarksEdits[po.id] !== undefined ? remarksEdits[po.id] : (po.dispatchRemarks || '')
         }));
         if (rows.length === 0) return alert("No data to export");
@@ -226,7 +192,7 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
             'Branch': po.mainBranch,
             'Invoice Number': po.invoiceNumber || 'N/A',
             'Invoice Date': po.invoiceDate || 'N/A',
-            'Value': po.items.reduce((acc, i) => acc + (i.quantity * i.rate), 0),
+            'Value': getPOValue(po),
             'Sale Type': po.saleType,
             'Payment Status': po.paymentStatus || 'N/A'
         }));
@@ -263,16 +229,6 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                         }`}
                     >
                         General Data Export
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('allocation')}
-                        className={`flex-1 rounded-lg py-2.5 text-sm font-medium leading-5 transition-all flex justify-center items-center gap-2 ${
-                            activeTab === 'allocation'
-                                ? 'bg-white dark:bg-slate-700 shadow text-indigo-600 dark:text-indigo-400'
-                                : 'text-slate-500 hover:bg-white/[0.12] hover:text-slate-700 dark:hover:text-slate-200'
-                        }`}
-                    >
-                        <DatabaseIcon className="w-4 h-4" /> Allocation Report
                     </button>
                     <button
                         onClick={() => setActiveTab('oaFilled')}
@@ -364,68 +320,6 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                                         <ArrowDownTrayIcon className="w-5 h-5" /> Export Filtered Data
                                     </button>
                                 </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === 'allocation' && (
-                        <div className="space-y-4 h-full flex flex-col">
-                            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg mb-2">
-                                <div className="max-w-xs">
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Branch</label>
-                                    <select 
-                                        value={branchFilter} 
-                                        onChange={e => setBranchFilter(e.target.value)} 
-                                        className="mt-1 block w-full text-sm px-3 py-2 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none"
-                                    >
-                                        <option value="">All Branches</option>
-                                        {branches.map(branch => <option key={branch} value={branch}>{branch}</option>)}
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="flex justify-between items-center mb-2">
-                                <p className="text-slate-600 dark:text-slate-400">System-wide record of stock quantities assigned to specific Purchase Orders.</p>
-                                <button onClick={exportAllocationReport} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-dark bg-primary/10 hover:bg-primary/20 rounded-lg">
-                                    <ArrowDownTrayIcon className="w-4 h-4" /> Export Allocation Report
-                                </button>
-                            </div>
-                            <div className="flex-1 overflow-auto rounded-lg border border-slate-200 dark:border-slate-700">
-                                <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
-                                    <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-700 dark:text-slate-300 uppercase sticky top-0">
-                                        <tr>
-                                            <th className="p-3">PO Number</th>
-                                            <th className="p-3">Customer</th>
-                                            <th className="p-3">Part Number</th>
-                                            <th className="p-3 text-right">Allocated</th>
-                                            <th className="p-3 text-right">Required</th>
-                                            <th className="p-3">Progress</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                                        {allocationData.length > 0 ? (
-                                            allocationData.map(({ po, item }, idx) => {
-                                                const percent = Math.min(100, Math.round((item.allocatedQuantity / item.quantity) * 100));
-                                                return (
-                                                    <tr key={`${po.id}-${idx}`} className="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50">
-                                                        <td className="p-3 font-medium text-slate-900 dark:text-white">{po.poNumber}</td>
-                                                        <td className="p-3">{po.customerName}</td>
-                                                        <td className="p-3 font-bold">{item.partNumber}</td>
-                                                        <td className="p-3 text-right font-black text-primary">{item.allocatedQuantity}</td>
-                                                        <td className="p-3 text-right">{item.quantity}</td>
-                                                        <td className="p-3">
-                                                            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 max-w-[100px]">
-                                                                <div className="bg-primary h-2.5 rounded-full" style={{ width: `${percent}%` }}></div>
-                                                            </div>
-                                                            <span className="text-[10px] text-slate-500">{percent}%</span>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })
-                                        ) : (
-                                            <tr><td colSpan={6} className="p-8 text-center text-slate-500">No stock allocations have been made yet.</td></tr>
-                                        )}
-                                    </tbody>
-                                </table>
                             </div>
                         </div>
                     )}
@@ -595,7 +489,7 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                                                 <tr key={po.id} className="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50">
                                                     <td className="p-3 font-medium">{po.poNumber}</td>
                                                     <td className="p-3">{po.customerName}</td>
-                                                    <td className="p-3">{formatToCr(po.items.reduce((acc, i) => acc + (i.quantity * i.rate), 0))}</td>
+                                                    <td className="p-3">{formatToCr(getPOValue(po))}</td>
                                                     <td className="p-3"><textarea className="w-full p-2 text-sm border border-slate-300 rounded dark:bg-slate-900 dark:border-slate-600" rows={2} value={remarksEdits[po.id] !== undefined ? remarksEdits[po.id] : (po.dispatchRemarks || '')} onChange={(e) => handleRemarkChange(po.id, e.target.value)} /></td>
                                                     <td className="p-3 text-center"><button onClick={() => handleSaveRemark(po)} className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded hover:bg-blue-700">Save</button></td>
                                                 </tr>
@@ -649,7 +543,7 @@ const ReportsPane: React.FC<ReportsPaneProps> = ({ purchaseOrders, onUpdatePO })
                                                     <td className="p-3">{po.customerName}</td>
                                                     <td className="p-3 font-bold text-purple-600">{po.invoiceNumber || 'N/A'}</td>
                                                     <td className="p-3">{formatDate(po.invoiceDate || po.poDate)}</td>
-                                                    <td className="p-3">{formatToCr(po.items.reduce((acc, i) => acc + (i.quantity * i.rate), 0))}</td>
+                                                    <td className="p-3">{formatToCr(getPOValue(po))}</td>
                                                     <td className="p-3">
                                                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${po.paymentStatus === 'Received' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
                                                             {po.paymentStatus || 'Pending'}

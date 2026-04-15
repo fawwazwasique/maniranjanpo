@@ -1,7 +1,7 @@
 
 import { PurchaseOrder, POItemStatus, OverallPOStatus, FulfillmentStatus } from '../types';
 
-export const getPOFulfillmentStatus = (po: PurchaseOrder, selectedCategories: string[]) => {
+export const getPOFulfillmentStatus = (po: PurchaseOrder, selectedCategories: string[] = []) => {
     const items = po.items || [];
     
     // If we have items, always calculate dynamically to respect category filters
@@ -35,7 +35,7 @@ export const getPOFulfillmentStatus = (po: PurchaseOrder, selectedCategories: st
     return FulfillmentStatus.NotAvailable;
 };
 
-export const getPOValue = (po: PurchaseOrder, selectedCategories: string[]) => {
+export const getPOValue = (po: PurchaseOrder, selectedCategories: string[] = []) => {
     const relevantItems = (po.items || []).filter(item => 
         selectedCategories.length === 0 || selectedCategories.includes(item.category)
     );

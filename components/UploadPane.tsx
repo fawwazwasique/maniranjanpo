@@ -18,8 +18,6 @@ const initialItemState = {
     quantity: 1, 
     rate: 0, 
     discount: 0, 
-    stockAvailable: 0,
-    stockInHand: 0,
     baseAmount: 0,
     taxAmount: 0,
     grossAmount: 0,
@@ -134,8 +132,6 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
             const baseAmtIdx = getColIdx('Base Amount');
             const taxAmtIdx = getColIdx('Tax Amount');
             const grossAmtIdx = getColIdx('Gross Amount');
-            const stockAvailIdx = getColIdx('Stock Available');
-            const stockHandIdx = getColIdx('Stock In Hand');
             const itemStatusIdx = getColIdx('Item Status');
             const oaNoIdx = getColIdx('Oa No');
             const oaDateIdx = getColIdx('Oa Date');
@@ -194,8 +190,6 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                     baseAmount: getNum(row, baseAmtIdx),
                     taxAmount: getNum(row, taxAmtIdx),
                     grossAmount: getNum(row, grossAmtIdx),
-                    stockAvailable: getNum(row, stockAvailIdx),
-                    stockInHand: getNum(row, stockHandIdx),
                     status: normalizeEnum(getStr(row, itemStatusIdx), POItemStatus) as POItemStatus || POItemStatus.NotAvailable,
                     oaNo: getStr(row, oaNoIdx),
                     oaDate: getStr(row, oaDateIdx),
@@ -478,9 +472,7 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                                      <div><label className="text-xs">Tax Amount</label><input type="number" name="taxAmount" value={item.taxAmount ?? 0} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none"/></div>
                                      <div><label className="text-xs">Gross Amount</label><input type="number" name="grossAmount" value={item.grossAmount ?? 0} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-red-50 font-bold rounded border-none"/></div>
                                  </div>
-                                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                                     <div><label className="text-xs">Stock Available</label><input type="number" name="stockAvailable" value={item.stockAvailable ?? 0} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none" disabled /></div>
-                                     <div><label className="text-xs">Stock In Hand</label><input type="number" name="stockInHand" value={item.stockInHand ?? 0} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none" disabled /></div>
+                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                      <div>
                                         <label className="text-xs">Item Status (Auto)</label>
                                         <div className="w-full p-2 bg-slate-100 dark:bg-slate-900 rounded border-none text-sm font-bold text-slate-500">

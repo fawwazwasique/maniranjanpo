@@ -14,7 +14,6 @@ import DataManagementPane from './components/DataManagementPane';
 import ReportsPane from './components/ReportsPane';
 import DetailedBreakdownPane from './components/DetailedBreakdownPane';
 import PrimaryPlanPane from './components/PrimaryPlanPane';
-import StockManagementPane from './components/StockManagementPane';
 import ErrorBanner from './components/ErrorBanner';
 import WelcomeScreen from './components/WelcomeScreen';
 import useLocalStorage from './hooks/useLocalStorage';
@@ -24,9 +23,8 @@ import { signInAnonymously } from 'firebase/auth';
 
 import { getProcurementSuggestion } from './services/geminiService';
 import { performMonthlyInvoicedCleanup } from './utils/cleanupUtils';
-import { mapPOToStock, getStockDeductions } from './utils/stockUtils';
 
-import type { PurchaseOrder, Notification, LogEntry, POItem, ProcurementSuggestion, StockItem, StockMovement, BranchStock } from './types';
+import type { PurchaseOrder, Notification, LogEntry, POItem, ProcurementSuggestion } from './types';
 import { POItemStatus, OverallPOStatus, OrderStatus, FulfillmentStatus } from './types';
 
 enum OperationType {
@@ -81,7 +79,7 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 }
 
 type ModalType = 'none' | 'poDetail' | 'suggestion';
-type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'topCustomers' | 'detailedBreakdown' | 'stockManagement';
+type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'topCustomers' | 'detailedBreakdown';
 type ThemeMode = 'light' | 'dark';
 type ThemeColor = 'classic' | 'emerald' | 'midnight' | 'sunset' | 'ocean';
 
@@ -134,7 +132,6 @@ const sanitizeData = (data: any): any => {
 
 function App() {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
-  const [branchStock, setBranchStock] = useState<BranchStock[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
@@ -238,109 +235,10 @@ function App() {
         setNotifications(notifs);
     }, (error) => handleFirestoreError(error, OperationType.GET, "notifications"));
 
-    const unsubBranchStock = onSnapshot(collection(db, "branchStock"), (snapshot) => {
-        const stockData = snapshot.docs.map(doc => sanitizeData({ ...doc.data(), id: doc.id }) as BranchStock);
-        setBranchStock(stockData);
-    }, (error) => handleFirestoreError(error, OperationType.GET, "branchStock"));
-
     return () => {
-        unsubPO(); unsubLogs(); unsubNotifs(); unsubBranchStock();
+        unsubPO(); unsubLogs(); unsubNotifs();
     };
 }, []);
-
-  const totalStockQty = useMemo(() => branchStock.reduce((acc, s) => acc + s.quantity, 0), [branchStock]);
-
-  // Automated Stock Mapping Effect - Optimized with longer debounce and more stable trigger
-  useEffect(() => {
-    if (purchaseOrders.length === 0 || branchStock.length === 0 || isQuotaExceeded) return;
-
-    const updateMapping = async () => {
-      // Use a local copy to avoid closure issues with state
-      const currentPOs = purchaseOrders;
-      const currentStock = branchStock;
-      
-      const batch = writeBatch(db);
-      let opsCount = 0;
-      let hasChanges = false;
-
-      for (const po of currentPOs) {
-        // Only map open/partial orders
-        if (po.orderStatus === OrderStatus.Invoiced || po.orderStatus === OrderStatus.Cancelled) continue;
-
-        const mappedPO = mapPOToStock(po, currentStock);
-        
-        // Deep comparison to avoid unnecessary writes
-        const itemsChanged = JSON.stringify(mappedPO.items) !== JSON.stringify(po.items);
-        const statusChanged = mappedPO.fulfillmentStatus !== po.fulfillmentStatus;
-
-        if (itemsChanged || statusChanged) {
-          const poRef = doc(db, "purchaseOrders", po.id);
-          batch.update(poRef, { 
-            items: mappedPO.items, 
-            fulfillmentStatus: mappedPO.fulfillmentStatus 
-          });
-          opsCount++;
-          hasChanges = true;
-          
-          // Firestore batch limit is 500
-          if (opsCount >= 450) break; 
-        }
-      }
-
-      if (hasChanges) {
-        await batch.commit().catch(err => {
-          if (err.code === 'resource-exhausted') {
-            console.error("Firestore Quota Exceeded. Auto-mapping paused.");
-          } else {
-            console.warn("Auto-mapping batch failed:", err);
-          }
-        });
-      }
-    };
-
-    // Increased debounce to 10 seconds and only trigger on count/quantity changes
-    const timer = setTimeout(updateMapping, 10000);
-    return () => clearTimeout(timer);
-  }, [branchStock.length, purchaseOrders.length, totalStockQty]); 
-
-  // Safety Stock Alerts Effect - Optimized
-  useEffect(() => {
-    if (branchStock.length === 0 || isQuotaExceeded) return;
-
-    const checkThresholds = async () => {
-      const lowStockItems = branchStock.filter(s => s.minThreshold && s.quantity <= s.minThreshold);
-      if (lowStockItems.length === 0) return;
-      
-      const today = new Date().toISOString().split('T')[0];
-      
-      for (const item of lowStockItems) {
-        // Check if notification already exists for this item today
-        const alreadyNotified = notifications.some(n => 
-          n.poId === 'STOCK_ALERT' &&
-          n.message.includes(item.partNumber) && 
-          n.message.includes(item.branch) && 
-          n.createdAt.startsWith(today)
-        );
-
-        if (!alreadyNotified) {
-          try {
-            await addDoc(collection(db, "notifications"), {
-              message: `⚠️ Low Stock Alert: ${item.partNumber} in ${item.branch} is at ${item.quantity} (Min: ${item.minThreshold})`,
-              poId: 'STOCK_ALERT',
-              read: false,
-              createdAt: new Date().toISOString()
-            });
-          } catch (err: any) {
-            if (err.code === 'resource-exhausted') break;
-          }
-        }
-      }
-    };
-
-    // Run every 10 minutes or on count change, not on every stock update
-    const timer = setTimeout(checkThresholds, 10 * 60 * 1000);
-    return () => clearTimeout(timer);
-  }, [branchStock.length, notifications.length]);
 
   const addLog = async (poId: string, action: string) => {
     try {
@@ -350,79 +248,8 @@ function App() {
     }
   };
 
-  const [isSyncingStock, setIsSyncingStock] = useState(false);
-
-  const handleSyncStock = async () => {
-    if (purchaseOrders.length === 0 || branchStock.length === 0) return;
-    setIsSyncingStock(true);
-    
-    try {
-      const batch = writeBatch(db);
-      let hasChanges = false;
-      let opsCount = 0;
-
-      for (const po of purchaseOrders) {
-        if (po.orderStatus === OrderStatus.Invoiced || po.orderStatus === OrderStatus.Cancelled) continue;
-        const mappedPO = mapPOToStock(po, branchStock);
-        
-        if (JSON.stringify(mappedPO.items) !== JSON.stringify(po.items) || mappedPO.fulfillmentStatus !== po.fulfillmentStatus) {
-          batch.update(doc(db, "purchaseOrders", po.id), { 
-            items: mappedPO.items, 
-            fulfillmentStatus: mappedPO.fulfillmentStatus 
-          });
-          hasChanges = true;
-          opsCount++;
-          if (opsCount >= 450) break;
-        }
-      }
-
-      if (hasChanges) {
-        await batch.commit();
-        alert("Stock mapping synchronized successfully!");
-      } else {
-        alert("All orders are already up to date with current stock.");
-      }
-    } catch (error) {
-      console.error("Sync failed:", error);
-      alert("Failed to sync stock mapping. Quota might be exceeded.");
-    } finally {
-      setIsSyncingStock(false);
-    }
-  };
-
   const handleUpdatePO = useCallback(async (updatedPO: PurchaseOrder) => {
     try {
-      // Check if status changed to Invoiced to trigger stock deduction
-      const oldPO = purchaseOrders.find(p => p.id === updatedPO.id);
-      if (oldPO && oldPO.orderStatus !== OrderStatus.Invoiced && updatedPO.orderStatus === OrderStatus.Invoiced) {
-        // Deduct stock
-        const deductions = getStockDeductions(updatedPO);
-        const batch = writeBatch(db);
-        
-        for (const d of deductions) {
-          const stockItem = branchStock.find(s => s.partNumber.toLowerCase() === d.partNumber.toLowerCase() && s.branch === d.branch);
-          if (stockItem) {
-            const newQty = Math.max(0, stockItem.quantity - d.quantity);
-            batch.update(doc(db, "branchStock", stockItem.id), {
-              quantity: newQty,
-              updatedAt: new Date().toISOString()
-            });
-            
-            // Record movement
-            const movementRef = doc(collection(db, "stockMovements"));
-            batch.set(movementRef, {
-              partNumber: d.partNumber,
-              type: 'OUTWARD',
-              quantity: d.quantity,
-              branch: d.branch,
-              timestamp: serverTimestamp(),
-              remarks: `Auto-deduction for PO ${updatedPO.poNumber} (Invoiced)`
-            });
-          }
-        }
-        await batch.commit();
-      }
-
       // Sanitize data before sending to Firestore just in case
       const cleanPO = sanitizeData(updatedPO);
       const poRef = doc(db, "purchaseOrders", cleanPO.id);
@@ -431,7 +258,7 @@ function App() {
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, "purchaseOrders");
     }
-  }, [purchaseOrders, branchStock]);
+  }, []);
 
   const handleDeletePO = useCallback(async (poId: string | string[]) => {
     setPoToDelete(poId);
@@ -621,13 +448,6 @@ function App() {
                 />
             )}
             {activePane === 'reports' && <ReportsPane purchaseOrders={purchaseOrders} onUpdatePO={handleUpdatePO} />}
-            {activePane === 'stockManagement' && (
-                <StockManagementPane 
-                    branchStock={branchStock} 
-                    onSyncStock={handleSyncStock}
-                    isSyncing={isSyncingStock}
-                />
-            )}
             {activePane === 'dataManagement' && <DataManagementPane purchaseOrders={purchaseOrders} />}
         </main>
       </div>

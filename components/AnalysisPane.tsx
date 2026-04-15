@@ -3,7 +3,7 @@ import React, { useMemo, useState } from 'react';
 import type { PurchaseOrder } from '../types';
 import { OverallPOStatus, FulfillmentStatus, POItemStatus, OrderStatus } from '../types';
 import { ChartBarIcon, CheckCircleIcon, ClockIcon, TruckIcon, ChartPieIcon, SparklesIcon, XMarkIcon, MagnifyingGlassIcon, ArrowDownTrayIcon, BeakerIcon } from './icons';
-import { isOilItem, isOilStuckPO } from '../utils/poUtils';
+import { isOilItem, isOilStuckPO, getPOValue } from '../utils/poUtils';
 import { formatToCr, formatCurrency } from '../utils/currencyUtils';
 import { normalizeToAllowedValue } from '../utils/stringUtils';
 import { MAIN_BRANCHES } from '../constants';
@@ -54,7 +54,7 @@ const ClosableOrdersModal: React.FC<{ isOpen: boolean; onClose: () => void; orde
             po.customerName,
             po.poDate,
             po.mainBranch || 'N/A',
-            formatCurrency(po.items.reduce((acc, i) => acc + (Number(i.quantity) * Number(i.rate)), 0))
+            formatCurrency(getPOValue(po))
         ]);
         
         const csvContent = [
@@ -111,7 +111,7 @@ const ClosableOrdersModal: React.FC<{ isOpen: boolean; onClose: () => void; orde
                                     <td className="p-4 font-bold text-slate-800 dark:text-white">{po.poNumber}</td>
                                     <td className="p-4">{po.customerName}</td>
                                     <td className="p-4 text-right font-semibold">
-                                        {formatCurrency(po.items.reduce((acc, i) => acc + (Number(i.quantity) * Number(i.rate)), 0))}
+                                        {formatCurrency(getPOValue(po))}
                                     </td>
                                     <td className="p-4 text-center">
                                         <button 
@@ -180,13 +180,13 @@ const AnalysisPane: React.FC<AnalysisPaneProps> = ({ purchaseOrders, onSelectPO 
     const stats = useMemo(() => {
         const activePOs = purchaseOrders.filter(po => po.orderStatus !== OrderStatus.Invoiced);
         const totalPOs = activePOs.length;
-        const totalValue = activePOs.reduce((acc, po) => acc + po.items.reduce((itemAcc, item) => itemAcc + (Number(item.quantity) * Number(item.rate)), 0), 0);
+        const totalValue = activePOs.reduce((acc, po) => acc + getPOValue(po), 0);
         const avgOrderValue = totalPOs > 0 ? totalValue / totalPOs : 0;
         
         const valueByBranch = activePOs.reduce((acc, po) => {
             const rawBranch = po.mainBranch || 'Unassigned';
             const branch = normalizeToAllowedValue(rawBranch, MAIN_BRANCHES);
-            const value = po.items.reduce((itemAcc, item) => itemAcc + (Number(item.quantity) * Number(item.rate)), 0);
+            const value = getPOValue(po);
             acc[branch] = (acc[branch] || 0) + value;
             return acc;
         }, {} as Record<string, number>);
@@ -196,7 +196,7 @@ const AnalysisPane: React.FC<AnalysisPaneProps> = ({ purchaseOrders, onSelectPO 
             const date = new Date(po.poDate);
             if (isNaN(date.getTime())) return acc;
             const monthKey = date.toISOString().slice(0, 7); 
-            const value = po.items.reduce((itemAcc, item) => itemAcc + (Number(item.quantity) * Number(item.rate)), 0);
+            const value = getPOValue(po);
             acc[monthKey] = (acc[monthKey] || 0) + value;
             return acc;
         }, {} as Record<string, number>);
@@ -217,13 +217,13 @@ const AnalysisPane: React.FC<AnalysisPaneProps> = ({ purchaseOrders, onSelectPO 
         activePOs.forEach(po => {
             if (isOilStuckPO(po)) {
                 closablePOs.push(po);
-                valvolineRecoveryValue += po.items.reduce((acc, item) => acc + (Number(item.quantity) * Number(item.rate)), 0);
+                valvolineRecoveryValue += getPOValue(po);
             }
             
             // Calculate total oil required across all active POs
             (po.items || []).forEach(item => {
                 if (isOilItem(item) && (item.status === POItemStatus.NotAvailable || item.status === POItemStatus.PartiallyAvailable)) {
-                    totalOilRequired += (item.quantity - (item.allocatedQuantity || 0));
+                    totalOilRequired += item.quantity;
                 }
             });
         });

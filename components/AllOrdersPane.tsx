@@ -143,8 +143,7 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                 sortableItems = sortableItems.filter(po => po.status === filter.status);
             }
             if (filter.fulfillmentStatus) {
-                const catsToUse = filter.category ? [filter.category] : selectedCategories;
-                sortableItems = sortableItems.filter(po => getPOFulfillmentStatus(po, catsToUse) === filter.fulfillmentStatus);
+                sortableItems = sortableItems.filter(po => getPOFulfillmentStatus(po) === filter.fulfillmentStatus);
             }
             if (filter.isOilStuck) {
                 sortableItems = sortableItems.filter(po => isOilStuckPO(po));

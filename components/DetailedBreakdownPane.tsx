@@ -25,7 +25,7 @@ const DetailedBreakdownPane: React.FC<DetailedBreakdownPaneProps> = ({ purchaseO
         const notAvailable: PurchaseOrder[] = [];
 
         activePOs.forEach(po => {
-            const status = getPOFulfillmentStatus(po, []);
+            const status = getPOFulfillmentStatus(po);
             if (status === FulfillmentStatus.Available) ready.push(po);
             else if (status === FulfillmentStatus.PartiallyAvailable) partial.push(po);
             else if (status === FulfillmentStatus.NotAvailable) notAvailable.push(po);
@@ -101,7 +101,7 @@ const DetailedBreakdownPane: React.FC<DetailedBreakdownPaneProps> = ({ purchaseO
                                 <span className={`text-2xl font-black ${isActive ? 'text-slate-800 dark:text-white' : 'text-slate-400'}`}>{count}</span>
                             </div>
                             <h3 className={`text-lg font-bold ${isActive ? 'text-slate-800 dark:text-white' : 'text-slate-500'}`}>{config.label}</h3>
-                            <p className="text-xs text-slate-400 mt-1 uppercase tracking-wider font-bold">Total Value: {formatToCr(categorizedData[tab].reduce((acc, po) => acc + getPOValue(po, []), 0))}</p>
+                            <p className="text-xs text-slate-400 mt-1 uppercase tracking-wider font-bold">Total Value: {formatToCr(categorizedData[tab].reduce((acc, po) => acc + getPOValue(po), 0))}</p>
                         </button>
                     );
                 })}
@@ -121,8 +121,8 @@ const DetailedBreakdownPane: React.FC<DetailedBreakdownPaneProps> = ({ purchaseO
                         </thead>
                         <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                             {displayData.map(po => {
-                                const value = getPOValue(po, []);
-                                const status = getPOFulfillmentStatus(po, []);
+                                const value = getPOValue(po);
+                                const status = getPOFulfillmentStatus(po);
                                 
                                 // Calculate available vs gap for partial
                                 let availValue = 0;

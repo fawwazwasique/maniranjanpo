@@ -99,20 +99,8 @@ const POItemRow: React.FC<POItemRowProps> = ({ item, index, onItemChange, onRemo
       </div>
       
       <div className="mt-3 pt-2 border-t border-dashed border-slate-300 dark:border-slate-700">
-        <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wide">Stock & Fulfillment Details</p>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-          <div>
-            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Stock Avail.</label>
-            <input type="number" value={item.stockAvailable ?? 0} onChange={e => onItemChange(index, 'stockAvailable', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Stock InHand</label>
-            <input type="number" value={item.stockInHand ?? 0} onChange={e => onItemChange(index, 'stockInHand', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Allocated</label>
-            <input type="number" value={item.allocatedQuantity ?? 0} onChange={e => onItemChange(index, 'allocatedQuantity', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
-          </div>
+        <p className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wide">Fulfillment Details</p>
+        <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Delivered</label>
             <input type="number" value={item.deliveryQuantity ?? 0} onChange={e => onItemChange(index, 'deliveryQuantity', parseInt(e.target.value, 10))} className="w-full text-base px-3 py-2.5 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-red-500 focus:border-red-500"/>
