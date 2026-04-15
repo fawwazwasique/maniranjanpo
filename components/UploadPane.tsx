@@ -479,18 +479,13 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                                      <div><label className="text-xs">Gross Amount</label><input type="number" name="grossAmount" value={item.grossAmount ?? 0} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-red-50 font-bold rounded border-none"/></div>
                                  </div>
                                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                                     <div><label className="text-xs">Stock Available</label><input type="number" name="stockAvailable" value={item.stockAvailable ?? 0} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none"/></div>
-                                     <div><label className="text-xs">Stock In Hand</label><input type="number" name="stockInHand" value={item.stockInHand ?? 0} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none"/></div>
+                                     <div><label className="text-xs">Stock Available</label><input type="number" name="stockAvailable" value={item.stockAvailable ?? 0} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none" disabled /></div>
+                                     <div><label className="text-xs">Stock In Hand</label><input type="number" name="stockInHand" value={item.stockInHand ?? 0} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none" disabled /></div>
                                      <div>
-                                        <label className="text-xs">Item Status</label>
-                                        <select 
-                                            name="status" 
-                                            value={item.status || ''} 
-                                            onChange={(e) => handleItemChange(index, e)} 
-                                            className="w-full p-2 bg-slate-50 rounded border-none text-sm outline-none"
-                                        >
-                                            {Object.values(POItemStatus).map(s => <option key={s} value={s}>{s}</option>)}
-                                        </select>
+                                        <label className="text-xs">Item Status (Auto)</label>
+                                        <div className="w-full p-2 bg-slate-100 dark:bg-slate-900 rounded border-none text-sm font-bold text-slate-500">
+                                            {item.status}
+                                        </div>
                                      </div>
                                      <div><label className="text-xs">Oa No</label><input type="text" name="oaNo" value={item.oaNo || ''} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none"/></div>
                                      <div><label className="text-xs">Oa Date</label><input type="date" name="oaDate" value={item.oaDate || ''} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 bg-slate-50 rounded border-none"/></div>

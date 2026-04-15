@@ -2,7 +2,7 @@
 import React from 'react';
 import { HomeIcon, ArrowUpTrayIcon, ChartBarIcon, ListBulletIcon, LogoIcon, DatabaseIcon, ClipboardDocumentListIcon, UserGroupIcon, TruckIcon } from './icons';
 
-type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'topCustomers' | 'detailedBreakdown' | 'primaryPlan';
+type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'topCustomers' | 'detailedBreakdown' | 'stockManagement';
 
 type ThemeColor = 'classic' | 'emerald' | 'midnight' | 'sunset' | 'ocean';
 
@@ -91,10 +91,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activePane, setActivePane, themeColor
                         onClick={() => setActivePane('allOrders')}
                     />
                     <NavItem 
-                        icon={<TruckIcon className="w-6 h-6" />}
-                        label="Primary Plan"
-                        isActive={activePane === 'primaryPlan'}
-                        onClick={() => setActivePane('primaryPlan')}
+                        icon={<DatabaseIcon className="w-6 h-6" />}
+                        label="Stock Management"
+                        isActive={activePane === 'stockManagement'}
+                        onClick={() => setActivePane('stockManagement')}
                     />
                      <NavItem
                         icon={<ClipboardDocumentListIcon className="w-6 h-6" />}

@@ -124,6 +124,7 @@ export interface BranchStock {
   partNumber: string;
   description: string;
   quantity: number;
+  minThreshold?: number;
   branch: string;
   updatedAt: string;
 }
@@ -140,11 +141,14 @@ export interface StockItem {
 export interface StockMovement {
   id: string;
   partNumber: string;
-  type: 'INWARD' | 'OUTWARD_WALKING' | 'ALLOCATION' | 'TRANSFER' | 'DEALLOCATION';
+  type: 'INWARD' | 'OUTWARD' | 'ALLOCATION' | 'TRANSFER' | 'DEALLOCATION';
   quantity: number;
+  sourceBranch?: string;
+  destinationBranch?: string;
+  branch?: string;
   referenceId?: string;
   remarks: string;
-  timestamp: string;
+  timestamp: any;
 }
 
 export interface QuotationItem {

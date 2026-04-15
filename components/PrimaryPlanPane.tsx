@@ -173,6 +173,25 @@ const PrimaryPlanPane: React.FC<PrimaryPlanPaneProps> = ({ purchaseOrders, branc
                 </div>
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Shortage SKUs</p>
+                    <p className="text-2xl font-black text-slate-800 dark:text-white">{primaryPlan.length}</p>
+                </div>
+                <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Required Qty</p>
+                    <p className="text-2xl font-black text-red-600">{primaryPlan.reduce((sum, i) => sum + i.requiredQty, 0)}</p>
+                </div>
+                <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Available PAN Stock</p>
+                    <p className="text-2xl font-black text-green-600">{primaryPlan.reduce((sum, i) => sum + i.totalPanStock, 0)}</p>
+                </div>
+                <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Net Primary Requirement</p>
+                    <p className="text-2xl font-black text-primary">{primaryPlan.reduce((sum, i) => sum + Math.max(0, i.requiredQty - i.totalPanStock), 0)}</p>
+                </div>
+            </div>
+
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                 <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex items-center gap-4">
                     <div className="relative flex-1">
