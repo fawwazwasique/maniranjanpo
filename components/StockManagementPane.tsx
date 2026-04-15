@@ -177,8 +177,9 @@ const StockManagementPane: React.FC<StockManagementPaneProps> = ({ branchStock, 
       skipEmptyLines: true,
       complete: async (results) => {
         try {
-          const batch = writeBatch(db);
+          let batch = writeBatch(db);
           let count = 0;
+          let totalUploaded = 0;
 
           for (const row of results.data as any[]) {
             const partNumber = row['Item Name']?.trim();
@@ -195,7 +196,7 @@ const StockManagementPane: React.FC<StockManagementPaneProps> = ({ branchStock, 
 
             if (existing) {
               batch.update(doc(db, "branchStock", existing.id), {
-                quantity: quantity, // Overwrite with new quantity from upload
+                quantity: quantity, 
                 description: description || existing.description,
                 updatedAt: new Date().toISOString()
               });
@@ -210,7 +211,6 @@ const StockManagementPane: React.FC<StockManagementPaneProps> = ({ branchStock, 
               });
             }
 
-            // Record movement
             const moveRef = doc(collection(db, "stockMovements"));
             batch.set(moveRef, {
               partNumber,
@@ -222,16 +222,22 @@ const StockManagementPane: React.FC<StockManagementPaneProps> = ({ branchStock, 
             });
 
             count++;
-            if (count % 400 === 0) {
+            totalUploaded++;
+            
+            // Firestore limit is 500 operations per batch. 
+            // We do 2 operations per item (update/set + movement), so max 250 items per batch.
+            if (count >= 200) {
               await batch.commit();
+              batch = writeBatch(db);
+              count = 0;
             }
           }
 
-          if (count % 400 !== 0) {
+          if (count > 0) {
             await batch.commit();
           }
 
-          alert(`Successfully uploaded ${count} stock items.`);
+          alert(`Successfully uploaded ${totalUploaded} stock items.`);
           if (fileInputRef.current) fileInputRef.current.value = '';
         } catch (error) {
           console.error("Error uploading stock:", error);
