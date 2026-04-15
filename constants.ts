@@ -88,8 +88,6 @@ export const BULK_UPLOAD_HEADERS = [
     'Base Amount',
     'Tax Amount',
     'Gross Amount',
-    'Stock Available',
-    'Stock In Hand',
     'Item Status',
     'Oa No',
     'Oa Date',

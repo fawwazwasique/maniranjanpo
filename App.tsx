@@ -212,7 +212,7 @@ function App() {
         }
     };
     
-    const unsubPO = onSnapshot(query(collection(db, "purchaseOrders"), orderBy("createdAt", "desc"), limit(200)), (snapshot) => {
+    const unsubPO = onSnapshot(query(collection(db, "purchaseOrders"), orderBy("createdAt", "desc"), limit(500)), (snapshot) => {
         const pos = snapshot.docs.map(doc => sanitizeData({ ...doc.data(), id: doc.id }) as PurchaseOrder);
         setPurchaseOrders(pos);
     }, (error) => {
@@ -333,20 +333,25 @@ function App() {
   };
 
   const handleBulkUpload = async (parsedOrders: any[]) => {
+      console.log(`Starting bulk upload of ${parsedOrders.length} orders.`);
       try {
           const batchSize = 400; // Safe margin below 500
+          let totalUploaded = 0;
           for (let i = 0; i < parsedOrders.length; i += batchSize) {
               const batch = writeBatch(db);
               const chunk = parsedOrders.slice(i, i + batchSize);
               
               for (const order of chunk) {
                   const newRef = doc(collection(db, "purchaseOrders"));
-                  batch.set(newRef, sanitizeData({
+                  const sanitized = sanitizeData({
                       ...order,
                       createdAt: new Date().toISOString(),
-                  }));
+                  });
+                  batch.set(newRef, sanitized);
               }
               await batch.commit();
+              totalUploaded += chunk.length;
+              console.log(`Committed batch. Total uploaded: ${totalUploaded}`);
           }
           
           alert(`Successfully uploaded ${parsedOrders.length} orders.`);

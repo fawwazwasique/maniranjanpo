@@ -81,37 +81,60 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
         reader.onload = (e) => {
             const text = e.target?.result as string;
             const lines = text.split(/\r?\n/).filter(l => l.trim());
-            if (lines.length < 2) return;
+            if (lines.length < 2) {
+                alert("The file appears to be empty or missing data rows.");
+                return;
+            }
 
-            const rawHeaders = lines[0].split(',');
+            // Detect delimiter (comma, semicolon, or tab)
+            const firstLine = lines[0];
+            const delimiters = [',', ';', '\t'];
+            let delimiter = ',';
+            let maxCols = 0;
+            delimiters.forEach(d => {
+                const cols = firstLine.split(d).length;
+                if (cols > maxCols) {
+                    maxCols = cols;
+                    delimiter = d;
+                }
+            });
+
+            const rawHeaders = lines[0].split(delimiter);
             const headers = rawHeaders.map(h => h.replace(/^\uFEFF/, '').trim().toLowerCase());
+            console.log("Detected delimiter:", delimiter);
+            console.log("Parsed headers:", headers);
             
             const getColIdx = (exactHeader: string, aliases: string[] = []) => {
                 const searchNames = [exactHeader, ...aliases].map(n => n.toLowerCase());
-                return headers.findIndex(h => searchNames.includes(h));
+                const idx = headers.findIndex(h => searchNames.includes(h));
+                if (idx === -1) {
+                    // Try partial match as fallback
+                    return headers.findIndex(h => searchNames.some(sn => h.includes(sn) || sn.includes(h)));
+                }
+                return idx;
             };
 
-            const branchIdx = getColIdx('Main -Branch', ['Branch', 'Main Branch']);
-            const subBranchIdx = getColIdx('Sub - branch', ['Sub Branch']);
-            const accountIdx = getColIdx('Account Name', ['Cust Name', 'Customer Name', 'Account']);
-            const soNoIdx = getColIdx('SO.NO', ['SO No', 'Sales Order Number', 'SO']);
-            const soDateIdx = getColIdx('SO DATE', ['SO Date']);
-            const poNoIdx = getColIdx('PO.NO', ['PO No', 'Purchase Order Number', 'PO']);
-            const poDateIdx = getColIdx('PO DATE', ['PO Date']);
-            const poStatusIdx = getColIdx('Po Status', ['Status', 'PO Status']);
-            const orderStatusIdx = getColIdx('Order Status');
-            const saleTypeIdx = getColIdx('Sale Type');
-            const creditDaysIdx = getColIdx('Credit Days');
-            const billPlanIdx = getColIdx('Billing Plan');
-            const materialsIdx = getColIdx('Materials');
-            const etaIdx = getColIdx('Eta Available');
-            const genRemIdx = getColIdx('General Remarks');
-            const invNoIdx = getColIdx('Invoice Number');
-            const invDateIdx = getColIdx('Invoice Date');
-            const custCatIdx = getColIdx('Customer Category');
-            const zoneIdx = getColIdx('Zone');
+            const branchIdx = getColIdx('Main -Branch', ['Branch', 'Main Branch', 'Main-Branch']);
+            const subBranchIdx = getColIdx('Sub - branch', ['Sub Branch', 'Sub-branch']);
+            const accountIdx = getColIdx('Account Name', ['Cust Name', 'Customer Name', 'Account', 'Customer']);
+            const soNoIdx = getColIdx('SO.NO', ['SO No', 'Sales Order Number', 'SO', 'SO Number']);
+            const soDateIdx = getColIdx('SO DATE', ['SO Date', 'Sales Order Date']);
+            const poNoIdx = getColIdx('PO.NO', ['PO No', 'Purchase Order Number', 'PO', 'PO Number']);
+            const poDateIdx = getColIdx('PO DATE', ['PO Date', 'Purchase Order Date']);
+            const poStatusIdx = getColIdx('Po Status', ['Status', 'PO Status', 'Overall Status']);
+            const orderStatusIdx = getColIdx('Order Status', ['Current Status']);
+            const saleTypeIdx = getColIdx('Sale Type', ['Payment Type']);
+            const creditDaysIdx = getColIdx('Credit Days', ['Credit Terms', 'Terms']);
+            const billPlanIdx = getColIdx('Billing Plan', ['Plan']);
+            const materialsIdx = getColIdx('Materials', ['Fulfillment', 'Availability']);
+            const etaIdx = getColIdx('Eta Available', ['ETA']);
+            const genRemIdx = getColIdx('General Remarks', ['Remarks', 'Notes']);
+            const invNoIdx = getColIdx('Invoice Number', ['Inv No', 'Invoice #']);
+            const invDateIdx = getColIdx('Invoice Date', ['Inv Date']);
+            const custCatIdx = getColIdx('Customer Category', ['Cust Cat']);
+            const zoneIdx = getColIdx('Zone', ['Region']);
             
-            const pfIdx = getColIdx('P & F Available');
+            const pfIdx = getColIdx('P & F Available', ['P&F', 'Packaging']);
             const bCheckIdx = getColIdx('B-Check');
             const cCheckIdx = getColIdx('C-Check');
             const dCheckIdx = getColIdx('D-Check');
@@ -120,28 +143,28 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
             const bdIdx = getColIdx('BD');
             const radIdx = getColIdx('Radiator Descaling');
             const othersIdx = getColIdx('Others');
-            const dispatchRemIdx = getColIdx('Dispatch Remarks');
+            const dispatchRemIdx = getColIdx('Dispatch Remarks', ['Pending Remarks']);
             
-            const nameIdx = getColIdx('Item: Item Name', ['Item Name', 'Part Number', 'Item']);
-            const typeIdx = getColIdx('Item: Item Type', ['Item Type']);
-            const catIdx = getColIdx('Category');
-            const descIdx = getColIdx('Item: Item Description', ['Description', 'Item Description']);
-            const qtyIdx = getColIdx('Quantity', ['Qty']);
-            const priceIdx = getColIdx('Unit Price', ['Rate', 'Price']);
-            const discIdx = getColIdx('Discount Amount', ['Discount']);
-            const baseAmtIdx = getColIdx('Base Amount');
-            const taxAmtIdx = getColIdx('Tax Amount');
-            const grossAmtIdx = getColIdx('Gross Amount');
-            const itemStatusIdx = getColIdx('Item Status');
-            const oaNoIdx = getColIdx('Oa No');
+            const nameIdx = getColIdx('Item: Item Name', ['Item Name', 'Part Number', 'Item', 'Part #']);
+            const typeIdx = getColIdx('Item: Item Type', ['Item Type', 'Type']);
+            const catIdx = getColIdx('Category', ['Item Category']);
+            const descIdx = getColIdx('Item: Item Description', ['Description', 'Item Description', 'Desc']);
+            const qtyIdx = getColIdx('Quantity', ['Qty', 'Count']);
+            const priceIdx = getColIdx('Unit Price', ['Rate', 'Price', 'Unit Rate']);
+            const discIdx = getColIdx('Discount Amount', ['Discount', 'Disc']);
+            const baseAmtIdx = getColIdx('Base Amount', ['Taxable Value']);
+            const taxAmtIdx = getColIdx('Tax Amount', ['GST Amount']);
+            const grossAmtIdx = getColIdx('Gross Amount', ['Total Amount', 'Grand Total']);
+            const itemStatusIdx = getColIdx('Item Status', ['Line Status']);
+            const oaNoIdx = getColIdx('Oa No', ['OA Number']);
             const oaDateIdx = getColIdx('Oa Date');
-            const itemRemIdx = getColIdx('Item Remarks');
+            const itemRemIdx = getColIdx('Item Remarks', ['Line Remarks']);
 
-            const billAddrIdx = getColIdx('Billing Address');
-            const billGstIdx = getColIdx('Bill To GSTIN');
-            const shipAddrIdx = getColIdx('Shipping Address');
-            const shipGstIdx = getColIdx('Ship To GSTIN');
-            const quoteIdx = getColIdx('Quote Number');
+            const billAddrIdx = getColIdx('Billing Address', ['Bill To Address']);
+            const billGstIdx = getColIdx('Bill To GSTIN', ['Billing GST']);
+            const shipAddrIdx = getColIdx('Shipping Address', ['Ship To Address']);
+            const shipGstIdx = getColIdx('Ship To GSTIN', ['Shipping GST']);
+            const quoteIdx = getColIdx('Quote Number', ['Quotation No']);
 
             const rows = lines.slice(1).map(line => {
                 const values: string[] = [];
@@ -152,7 +175,7 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                     if (char === '"') {
                         if (inQuotes && line[i+1] === '"') { current += '"'; i++; }
                         else inQuotes = !inQuotes;
-                    } else if (char === ',' && !inQuotes) {
+                    } else if (char === delimiter && !inQuotes) {
                         values.push(current.trim());
                         current = '';
                     } else current += char;
@@ -160,6 +183,8 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                 values.push(current.trim());
                 return values;
             });
+
+            console.log(`Parsed ${rows.length} rows from CSV.`);
 
             const getStr = (row: string[], idx: number, fallback = '') => (idx !== -1 && row[idx]) ? row[idx].trim() : fallback;
             const getNum = (row: string[], idx: number, fallback = 0) => (idx !== -1 && row[idx]) ? parseFloat(row[idx].replace(/[^0-9.]/g, '')) || fallback : fallback;
@@ -208,7 +233,6 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                     poNumber: poNumber,
                     poDate: getStr(first, poDateIdx, new Date().toISOString().split('T')[0]),
                     status: normalizeEnum(getStr(first, poStatusIdx), OverallPOStatus) as OverallPOStatus || OverallPOStatus.Available,
-                    poStatus: normalizeEnum(getStr(first, poStatusIdx), OverallPOStatus) as OverallPOStatus || OverallPOStatus.Available,
                     orderStatus: normalizeEnum(getStr(first, orderStatusIdx), OrderStatus) as OrderStatus || OrderStatus.OpenOrders,
                     saleType: normalizedSaleType,
                     paymentStatus: (normalizedSaleType === 'Cash' || normalizedSaleType === 'Awaiting Payment') ? 'Pending' : null,
@@ -243,6 +267,12 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                     createdAt: new Date().toISOString()
                 };
             });
+
+            console.log(`Successfully parsed ${parsedPOs.length} Purchase Orders.`);
+            if (parsedPOs.length === 0) {
+                alert("No valid Purchase Orders were found in the CSV. Please check the column headers.");
+                return;
+            }
 
             onBulkUpload(parsedPOs);
         };
