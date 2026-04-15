@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import type { PurchaseOrder } from '../types';
 import { OverallPOStatus, FulfillmentStatus, OrderStatus, POItemStatus, CustomerCategory } from '../types';
-import { CheckCircleIcon, ClockIcon, MagnifyingGlassIcon, TruckIcon, UserGroupIcon, XMarkIcon, ChartPieIcon, CalendarDaysIcon, CurrencyRupeeIcon, NoSymbolIcon, ArrowUpIcon, ArrowDownIcon, SparklesIcon, BeakerIcon } from './icons';
+import { CheckCircleIcon, ClockIcon, MagnifyingGlassIcon, TruckIcon, UserGroupIcon, XMarkIcon, ChartPieIcon, CalendarDaysIcon, CurrencyRupeeIcon, NoSymbolIcon, ArrowUpIcon, ArrowDownIcon, SparklesIcon, BeakerIcon, ExclamationTriangleIcon } from './icons';
 import { MAIN_BRANCHES, BRANCH_STRUCTURE, ITEM_CATEGORIES, CUSTOMER_CATEGORIES, ZONES, SALE_TYPES } from '../constants';
 import { getPOFulfillmentStatus, getPOValue } from '../utils/poUtils';
 import { isDateInRange } from '../utils/dateUtils';
@@ -37,6 +37,9 @@ interface DashboardProps {
   onCardClick?: (type: string, value?: string, category?: string) => void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  dataLimit?: number;
+  onLoadMore?: () => void;
+  onLoadAll?: () => void;
 }
 
 interface TrendData {
@@ -233,8 +236,10 @@ const BreakdownModal: React.FC<{
 };
 
 
-const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilters, customers, onCardClick, onRefresh, isRefreshing }) => {
+const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilters, customers, onCardClick, onRefresh, isRefreshing, dataLimit, onLoadMore, onLoadAll }) => {
     const [selectedBreakdown, setSelectedBreakdown] = React.useState<{ type: string, title: string } | null>(null);
+    
+    const isDataLimited = useMemo(() => dataLimit && purchaseOrders.length >= dataLimit, [purchaseOrders, dataLimit]);
 
     const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -691,21 +696,44 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     </h1>
                     <p className="text-slate-500 dark:text-slate-400 font-medium">Real-time supply chain visibility & order tracking</p>
                 </div>
-                <div className="flex items-center gap-3">
-                    {onRefresh && (
-                        <button 
-                            onClick={onRefresh}
-                            disabled={isRefreshing}
-                            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm disabled:opacity-50 active:scale-95"
-                        >
-                            <ClockIcon className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
-                            {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
-                        </button>
-                    )}
-                    <div className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 rounded-xl text-red-600 dark:text-red-400 text-sm font-bold border border-red-100 dark:border-red-900/30">
-                        <CalendarDaysIcon className="w-5 h-5" />
-                        {new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
+                <div className="flex flex-col items-end gap-2">
+                    <div className="flex items-center gap-3">
+                        {onRefresh && (
+                            <button 
+                                onClick={onRefresh}
+                                disabled={isRefreshing}
+                                className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm disabled:opacity-50 active:scale-95"
+                            >
+                                <ClockIcon className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                                {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
+                            </button>
+                        )}
+                        <div className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 rounded-xl text-red-600 dark:text-red-400 text-sm font-bold border border-red-100 dark:border-red-900/30">
+                            <CalendarDaysIcon className="w-5 h-5" />
+                            {new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
+                        </div>
                     </div>
+                    {isDataLimited && (
+                        <div className="flex items-center gap-2 text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-lg border border-amber-100 dark:border-amber-900/30 shadow-sm">
+                            <ExclamationTriangleIcon className="w-4 h-4" />
+                            <span>Showing latest {purchaseOrders.length} orders. Dashboard metrics may be partial.</span>
+                            <div className="flex items-center gap-2 ml-2">
+                                {onLoadMore && (
+                                    <button onClick={onLoadMore} className="underline hover:text-amber-700 dark:hover:text-amber-300">
+                                        Load More
+                                    </button>
+                                )}
+                                {onLoadAll && (
+                                    <>
+                                        <span className="text-amber-300">|</span>
+                                        <button onClick={onLoadAll} className="underline hover:text-amber-700 dark:hover:text-amber-300">
+                                            Load All
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 

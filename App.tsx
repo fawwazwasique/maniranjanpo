@@ -180,8 +180,16 @@ function App() {
 
   const [firestoreError, setFirestoreError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [dataLimit, setDataLimit] = useState(100);
+  const [dataLimit, setDataLimit] = useState(2000);
   const [uploadProgress, setUploadProgress] = useState<{ current: number, total: number } | null>(null);
+
+  const loadMore = useCallback(() => {
+    setDataLimit(prev => prev + 500);
+  }, []);
+
+  const loadAll = useCallback(() => {
+    setDataLimit(10000);
+  }, []);
   
   const fetchLogsAndNotifs = async () => {
     try {
@@ -203,7 +211,7 @@ function App() {
     setIsRefreshing(true);
     setFirestoreError(null);
     try {
-        const poSnap = await getDocs(query(collection(db, "purchaseOrders"), orderBy("createdAt", "desc"), limit(100)));
+        const poSnap = await getDocs(query(collection(db, "purchaseOrders"), orderBy("createdAt", "desc"), limit(dataLimit)));
         const pos = poSnap.docs.map(doc => sanitizeData({ ...doc.data(), id: doc.id }) as PurchaseOrder);
         setPurchaseOrders(pos);
         await fetchLogsAndNotifs();
@@ -279,8 +287,11 @@ function App() {
 
   const handleUpdatePO = useCallback(async (updatedPO: PurchaseOrder) => {
     try {
+      // Calculate total value for the PO
+      const totalValue = (updatedPO.items || []).reduce((acc, item) => acc + (Number(item.quantity || 0) * Number(item.rate || 0)), 0);
+      
       // Sanitize data before sending to Firestore just in case
-      const cleanPO = sanitizeData(updatedPO);
+      const cleanPO = sanitizeData({ ...updatedPO, totalValue });
       const poRef = doc(db, "purchaseOrders", cleanPO.id);
       await updateDoc(poRef, { ...cleanPO });
       addLog(cleanPO.id, "PO updated.");
@@ -354,8 +365,11 @@ function App() {
 
   const handleSaveSingleOrder = async (order: any) => {
       try {
+          const totalValue = (order.items || []).reduce((acc: number, item: any) => acc + (Number(item.quantity || 0) * Number(item.rate || 0)), 0);
+          
           const poData = sanitizeData({
               ...order,
+              totalValue,
               createdAt: new Date().toISOString(),
               paymentStatus: (order.saleType === 'Cash' || order.saleType === 'Awaiting Payment') ? 'Pending' : null,
           });
@@ -380,8 +394,12 @@ function App() {
               
               for (const order of chunk) {
                   const newRef = doc(collection(db, "purchaseOrders"));
+                  // Calculate total value for the PO to store it at top level
+                  const totalValue = (order.items || []).reduce((acc: number, item: any) => acc + (Number(item.quantity || 0) * Number(item.rate || 0)), 0);
+                  
                   const sanitized = sanitizeData({
                       ...order,
+                      totalValue,
                       createdAt: new Date().toISOString(),
                   });
                   batch.set(newRef, sanitized);
@@ -405,10 +423,6 @@ function App() {
       } finally {
           setUploadProgress(null);
       }
-  };
-
-  const loadMore = () => {
-    setDataLimit(prev => prev + 100);
   };
 
   const handleSelectPO = useCallback((po: PurchaseOrder) => {
@@ -542,6 +556,9 @@ function App() {
                     onCardClick={handleDashboardCardClick} 
                     onRefresh={refreshData}
                     isRefreshing={isRefreshing}
+                    dataLimit={dataLimit}
+                    onLoadMore={loadMore}
+                    onLoadAll={loadAll}
                 />
             )}
             {activePane === 'allOrders' && (
@@ -558,6 +575,8 @@ function App() {
                     isRefreshing={isRefreshing}
                     onLoadMore={loadMore}
                     hasMore={purchaseOrders.length >= dataLimit}
+                    dataLimit={dataLimit}
+                    onLoadAll={loadAll}
                 />
             )}
             {activePane === 'upload' && <UploadPane onSaveSingleOrder={handleSaveSingleOrder} onBulkUpload={handleBulkUpload} />}

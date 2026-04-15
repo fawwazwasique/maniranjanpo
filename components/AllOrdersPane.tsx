@@ -51,6 +51,8 @@ interface AllOrdersPaneProps {
   isRefreshing?: boolean;
   onLoadMore?: () => void;
   hasMore?: boolean;
+  dataLimit?: number;
+  onLoadAll?: () => void;
 }
 
 type SortKeys = 'poNumber' | 'customerName' | 'poDate' | 'soDate' | 'invoiceDate' | 'totalValue' | 'status' | 'fulfillmentStatus' | 'orderStatus';
@@ -77,7 +79,9 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({
     onRefresh,
     isRefreshing,
     onLoadMore,
-    hasMore
+    hasMore,
+    dataLimit,
+    onLoadAll
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: SortKeys; direction: 'ascending' | 'descending' } | null>({ key: 'poDate', direction: 'descending' });
@@ -740,14 +744,28 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({
             </div>
             
             {onLoadMore && hasMore && (
-                <div className="mt-6 flex justify-center">
-                    <button 
-                        onClick={onLoadMore}
-                        className="px-8 py-3 bg-red-600 text-white rounded-xl font-bold shadow-lg shadow-red-600/20 hover:bg-red-700 transition-all active:scale-95 flex items-center gap-2"
-                    >
-                        <ChevronDownIcon className="w-5 h-5" />
-                        Load More Orders
-                    </button>
+                <div className="mt-8 flex flex-col items-center gap-4 p-8 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <div className="text-center">
+                        <p className="text-slate-600 dark:text-slate-400 font-medium mb-1">Showing {purchaseOrders.length} of many orders</p>
+                        <p className="text-xs text-slate-400">Loading more data improves dashboard accuracy and search results.</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <button 
+                            onClick={onLoadMore}
+                            className="px-8 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold shadow-lg shadow-red-600/20 transition-all active:scale-95 flex items-center gap-2"
+                        >
+                            <ChevronDownIcon className="w-5 h-5" />
+                            Load More Orders
+                        </button>
+                        {onLoadAll && (
+                            <button 
+                                onClick={onLoadAll}
+                                className="px-8 py-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl font-bold transition-all active:scale-95"
+                            >
+                                Load All Data
+                            </button>
+                        )}
+                    </div>
                 </div>
             )}
         </div>
