@@ -4,7 +4,6 @@ import type { PurchaseOrder, OverallPOStatus, POItem } from '../types';
 import { POItemStatus, FulfillmentStatus, OrderStatus } from '../types';
 import { MagnifyingGlassIcon, ArrowDownTrayIcon, TrashIcon, XMarkIcon, ChevronDownIcon } from './icons';
 import { exportToCSV } from '../utils/export';
-import { isOilStuckPO } from '../utils/poUtils';
 import { formatDate, isDateInRange, parseDate } from '../utils/dateUtils';
 import { formatCurrency } from '../utils/currencyUtils';
 import { getPOFulfillmentStatus } from '../utils/poUtils';
@@ -16,7 +15,6 @@ interface AllOrdersPaneProps {
   filter?: { 
       status?: OverallPOStatus, 
       fulfillmentStatus?: FulfillmentStatus,
-      isOilStuck?: boolean,
       partNumber?: string,
       hasAnyShortage?: boolean,
       isInvoiced?: boolean,
@@ -144,9 +142,6 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
             }
             if (filter.fulfillmentStatus) {
                 sortableItems = sortableItems.filter(po => getPOFulfillmentStatus(po) === filter.fulfillmentStatus);
-            }
-            if (filter.isOilStuck) {
-                sortableItems = sortableItems.filter(po => isOilStuckPO(po));
             }
             if (filter.partNumber) {
                 sortableItems = sortableItems.filter(po => po.items.some(item => item.partNumber === filter.partNumber));

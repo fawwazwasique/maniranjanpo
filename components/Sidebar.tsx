@@ -2,7 +2,7 @@
 import React from 'react';
 import { HomeIcon, ArrowUpTrayIcon, ChartBarIcon, ListBulletIcon, LogoIcon, DatabaseIcon, ClipboardDocumentListIcon, UserGroupIcon, TruckIcon } from './icons';
 
-type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'topCustomers' | 'detailedBreakdown';
+type Pane = 'dashboard' | 'upload' | 'allOrders' | 'dataManagement' | 'reports' | 'topCustomers' | 'detailedBreakdown';
 
 type ThemeColor = 'classic' | 'emerald' | 'midnight' | 'sunset' | 'ocean';
 

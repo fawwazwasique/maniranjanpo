@@ -6,14 +6,12 @@ import POModal from './components/POModal';
 import ProcurementSuggestionModal from './components/ProcurementSuggestionModal';
 import Sidebar from './components/Sidebar';
 import UploadPane from './components/UploadPane';
-import AnalysisPane from './components/AnalysisPane';
 import ConfirmationModal from './components/ConfirmationModal';
 import AllOrdersPane from './components/AllOrdersPane';
 import TopCustomersPane from './components/TopCustomersPane';
 import DataManagementPane from './components/DataManagementPane';
 import ReportsPane from './components/ReportsPane';
 import DetailedBreakdownPane from './components/DetailedBreakdownPane';
-import PrimaryPlanPane from './components/PrimaryPlanPane';
 import ErrorBanner from './components/ErrorBanner';
 import WelcomeScreen from './components/WelcomeScreen';
 import useLocalStorage from './hooks/useLocalStorage';
@@ -79,7 +77,7 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 }
 
 type ModalType = 'none' | 'poDetail' | 'suggestion';
-type Pane = 'dashboard' | 'upload' | 'analysis' | 'allOrders' | 'dataManagement' | 'reports' | 'topCustomers' | 'detailedBreakdown';
+type Pane = 'dashboard' | 'upload' | 'allOrders' | 'dataManagement' | 'reports' | 'topCustomers' | 'detailedBreakdown';
 type ThemeMode = 'light' | 'dark';
 type ThemeColor = 'classic' | 'emerald' | 'midnight' | 'sunset' | 'ocean';
 
@@ -153,7 +151,6 @@ function App() {
   const [ordersFilter, setOrdersFilter] = useState<{
       status?: OverallPOStatus;
       fulfillmentStatus?: FulfillmentStatus;
-      isOilStuck?: boolean;
       partNumber?: string;
       hasAnyShortage?: boolean;
       isInvoiced?: boolean;
@@ -199,8 +196,6 @@ function App() {
     root.setAttribute('data-theme', themeColor);
   }, [themeMode, themeColor]);
 
-  const [isQuotaExceeded, setIsQuotaExceeded] = useState(false);
-
   useEffect(() => {
     signInAnonymously(auth).catch(err => {
         console.warn("Auth check failed:", err.message);
@@ -221,7 +216,6 @@ function App() {
         const pos = snapshot.docs.map(doc => sanitizeData({ ...doc.data(), id: doc.id }) as PurchaseOrder);
         setPurchaseOrders(pos);
     }, (error) => {
-        if (error.code === 'resource-exhausted') setIsQuotaExceeded(true);
         handleFirestoreError(error, OperationType.GET, "purchaseOrders");
     });
 
@@ -388,7 +382,6 @@ function App() {
     else if (type === 'PARTIALLY_AVAILABLE') setOrdersFilter({ fulfillmentStatus: FulfillmentStatus.PartiallyAvailable, isInvoiced: false, category });
     else if (type === 'NOT_AVAILABLE') setOrdersFilter({ fulfillmentStatus: FulfillmentStatus.NotAvailable, isInvoiced: false, category });
     else if (type === 'ANY_SHORTAGE') setOrdersFilter({ hasAnyShortage: true, isInvoiced: false, category });
-    else if (type === 'OIL_STUCK') setOrdersFilter({ isOilStuck: true, isInvoiced: false, category });
     else if (type === 'PART_SHORTAGE') setOrdersFilter({ partNumber: payload, isInvoiced: false, category });
     else if (type === 'PARTIAL_INVOICED') setOrdersFilter({ isPartiallyInvoiced: true, category });
     else if (type === 'INVOICED') setOrdersFilter({ isInvoiced: true, category });
@@ -406,11 +399,6 @@ function App() {
   return (
     <div className="flex h-screen bg-slate-100 dark:bg-gray-900 text-slate-900 dark:text-slate-100 overflow-hidden">
        {showWelcome && <WelcomeScreen onComplete={() => setShowWelcome(false)} />}
-       {isQuotaExceeded && (
-         <div className="fixed top-0 left-0 right-0 z-[200] bg-red-600 text-white p-2 text-center text-xs font-bold animate-pulse">
-           ⚠️ FIRESTORE QUOTA EXCEEDED: Automated updates paused. Some data may be stale.
-         </div>
-       )}
        {firestoreError && <ErrorBanner projectId="ethenpodashboard" message={firestoreError} onDismiss={() => setFirestoreError(null)} />}
       <Sidebar 
         activePane={activePane} 
