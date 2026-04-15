@@ -35,6 +35,8 @@ interface DashboardProps {
   }>>;
   customers: string[];
   onCardClick?: (type: string, value?: string, category?: string) => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
 interface TrendData {
@@ -231,7 +233,7 @@ const BreakdownModal: React.FC<{
 };
 
 
-const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilters, customers, onCardClick }) => {
+const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilters, customers, onCardClick, onRefresh, isRefreshing }) => {
     const [selectedBreakdown, setSelectedBreakdown] = React.useState<{ type: string, title: string } | null>(null);
 
     const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -680,8 +682,34 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
     };
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8">
-            <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-md mb-6">
+        <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-black text-slate-800 dark:text-white flex items-center gap-3">
+                        <ChartPieIcon className="w-10 h-10 text-red-600" />
+                        Procurement Dashboard
+                    </h1>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium">Real-time supply chain visibility & order tracking</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    {onRefresh && (
+                        <button 
+                            onClick={onRefresh}
+                            disabled={isRefreshing}
+                            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm disabled:opacity-50 active:scale-95"
+                        >
+                            <ClockIcon className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                            {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
+                        </button>
+                    )}
+                    <div className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 rounded-xl text-red-600 dark:text-red-400 text-sm font-bold border border-red-100 dark:border-red-900/30">
+                        <CalendarDaysIcon className="w-5 h-5" />
+                        {new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-md">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div>
                         <label htmlFor="customer" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Search Customer</label>

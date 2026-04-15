@@ -14,6 +14,7 @@ import ReportsPane from './components/ReportsPane';
 import DetailedBreakdownPane from './components/DetailedBreakdownPane';
 import ErrorBanner from './components/ErrorBanner';
 import WelcomeScreen from './components/WelcomeScreen';
+import { ExclamationTriangleIcon, ArrowUpTrayIcon } from './components/icons';
 import useLocalStorage from './hooks/useLocalStorage';
 import { db, auth } from './services/firebase';
 import { collection, onSnapshot, addDoc, doc, updateDoc, writeBatch, query, where, getDocs, serverTimestamp, Timestamp, orderBy, setDoc, limit } from 'firebase/firestore';
@@ -178,7 +179,45 @@ function App() {
   });
 
   const [firestoreError, setFirestoreError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [dataLimit, setDataLimit] = useState(100);
+  const [uploadProgress, setUploadProgress] = useState<{ current: number, total: number } | null>(null);
   
+  const fetchLogsAndNotifs = async () => {
+    try {
+        const logsSnap = await getDocs(query(collection(db, "logs"), orderBy("timestamp", "desc"), limit(30)));
+        const logsData = logsSnap.docs.map(doc => sanitizeData({ ...doc.data(), id: doc.id }) as LogEntry);
+        setLogs(logsData);
+
+        const notifsSnap = await getDocs(query(collection(db, "notifications"), orderBy("createdAt", "desc"), limit(30)));
+        const notifsData = notifsSnap.docs.map(doc => sanitizeData({ ...doc.data(), id: doc.id }) as Notification);
+        setNotifications(notifsData);
+    } catch (error: any) {
+        if (error.code === 'resource-exhausted') {
+            setFirestoreError('Firestore Quota Exceeded. Some data might be stale.');
+        }
+    }
+  };
+
+  const refreshData = async () => {
+    setIsRefreshing(true);
+    setFirestoreError(null);
+    try {
+        const poSnap = await getDocs(query(collection(db, "purchaseOrders"), orderBy("createdAt", "desc"), limit(100)));
+        const pos = poSnap.docs.map(doc => sanitizeData({ ...doc.data(), id: doc.id }) as PurchaseOrder);
+        setPurchaseOrders(pos);
+        await fetchLogsAndNotifs();
+    } catch (error: any) {
+        if (error.code === 'resource-exhausted') {
+            setFirestoreError('Firestore Quota Exceeded. Could not refresh data.');
+        } else {
+            handleFirestoreError(error, OperationType.GET, "refresh");
+        }
+    } finally {
+        setIsRefreshing(false);
+    }
+  };
+
   // Keep selectedPO in sync with the latest data from purchaseOrders
   useEffect(() => {
     if (selectedPO) {
@@ -212,27 +251,23 @@ function App() {
         }
     };
     
-    const unsubPO = onSnapshot(query(collection(db, "purchaseOrders"), orderBy("createdAt", "desc"), limit(500)), (snapshot) => {
+    const unsubPO = onSnapshot(query(collection(db, "purchaseOrders"), orderBy("createdAt", "desc"), limit(dataLimit)), (snapshot) => {
         const pos = snapshot.docs.map(doc => sanitizeData({ ...doc.data(), id: doc.id }) as PurchaseOrder);
         setPurchaseOrders(pos);
     }, (error) => {
-        handleFirestoreError(error, OperationType.GET, "purchaseOrders");
+        if (error.code === 'resource-exhausted') {
+            setFirestoreError('Firestore Quota Exceeded. The daily free limit for database reads/writes has been reached. The app will resume once the quota resets (usually at midnight).');
+        } else {
+            handleFirestoreError(error, OperationType.GET, "purchaseOrders");
+        }
     });
 
-    const unsubLogs = onSnapshot(query(collection(db, "logs"), orderBy("timestamp", "desc"), limit(50)), (snapshot) => {
-        const logsData = snapshot.docs.map(doc => sanitizeData({ ...doc.data(), id: doc.id }) as LogEntry);
-        setLogs(logsData);
-    }, (error) => handleFirestoreError(error, OperationType.GET, "logs"));
-
-    const unsubNotifs = onSnapshot(query(collection(db, "notifications"), orderBy("createdAt", "desc"), limit(50)), (snapshot) => {
-        const notifs = snapshot.docs.map(doc => sanitizeData({ ...doc.data(), id: doc.id }) as Notification);
-        setNotifications(notifs);
-    }, (error) => handleFirestoreError(error, OperationType.GET, "notifications"));
+    fetchLogsAndNotifs();
 
     return () => {
-        unsubPO(); unsubLogs(); unsubNotifs();
+        unsubPO();
     };
-}, []);
+}, [dataLimit]);
 
   const addLog = async (poId: string, action: string) => {
     try {
@@ -334,9 +369,11 @@ function App() {
 
   const handleBulkUpload = async (parsedOrders: any[]) => {
       console.log(`Starting bulk upload of ${parsedOrders.length} orders.`);
+      setUploadProgress({ current: 0, total: parsedOrders.length });
       try {
-          const batchSize = 400; // Safe margin below 500
+          const batchSize = 100; // Smaller batches for better progress visibility and safety
           let totalUploaded = 0;
+          
           for (let i = 0; i < parsedOrders.length; i += batchSize) {
               const batch = writeBatch(db);
               const chunk = parsedOrders.slice(i, i + batchSize);
@@ -349,8 +386,10 @@ function App() {
                   });
                   batch.set(newRef, sanitized);
               }
+              
               await batch.commit();
               totalUploaded += chunk.length;
+              setUploadProgress({ current: totalUploaded, total: parsedOrders.length });
               console.log(`Committed batch. Total uploaded: ${totalUploaded}`);
           }
           
@@ -358,8 +397,18 @@ function App() {
           setActivePane('dashboard');
       } catch (e: any) {
           console.error("Bulk upload error:", e);
-          handleFirestoreError(e, OperationType.WRITE, "purchaseOrders bulk upload");
+          if (e.code === 'resource-exhausted') {
+              setFirestoreError('Bulk upload partially failed due to Firestore Quota limits. Some orders may not have been uploaded.');
+          } else {
+              handleFirestoreError(e, OperationType.WRITE, "purchaseOrders bulk upload");
+          }
+      } finally {
+          setUploadProgress(null);
       }
+  };
+
+  const loadMore = () => {
+    setDataLimit(prev => prev + 100);
   };
 
   const handleSelectPO = useCallback((po: PurchaseOrder) => {
@@ -404,7 +453,72 @@ function App() {
   return (
     <div className="flex h-screen bg-slate-100 dark:bg-gray-900 text-slate-900 dark:text-slate-100 overflow-hidden">
        {showWelcome && <WelcomeScreen onComplete={() => setShowWelcome(false)} />}
-       {firestoreError && <ErrorBanner projectId="ethenpodashboard" message={firestoreError} onDismiss={() => setFirestoreError(null)} />}
+      {firestoreError && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-full max-w-2xl px-4 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="bg-red-50 dark:bg-red-900/30 border-2 border-red-500 text-red-800 dark:text-red-200 p-4 rounded-xl shadow-2xl flex items-start gap-4 backdrop-blur-md">
+            <div className="p-2 bg-red-500 rounded-lg text-white shrink-0">
+              <ExclamationTriangleIcon className="w-6 h-6" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-black text-lg">System Alert</h3>
+              <p className="text-sm font-medium opacity-90">{firestoreError}</p>
+              <div className="mt-3 flex gap-3">
+                <button 
+                  onClick={() => setFirestoreError(null)}
+                  className="text-xs font-bold uppercase tracking-wider bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
+                >
+                  Dismiss
+                </button>
+                <button 
+                  onClick={refreshData}
+                  disabled={isRefreshing}
+                  className="text-xs font-bold uppercase tracking-wider bg-white dark:bg-slate-800 text-red-600 px-4 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border border-red-200 dark:border-red-800 disabled:opacity-50"
+                >
+                  {isRefreshing ? 'Refreshing...' : 'Try Refresh'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {uploadProgress && (
+        <div className="fixed inset-0 bg-black/60 z-[200] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-8 text-center animate-in fade-in zoom-in duration-200">
+            <div className="mb-6 relative">
+              <div className="w-24 h-24 border-4 border-slate-100 dark:border-slate-700 rounded-full mx-auto flex items-center justify-center">
+                <ArrowUpTrayIcon className="w-10 h-10 text-red-600 animate-bounce" />
+              </div>
+              <svg className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-24 -rotate-90">
+                <circle
+                  cx="48"
+                  cy="48"
+                  r="44"
+                  fill="transparent"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  className="text-red-500"
+                  strokeDasharray={2 * Math.PI * 44}
+                  strokeDashoffset={2 * Math.PI * 44 * (1 - uploadProgress.current / uploadProgress.total)}
+                  strokeLinecap="round"
+                />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-2">Uploading Orders</h3>
+            <p className="text-slate-500 dark:text-slate-400 font-medium mb-6">
+              Processing {uploadProgress.current} of {uploadProgress.total} records...
+            </p>
+            <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-3 overflow-hidden">
+              <div 
+                className="bg-red-600 h-full transition-all duration-500 ease-out"
+                style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+              />
+            </div>
+            <p className="mt-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Please do not close this window</p>
+          </div>
+        </div>
+      )}
+
       <Sidebar 
         activePane={activePane} 
         setActivePane={setActivePane} 
@@ -419,7 +533,17 @@ function App() {
             setTheme={setThemeMode} 
         />
         <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900">
-            {activePane === 'dashboard' && <Dashboard purchaseOrders={purchaseOrders} filters={filters} setFilters={setFilters} customers={uniqueCustomers} onCardClick={handleDashboardCardClick} />}
+            {activePane === 'dashboard' && (
+                <Dashboard 
+                    purchaseOrders={purchaseOrders} 
+                    filters={filters} 
+                    setFilters={setFilters} 
+                    customers={uniqueCustomers} 
+                    onCardClick={handleDashboardCardClick} 
+                    onRefresh={refreshData}
+                    isRefreshing={isRefreshing}
+                />
+            )}
             {activePane === 'allOrders' && (
                 <AllOrdersPane 
                     purchaseOrders={purchaseOrders} 
@@ -430,6 +554,10 @@ function App() {
                     selectedCategories={filters.categories}
                     dashboardFilters={filters}
                     setDashboardFilters={setFilters}
+                    onRefresh={refreshData}
+                    isRefreshing={isRefreshing}
+                    onLoadMore={loadMore}
+                    hasMore={purchaseOrders.length >= dataLimit}
                 />
             )}
             {activePane === 'upload' && <UploadPane onSaveSingleOrder={handleSaveSingleOrder} onBulkUpload={handleBulkUpload} />}

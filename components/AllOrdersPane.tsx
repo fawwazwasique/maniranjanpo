@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import type { PurchaseOrder, OverallPOStatus, POItem } from '../types';
 import { POItemStatus, FulfillmentStatus, OrderStatus } from '../types';
-import { MagnifyingGlassIcon, ArrowDownTrayIcon, TrashIcon, XMarkIcon, ChevronDownIcon } from './icons';
+import { MagnifyingGlassIcon, ArrowDownTrayIcon, TrashIcon, XMarkIcon, ChevronDownIcon, ClockIcon } from './icons';
 import { exportToCSV } from '../utils/export';
 import { formatDate, isDateInRange, parseDate } from '../utils/dateUtils';
 import { formatCurrency } from '../utils/currencyUtils';
@@ -47,6 +47,10 @@ interface AllOrdersPaneProps {
     customerCategories: string[];
     zones: string[];
   }>>;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
+  onLoadMore?: () => void;
+  hasMore?: boolean;
 }
 
 type SortKeys = 'poNumber' | 'customerName' | 'poDate' | 'soDate' | 'invoiceDate' | 'totalValue' | 'status' | 'fulfillmentStatus' | 'orderStatus';
@@ -61,7 +65,20 @@ const getDynamicFulfillmentStatus = (items: POItem[]) => {
     return FulfillmentStatus.PartiallyAvailable;
 };
 
-const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectPO, onDeletePO, filter, onClearFilter, selectedCategories = [], dashboardFilters, setDashboardFilters }) => {
+const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ 
+    purchaseOrders, 
+    onSelectPO, 
+    onDeletePO, 
+    filter, 
+    onClearFilter, 
+    selectedCategories = [], 
+    dashboardFilters, 
+    setDashboardFilters,
+    onRefresh,
+    isRefreshing,
+    onLoadMore,
+    hasMore
+}) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: SortKeys; direction: 'ascending' | 'descending' } | null>({ key: 'poDate', direction: 'descending' });
     const [viewMode, setViewMode] = useState<'orders' | 'parts'>('orders');
@@ -442,6 +459,16 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                             className="w-full pl-10 pr-4 py-2.5 text-base rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500"
                         />
                     </div>
+                    {onRefresh && (
+                        <button 
+                            onClick={onRefresh}
+                            disabled={isRefreshing}
+                            className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all disabled:opacity-50 active:scale-95"
+                        >
+                            <ClockIcon className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                        </button>
+                    )}
                     <div className="flex items-center gap-2 w-full sm:w-auto">
                         <div className="flex flex-wrap gap-1 max-w-[400px]">
                             {dashboardFilters?.statuses && dashboardFilters.statuses.length > 0 && (
@@ -711,6 +738,18 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ purchaseOrders, onSelectP
                     </div>
                 )}
             </div>
+            
+            {onLoadMore && hasMore && (
+                <div className="mt-6 flex justify-center">
+                    <button 
+                        onClick={onLoadMore}
+                        className="px-8 py-3 bg-red-600 text-white rounded-xl font-bold shadow-lg shadow-red-600/20 hover:bg-red-700 transition-all active:scale-95 flex items-center gap-2"
+                    >
+                        <ChevronDownIcon className="w-5 h-5" />
+                        Load More Orders
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

@@ -1,5 +1,6 @@
 
 import React, { useState, useCallback } from 'react';
+import Papa from 'papaparse';
 import { ArrowUpTrayIcon, DocumentPlusIcon, PlusIcon, XMarkIcon, ArrowDownTrayIcon } from './icons';
 import { MAIN_BRANCHES, BRANCH_STRUCTURE, BULK_UPLOAD_HEADERS, ITEM_CATEGORIES, SALE_TYPES, CUSTOMER_CATEGORIES, ZONES } from '../constants';
 import { downloadTemplate } from '../utils/export';
@@ -75,208 +76,193 @@ const initialOrderState = {
 const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload }) => {
     const [dragging, setDragging] = useState(false);
     const [order, setOrder] = useState(initialOrderState);
+    const [isParsing, setIsParsing] = useState(false);
 
     const parseCSVAndUpload = (file: File) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const text = e.target?.result as string;
-            const lines = text.split(/\r?\n/).filter(l => l.trim());
-            if (lines.length < 2) {
-                alert("The file appears to be empty or missing data rows.");
-                return;
-            }
-
-            // Detect delimiter (comma, semicolon, or tab)
-            const firstLine = lines[0];
-            const delimiters = [',', ';', '\t'];
-            let delimiter = ',';
-            let maxCols = 0;
-            delimiters.forEach(d => {
-                const cols = firstLine.split(d).length;
-                if (cols > maxCols) {
-                    maxCols = cols;
-                    delimiter = d;
-                }
-            });
-
-            const rawHeaders = lines[0].split(delimiter);
-            const headers = rawHeaders.map(h => h.replace(/^\uFEFF/, '').trim().toLowerCase());
-            console.log("Detected delimiter:", delimiter);
-            console.log("Parsed headers:", headers);
-            
-            const getColIdx = (exactHeader: string, aliases: string[] = []) => {
-                const searchNames = [exactHeader, ...aliases].map(n => n.toLowerCase());
-                const idx = headers.findIndex(h => searchNames.includes(h));
-                if (idx === -1) {
-                    // Try partial match as fallback
-                    return headers.findIndex(h => searchNames.some(sn => h.includes(sn) || sn.includes(h)));
-                }
-                return idx;
-            };
-
-            const branchIdx = getColIdx('Main -Branch', ['Branch', 'Main Branch', 'Main-Branch']);
-            const subBranchIdx = getColIdx('Sub - branch', ['Sub Branch', 'Sub-branch']);
-            const accountIdx = getColIdx('Account Name', ['Cust Name', 'Customer Name', 'Account', 'Customer']);
-            const soNoIdx = getColIdx('SO.NO', ['SO No', 'Sales Order Number', 'SO', 'SO Number']);
-            const soDateIdx = getColIdx('SO DATE', ['SO Date', 'Sales Order Date']);
-            const poNoIdx = getColIdx('PO.NO', ['PO No', 'Purchase Order Number', 'PO', 'PO Number']);
-            const poDateIdx = getColIdx('PO DATE', ['PO Date', 'Purchase Order Date']);
-            const poStatusIdx = getColIdx('Po Status', ['Status', 'PO Status', 'Overall Status']);
-            const orderStatusIdx = getColIdx('Order Status', ['Current Status']);
-            const saleTypeIdx = getColIdx('Sale Type', ['Payment Type']);
-            const creditDaysIdx = getColIdx('Credit Days', ['Credit Terms', 'Terms']);
-            const billPlanIdx = getColIdx('Billing Plan', ['Plan']);
-            const materialsIdx = getColIdx('Materials', ['Fulfillment', 'Availability']);
-            const etaIdx = getColIdx('Eta Available', ['ETA']);
-            const genRemIdx = getColIdx('General Remarks', ['Remarks', 'Notes']);
-            const invNoIdx = getColIdx('Invoice Number', ['Inv No', 'Invoice #']);
-            const invDateIdx = getColIdx('Invoice Date', ['Inv Date']);
-            const custCatIdx = getColIdx('Customer Category', ['Cust Cat']);
-            const zoneIdx = getColIdx('Zone', ['Region']);
-            
-            const pfIdx = getColIdx('P & F Available', ['P&F', 'Packaging']);
-            const bCheckIdx = getColIdx('B-Check');
-            const cCheckIdx = getColIdx('C-Check');
-            const dCheckIdx = getColIdx('D-Check');
-            const batteryIdx = getColIdx('Battery');
-            const sparesIdx = getColIdx('Spares');
-            const bdIdx = getColIdx('BD');
-            const radIdx = getColIdx('Radiator Descaling');
-            const othersIdx = getColIdx('Others');
-            const dispatchRemIdx = getColIdx('Dispatch Remarks', ['Pending Remarks']);
-            
-            const nameIdx = getColIdx('Item: Item Name', ['Item Name', 'Part Number', 'Item', 'Part #']);
-            const typeIdx = getColIdx('Item: Item Type', ['Item Type', 'Type']);
-            const catIdx = getColIdx('Category', ['Item Category']);
-            const descIdx = getColIdx('Item: Item Description', ['Description', 'Item Description', 'Desc']);
-            const qtyIdx = getColIdx('Quantity', ['Qty', 'Count']);
-            const priceIdx = getColIdx('Unit Price', ['Rate', 'Price', 'Unit Rate']);
-            const discIdx = getColIdx('Discount Amount', ['Discount', 'Disc']);
-            const baseAmtIdx = getColIdx('Base Amount', ['Taxable Value']);
-            const taxAmtIdx = getColIdx('Tax Amount', ['GST Amount']);
-            const grossAmtIdx = getColIdx('Gross Amount', ['Total Amount', 'Grand Total']);
-            const itemStatusIdx = getColIdx('Item Status', ['Line Status']);
-            const oaNoIdx = getColIdx('Oa No', ['OA Number']);
-            const oaDateIdx = getColIdx('Oa Date');
-            const itemRemIdx = getColIdx('Item Remarks', ['Line Remarks']);
-
-            const billAddrIdx = getColIdx('Billing Address', ['Bill To Address']);
-            const billGstIdx = getColIdx('Bill To GSTIN', ['Billing GST']);
-            const shipAddrIdx = getColIdx('Shipping Address', ['Ship To Address']);
-            const shipGstIdx = getColIdx('Ship To GSTIN', ['Shipping GST']);
-            const quoteIdx = getColIdx('Quote Number', ['Quotation No']);
-
-            const rows = lines.slice(1).map(line => {
-                const values: string[] = [];
-                let current = '';
-                let inQuotes = false;
-                for (let i = 0; i < line.length; i++) {
-                    const char = line[i];
-                    if (char === '"') {
-                        if (inQuotes && line[i+1] === '"') { current += '"'; i++; }
-                        else inQuotes = !inQuotes;
-                    } else if (char === delimiter && !inQuotes) {
-                        values.push(current.trim());
-                        current = '';
-                    } else current += char;
-                }
-                values.push(current.trim());
-                return values;
-            });
-
-            console.log(`Parsed ${rows.length} rows from CSV.`);
-
-            const getStr = (row: string[], idx: number, fallback = '') => (idx !== -1 && row[idx]) ? row[idx].trim() : fallback;
-            const getNum = (row: string[], idx: number, fallback = 0) => (idx !== -1 && row[idx]) ? parseFloat(row[idx].replace(/[^0-9.]/g, '')) || fallback : fallback;
-            const getBool = (row: string[], idx: number) => {
-                if (idx === -1 || !row[idx]) return false;
-                const v = row[idx].toLowerCase();
-                return v === 'true' || v === 'yes' || v === '1' || v === 'checked';
-            };
-
-            const poGroups: Record<string, any[]> = {};
-            rows.forEach(row => {
-                const id = getStr(row, poNoIdx) || 'CSV-' + Math.random();
-                if (!poGroups[id]) poGroups[id] = [];
-                poGroups[id].push(row);
-            });
-
-            const parsedPOs = Object.entries(poGroups).map(([poNumber, group]) => {
-                const first = group[0];
+        setIsParsing(true);
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (results) => {
+                setIsParsing(false);
+                const { data, meta } = results;
+                const headers = meta.fields || [];
+                const normalizedHeaders = headers.map(h => h.trim().toLowerCase());
                 
-                const items = group.map(row => ({
-                    partNumber: getStr(row, nameIdx, 'N/A'),
-                    itemType: getStr(row, typeIdx),
-                    category: normalizeToAllowedValue(getStr(row, catIdx), ITEM_CATEGORIES),
-                    itemDesc: getStr(row, descIdx),
-                    quantity: getNum(row, qtyIdx, 1),
-                    rate: getNum(row, priceIdx),
-                    discount: getNum(row, discIdx),
-                    baseAmount: getNum(row, baseAmtIdx),
-                    taxAmount: getNum(row, taxAmtIdx),
-                    grossAmount: getNum(row, grossAmtIdx),
-                    status: normalizeEnum(getStr(row, itemStatusIdx), POItemStatus) as POItemStatus || POItemStatus.NotAvailable,
-                    oaNo: getStr(row, oaNoIdx),
-                    oaDate: getStr(row, oaDateIdx),
-                    itemRemarks: getStr(row, itemRemIdx),
-                }));
-
-                const rawSaleType = getStr(first, saleTypeIdx, 'Credit');
-                const normalizedSaleType = normalizeToAllowedValue(rawSaleType, SALE_TYPES) as any;
-
-                return {
-                    mainBranch: normalizeToAllowedValue(getStr(first, branchIdx, 'Unassigned'), MAIN_BRANCHES),
-                    subBranch: getStr(first, subBranchIdx),
-                    customerName: getStr(first, accountIdx, 'Unknown'),
-                    salesOrderNumber: getStr(first, soNoIdx),
-                    soDate: getStr(first, soDateIdx),
-                    poNumber: poNumber,
-                    poDate: getStr(first, poDateIdx, new Date().toISOString().split('T')[0]),
-                    status: normalizeEnum(getStr(first, poStatusIdx), OverallPOStatus) as OverallPOStatus || OverallPOStatus.Available,
-                    orderStatus: normalizeEnum(getStr(first, orderStatusIdx), OrderStatus) as OrderStatus || OrderStatus.OpenOrders,
-                    saleType: normalizedSaleType,
-                    paymentStatus: (normalizedSaleType === 'Cash' || normalizedSaleType === 'Awaiting Payment') ? 'Pending' : null,
-                    creditTerms: getNum(first, creditDaysIdx, 30),
-                    billingPlan: getStr(first, billPlanIdx),
-                    materials: normalizeEnum(getStr(first, materialsIdx), FulfillmentStatus) as FulfillmentStatus || FulfillmentStatus.Available,
-                    fulfillmentStatus: normalizeEnum(getStr(first, materialsIdx), FulfillmentStatus) as FulfillmentStatus || FulfillmentStatus.Available,
-                    invoiceNumber: getStr(first, invNoIdx),
-                    invoiceDate: getStr(first, invDateIdx),
-                    customerCategory: normalizeEnum(getStr(first, custCatIdx), CustomerCategory) as any,
-                    zone: normalizeEnum(getStr(first, zoneIdx), Zone) as any,
-                    etaAvailable: getStr(first, etaIdx),
-                    generalRemarks: getStr(first, genRemIdx),
-                    pfAvailable: getBool(first, pfIdx),
-                    checklist: {
-                        bCheck: getBool(first, bCheckIdx),
-                        cCheck: getBool(first, cCheckIdx),
-                        dCheck: getBool(first, dCheckIdx),
-                        battery: getBool(first, batteryIdx),
-                        spares: getBool(first, sparesIdx),
-                        bd: getBool(first, bdIdx),
-                        radiatorDescaling: getBool(first, radIdx),
-                        others: getBool(first, othersIdx),
-                    },
-                    dispatchRemarks: getStr(first, dispatchRemIdx),
-                    billingAddress: getStr(first, billAddrIdx),
-                    billToGSTIN: getStr(first, billGstIdx),
-                    shippingAddress: getStr(first, shipAddrIdx),
-                    shipToGSTIN: getStr(first, shipGstIdx),
-                    quoteNumber: getStr(first, quoteIdx),
-                    items,
-                    createdAt: new Date().toISOString()
+                console.log("Parsed headers:", normalizedHeaders);
+                
+                const getColName = (exactHeader: string, aliases: string[] = []) => {
+                    const searchNames = [exactHeader, ...aliases].map(n => n.toLowerCase());
+                    return headers.find(h => searchNames.includes(h.trim().toLowerCase())) || '';
                 };
-            });
 
-            console.log(`Successfully parsed ${parsedPOs.length} Purchase Orders.`);
-            if (parsedPOs.length === 0) {
-                alert("No valid Purchase Orders were found in the CSV. Please check the column headers.");
-                return;
+                const branchKey = getColName('Main -Branch', ['Branch', 'Main Branch', 'Main-Branch']);
+                const subBranchKey = getColName('Sub - branch', ['Sub Branch', 'Sub-branch']);
+                const accountKey = getColName('Account Name', ['Cust Name', 'Customer Name', 'Account', 'Customer']);
+                const soNoKey = getColName('SO.NO', ['SO No', 'Sales Order Number', 'SO', 'SO Number']);
+                const soDateKey = getColName('SO DATE', ['SO Date', 'Sales Order Date']);
+                const poNoKey = getColName('PO.NO', ['PO No', 'Purchase Order Number', 'PO', 'PO Number']);
+                const poDateKey = getColName('PO DATE', ['PO Date', 'Purchase Order Date']);
+                const poStatusKey = getColName('Po Status', ['Status', 'PO Status', 'Overall Status']);
+                const orderStatusKey = getColName('Order Status', ['Current Status']);
+                const saleTypeKey = getColName('Sale Type', ['Payment Type']);
+                const creditDaysKey = getColName('Credit Days', ['Credit Terms', 'Terms']);
+                const billPlanKey = getColName('Billing Plan', ['Plan']);
+                const materialsKey = getColName('Materials', ['Fulfillment', 'Availability']);
+                const etaKey = getColName('Eta Available', ['ETA']);
+                const genRemKey = getColName('General Remarks', ['Remarks', 'Notes']);
+                const invNoKey = getColName('Invoice Number', ['Inv No', 'Invoice #']);
+                const invDateKey = getColName('Invoice Date', ['Inv Date']);
+                const custCatKey = getColName('Customer Category', ['Cust Cat']);
+                const zoneKey = getColName('Zone', ['Region']);
+                
+                const pfKey = getColName('P & F Available', ['P&F', 'Packaging']);
+                const bCheckKey = getColName('B-Check');
+                const cCheckKey = getColName('C-Check');
+                const dCheckKey = getColName('D-Check');
+                const batteryKey = getColName('Battery');
+                const sparesKey = getColName('Spares');
+                const bdKey = getColName('BD');
+                const radKey = getColName('Radiator Descaling');
+                const othersKey = getColName('Others');
+                const dispatchRemKey = getColName('Dispatch Remarks', ['Pending Remarks']);
+                
+                const nameKey = getColName('Item: Item Name', ['Item Name', 'Part Number', 'Item', 'Part #']);
+                const typeKey = getColName('Item: Item Type', ['Item Type', 'Type']);
+                const catKey = getColName('Category', ['Item Category']);
+                const descKey = getColName('Item: Item Description', ['Description', 'Item Description', 'Desc']);
+                const qtyKey = getColName('Quantity', ['Qty', 'Count']);
+                const priceKey = getColName('Unit Price', ['Rate', 'Price', 'Unit Rate']);
+                const discKey = getColName('Discount Amount', ['Discount', 'Disc']);
+                const baseAmtKey = getColName('Base Amount', ['Taxable Value']);
+                const taxAmtKey = getColName('Tax Amount', ['GST Amount']);
+                const grossAmtKey = getColName('Gross Amount', ['Total Amount', 'Grand Total']);
+                const itemStatusKey = getColName('Item Status', ['Line Status']);
+                const oaNoKey = getColName('Oa No', ['OA Number']);
+                const oaDateKey = getColName('Oa Date');
+                const itemRemKey = getColName('Item Remarks', ['Line Remarks']);
+
+                const billAddrKey = getColName('Billing Address', ['Bill To Address']);
+                const billGstKey = getColName('Bill To GSTIN', ['Billing GST']);
+                const shipAddrKey = getColName('Shipping Address', ['Ship To Address']);
+                const shipGstKey = getColName('Ship To GSTIN', ['Shipping GST']);
+                const quoteKey = getColName('Quote Number', ['Quotation No']);
+
+                const getStr = (row: any, key: string, fallback = '') => (key && row[key]) ? String(row[key]).trim() : fallback;
+                const getNum = (row: any, key: string, fallback = 0) => {
+                    if (!key || !row[key]) return fallback;
+                    const val = String(row[key]).replace(/[^0-9.]/g, '');
+                    return val ? parseFloat(val) : fallback;
+                };
+                const getBool = (row: any, key: string) => {
+                    if (!key || !row[key]) return false;
+                    const v = String(row[key]).toLowerCase();
+                    return v === 'true' || v === 'yes' || v === '1' || v === 'checked';
+                };
+
+                // Grouping logic with "fill-down" for header fields
+                const poGroups: Record<string, any[]> = {};
+                let lastPoId = '';
+                let lastHeaderData: any = {};
+
+                data.forEach((row: any) => {
+                    const currentPoId = getStr(row, poNoKey);
+                    
+                    if (currentPoId) {
+                        lastPoId = currentPoId;
+                        // Store header data for this PO to fill down if next row is missing it
+                        lastHeaderData = { ...row };
+                    }
+
+                    const id = lastPoId || 'CSV-' + Math.random();
+                    if (!poGroups[id]) poGroups[id] = [];
+                    
+                    // Merge current row with last header data to ensure items have PO context
+                    const mergedRow = { ...lastHeaderData, ...row };
+                    poGroups[id].push(mergedRow);
+                });
+
+                const parsedPOs = Object.entries(poGroups).map(([poNumber, group]) => {
+                    const first = group[0];
+                    
+                    const items = group.map(row => ({
+                        partNumber: getStr(row, nameKey, 'N/A'),
+                        itemType: getStr(row, typeKey),
+                        category: normalizeToAllowedValue(getStr(row, catKey), ITEM_CATEGORIES),
+                        itemDesc: getStr(row, descKey),
+                        quantity: getNum(row, qtyKey, 1),
+                        rate: getNum(row, priceKey),
+                        discount: getNum(row, discKey),
+                        baseAmount: getNum(row, baseAmtKey),
+                        taxAmount: getNum(row, taxAmtKey),
+                        grossAmount: getNum(row, grossAmtKey),
+                        status: normalizeEnum(getStr(row, itemStatusKey), POItemStatus) as POItemStatus || POItemStatus.NotAvailable,
+                        oaNo: getStr(row, oaNoKey),
+                        oaDate: getStr(row, oaDateKey),
+                        itemRemarks: getStr(row, itemRemKey),
+                    }));
+
+                    const rawSaleType = getStr(first, saleTypeKey, 'Credit');
+                    const normalizedSaleType = normalizeToAllowedValue(rawSaleType, SALE_TYPES) as any;
+
+                    return {
+                        mainBranch: normalizeToAllowedValue(getStr(first, branchKey, 'Unassigned'), MAIN_BRANCHES),
+                        subBranch: getStr(first, subBranchKey),
+                        customerName: getStr(first, accountKey, 'Unknown'),
+                        salesOrderNumber: getStr(first, soNoKey),
+                        soDate: getStr(first, soDateKey),
+                        poNumber: poNumber,
+                        poDate: getStr(first, poDateKey, new Date().toISOString().split('T')[0]),
+                        status: normalizeEnum(getStr(first, poStatusKey), OverallPOStatus) as OverallPOStatus || OverallPOStatus.Available,
+                        orderStatus: normalizeEnum(getStr(first, orderStatusKey), OrderStatus) as OrderStatus || OrderStatus.OpenOrders,
+                        saleType: normalizedSaleType,
+                        paymentStatus: (normalizedSaleType === 'Cash' || normalizedSaleType === 'Awaiting Payment') ? 'Pending' : null,
+                        creditTerms: getNum(first, creditDaysKey, 30),
+                        billingPlan: getStr(first, billPlanKey),
+                        materials: normalizeEnum(getStr(first, materialsKey), FulfillmentStatus) as FulfillmentStatus || FulfillmentStatus.Available,
+                        fulfillmentStatus: normalizeEnum(getStr(first, materialsKey), FulfillmentStatus) as FulfillmentStatus || FulfillmentStatus.Available,
+                        invoiceNumber: getStr(first, invNoKey),
+                        invoiceDate: getStr(first, invDateKey),
+                        customerCategory: normalizeEnum(getStr(first, custCatKey), CustomerCategory) as any,
+                        zone: normalizeEnum(getStr(first, zoneKey), Zone) as any,
+                        etaAvailable: getStr(first, etaKey),
+                        generalRemarks: getStr(first, genRemKey),
+                        pfAvailable: getBool(first, pfKey),
+                        checklist: {
+                            bCheck: getBool(first, bCheckKey),
+                            cCheck: getBool(first, cCheckKey),
+                            dCheck: getBool(first, dCheckKey),
+                            battery: getBool(first, batteryKey),
+                            spares: getBool(first, sparesKey),
+                            bd: getBool(first, bdKey),
+                            radiatorDescaling: getBool(first, radKey),
+                            others: getBool(first, othersKey),
+                        },
+                        dispatchRemarks: getStr(first, dispatchRemKey),
+                        billingAddress: getStr(first, billAddrKey),
+                        billToGSTIN: getStr(first, billGstKey),
+                        shippingAddress: getStr(first, shipAddrKey),
+                        shipToGSTIN: getStr(first, shipGstKey),
+                        quoteNumber: getStr(first, quoteKey),
+                        items,
+                        createdAt: new Date().toISOString()
+                    };
+                });
+
+                console.log(`Successfully parsed ${parsedPOs.length} Purchase Orders.`);
+                if (parsedPOs.length === 0) {
+                    alert("No valid Purchase Orders were found in the CSV. Please check the column headers.");
+                    return;
+                }
+
+                onBulkUpload(parsedPOs);
+            },
+            error: (error) => {
+                setIsParsing(false);
+                console.error("CSV Parsing Error:", error);
+                alert("Error parsing CSV file: " + error.message);
             }
-
-            onBulkUpload(parsedPOs);
-        };
-        reader.readAsText(file);
+        });
     };
 
     const handleOrderChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -358,6 +344,14 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
 
     return (
         <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+            {isParsing && (
+                <div className="fixed inset-0 bg-black/40 z-[150] flex items-center justify-center backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-xl flex flex-col items-center gap-4">
+                        <div className="w-12 h-12 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                        <p className="font-bold text-slate-800 dark:text-white">Parsing CSV File...</p>
+                    </div>
+                </div>
+            )}
             <div className="grid grid-cols-1 gap-8">
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700">
                     <h2 className="text-2xl font-black mb-6 flex items-center gap-3 text-slate-800 dark:text-white">

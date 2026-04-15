@@ -3,14 +3,14 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
-// Web app's Firebase configuration for ethenpodashboard
+// Web app's Firebase configuration for maniranjanpo
 const firebaseConfig = {
-  apiKey: "AIzaSyCKZ5_AiDMWgoIzoivtZWfVge323uS5ouk",
-  authDomain: "ethenpodashboard.firebaseapp.com",
-  projectId: "ethenpodashboard",
-  storageBucket: "ethenpodashboard.firebasestorage.app",
-  messagingSenderId: "127863031137",
-  appId: "1:127863031137:web:1c3b74333be75df43b3120"
+  apiKey: "AIzaSyAzjiIzSqCK85EnnyWmYhT6gYRB6MgXmck",
+  authDomain: "maniranjanpo.firebaseapp.com",
+  projectId: "maniranjanpo",
+  storageBucket: "maniranjanpo.firebasestorage.app",
+  messagingSenderId: "72268852274",
+  appId: "1:72268852274:web:33919d281e5519d609a02b"
 };
 
 // Initialize Firebase
