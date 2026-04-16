@@ -5,7 +5,7 @@ import { getAuth } from "firebase/auth";
 
 // Web app's Firebase configuration for maniranjanpo
 const firebaseConfig = {
-  apiKey: "AIzaSyAzjiIzSqCK85EnnyWmYhT6gYRB6MgXmck",
+  apiKey: "AIzaSyCHknmv-GFZjGuVanf6SFszbHypDFt1LE0",
   authDomain: "maniranjanpo.firebaseapp.com",
   projectId: "maniranjanpo",
   storageBucket: "maniranjanpo.firebasestorage.app",

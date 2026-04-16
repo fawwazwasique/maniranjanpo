@@ -12,6 +12,7 @@ export enum OverallPOStatus {
     NotAvailable = 'Not Available',
     NeedToVisit = 'Need to visit',
     OilRequired = 'Oil Required',
+    OilAnalysis = 'Oil Analysis',
     ServicePending = 'Service Pending',
     SuppliedThrough = 'Supplied through'
 }
@@ -110,6 +111,7 @@ export interface PurchaseOrder {
     spares: boolean;
     bd: boolean;
     radiatorDescaling: boolean;
+    oilAnalysis: boolean;
     others: boolean;
   };
   checklistRemarks?: string;

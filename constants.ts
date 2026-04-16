@@ -27,6 +27,7 @@ export const ITEM_CATEGORIES = [
     'Recon',
     'Battery',
     'Oil',
+    'Oil Analysis',
     'Local Parts',
     'Growth Parts',
     'Service'
@@ -76,6 +77,7 @@ export const BULK_UPLOAD_HEADERS = [
     'Spares',
     'BD',
     'Radiator Descaling',
+    'Oil Analysis',
     'Others',
     'Dispatch Remarks',
     'Item: Item Name',

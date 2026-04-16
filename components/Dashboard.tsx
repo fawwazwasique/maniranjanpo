@@ -438,14 +438,62 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         const notAvailableTrend = getTrend(purchaseOrders, filters, p => p.orderStatus !== OrderStatus.Invoiced && getPOFulfillmentStatus(p) === FulfillmentStatus.NotAvailable, p => p.length, false);
         const invoicedTrend = getTrend(purchaseOrders, filters, p => p.orderStatus === OrderStatus.Invoiced, p => p.length, true);
 
+        // Oil Blocked Logic
+        const oilBlockedPOsList = activePOs.filter(po => {
+            const items = po.items || [];
+            if (items.length === 0) return false;
+            
+            const oilItems = items.filter(item => 
+                item.category === 'Oil' || 
+                item.category === 'Oil Analysis' || 
+                (item.partNumber && item.partNumber.toLowerCase().includes('oil'))
+            );
+            
+            const otherItems = items.filter(item => 
+                !(item.category === 'Oil' || 
+                  item.category === 'Oil Analysis' || 
+                  (item.partNumber && item.partNumber.toLowerCase().includes('oil')))
+            );
+
+            if (oilItems.length === 0) return false;
+
+            const oilMissing = oilItems.some(item => item.status === POItemStatus.NotAvailable || item.status === POItemStatus.PartiallyAvailable);
+            const othersReady = otherItems.every(item => item.status === POItemStatus.Available || item.status === POItemStatus.Dispatched);
+            
+            // It's blocked ONLY by oil if others are ready and at least some oil is missing
+            return oilMissing && othersReady;
+        });
+
+        let oilBlockedTotalValue = 0;
+        let oilBlockedOilValue = 0;
+        let oilBlockedPartsValue = 0;
+
+        oilBlockedPOsList.forEach(po => {
+            oilBlockedTotalValue += getPOValue(po);
+            (po.items || []).forEach(item => {
+                const val = (Number(item.quantity || 0) * Number(item.rate || 0));
+                const isOil = item.category === 'Oil' || item.category === 'Oil Analysis' || (item.partNumber && item.partNumber.toLowerCase().includes('oil'));
+                if (isOil && (item.status === POItemStatus.NotAvailable || item.status === POItemStatus.PartiallyAvailable)) {
+                    oilBlockedOilValue += val;
+                } else {
+                    oilBlockedPartsValue += val;
+                }
+            });
+        });
+
         const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
 
-        const checklistDataRaw: Record<string, number> = {};
-        ITEM_CATEGORIES.forEach(cat => {
-            checklistDataRaw[cat] = activePOs.filter(po => 
-                (po.items || []).some(item => normalizeToAllowedValue(item.category, ITEM_CATEGORIES) === cat)
-            ).length;
-        });
+        const checklistDataRaw: Record<string, number> = {
+            'B-Check': activePOs.filter(po => po.checklist?.bCheck).length,
+            'C-Check': activePOs.filter(po => po.checklist?.cCheck).length,
+            'D-Check': activePOs.filter(po => po.checklist?.dCheck).length,
+            'Battery': activePOs.filter(po => po.checklist?.battery).length,
+            'Spares': activePOs.filter(po => po.checklist?.spares).length,
+            'BD': activePOs.filter(po => po.checklist?.bd).length,
+            'Radiator': activePOs.filter(po => po.checklist?.radiatorDescaling).length,
+            'Oil Analysis': activePOs.filter(po => po.checklist?.oilAnalysis).length,
+            'Others': activePOs.filter(po => po.checklist?.others).length,
+        };
         const checklistColors: Record<string, string> = { 
             'B-Check': '#34d399', 
             'C-Check': '#f59e0b', 
@@ -454,6 +502,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             'Spares': '#8b5cf6',
             'BD': '#ec4899',
             'Radiator': '#14b8a6',
+            'Oil Analysis': '#f97316',
             'Others': '#9ca3af' 
         };
         const checklistChartData = Object.entries(checklistDataRaw)
@@ -625,7 +674,11 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             avgPOtoSOTrend, avgSOtoInvoiceTrend, avgPOtoInvoiceTrend,
             totalInvoicedPOs, totalInvoicedValue, invoicedTrend,
             partialInvoicedPOs, partialInvoicedValue,
-            top50TotalValue, top50Contribution
+            top50TotalValue, top50Contribution,
+            oilBlockedPOs: oilBlockedPOsList.length,
+            oilBlockedTotalValue,
+            oilBlockedOilValue,
+            oilBlockedPartsValue
         };
     }, [activePOs, invoicedPOs, purchaseOrders, filters]);
 
@@ -649,6 +702,27 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         }
         else if (type === 'INVOICED') pos = invoicedPOs;
         else if (type === 'PARTIAL_INVOICED') pos = filteredPOs.filter(po => po.orderStatus === OrderStatus.PartiallyInvoiced);
+        else if (type === 'OIL_BLOCKED') {
+            pos = activePOs.filter(po => {
+                const items = po.items || [];
+                if (items.length === 0) return false;
+                const oilItems = items.filter(item => 
+                    item.category === 'Oil' || 
+                    item.category === 'Oil Analysis' || 
+                    (item.partNumber && item.partNumber.toLowerCase().includes('oil'))
+                );
+                const otherItems = items.filter(item => 
+                    !(item.category === 'Oil' || 
+                      item.category === 'Oil Analysis' || 
+                      (item.partNumber && item.partNumber.toLowerCase().includes('oil')))
+                );
+                if (oilItems.length === 0) return false;
+                const oilMissing = oilItems.some(item => item.status === POItemStatus.NotAvailable || item.status === POItemStatus.PartiallyAvailable);
+                const othersReady = otherItems.every(item => item.status === POItemStatus.Available || item.status === POItemStatus.Dispatched);
+                return oilMissing && othersReady;
+            });
+            isGap = true;
+        }
         else if (type === 'GAP') {
             pos = activePOs;
             isGap = true;
@@ -1018,11 +1092,10 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
                 <DashboardStatCard 
                     title="Total No of PO's" 
                     value={dashboardData.totalOpenPOs} 
-                    subValue={`${dashboardData.partialInvoicedPOs} Partially Invoiced`}
                     icon={<ClockIcon className="w-6 h-6 text-amber-500" />} 
                     indicatorColor="bg-amber-500"
                     trend={dashboardData.openTrend}
@@ -1035,6 +1108,14 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     indicatorColor="bg-primary"
                     trend={dashboardData.valueTrend}
                     onClick={() => setSelectedBreakdown({ type: 'OPEN', title: "Active PO Value" })}
+                />
+                <DashboardStatCard 
+                    title="Blocked by Oil" 
+                    value={dashboardData.oilBlockedPOs} 
+                    subValue={`${formatCurrency(dashboardData.oilBlockedPartsValue, { notation: 'compact' })} billable if oil provided`}
+                    icon={<BeakerIcon className="w-6 h-6 text-red-600" />} 
+                    indicatorColor="bg-red-600"
+                    onClick={() => setSelectedBreakdown({ type: 'OIL_BLOCKED', title: "Blocked by Oil" })}
                 />
                 <DashboardStatCard 
                     title="Partial Invoices PO" 
