@@ -374,9 +374,28 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         const partialInvoicedValue = calculateValue(partialInvoicedPOsList);
 
         // 1. 100% Available (Ready to Execute)
+        const getAvailabilityPercent = (po: PurchaseOrder) => {
+            const total = (po.items || []).length;
+            if (total === 0) return 0;
+            const availableCount = (po.items || []).filter(i => i.status === POItemStatus.Available || i.status === POItemStatus.Dispatched).length;
+            return (availableCount / total) * 100;
+        };
+
         const fullyAvailablePOsList = activePOs.filter(po => getPOFulfillmentStatus(po) === FulfillmentStatus.Available);
         const fullyAvailablePOs = fullyAvailablePOsList.length;
         const fullyAvailableValue = calculateValue(fullyAvailablePOsList);
+
+        const avail0POs = activePOs.filter(po => getAvailabilityPercent(po) === 0).length;
+        const avail0Value = calculateValue(activePOs.filter(po => getAvailabilityPercent(po) === 0));
+
+        const avail50POs = activePOs.filter(po => { const p = getAvailabilityPercent(po); return p >= 50 && p < 70; }).length;
+        const avail50Value = calculateValue(activePOs.filter(po => { const p = getAvailabilityPercent(po); return p >= 50 && p < 70; }));
+
+        const avail70POs = activePOs.filter(po => { const p = getAvailabilityPercent(po); return p >= 70 && p < 90; }).length;
+        const avail70Value = calculateValue(activePOs.filter(po => { const p = getAvailabilityPercent(po); return p >= 70 && p < 90; }));
+        
+        const avail90POs = activePOs.filter(po => { const p = getAvailabilityPercent(po); return p >= 90 && p < 100; }).length;
+        const avail90Value = calculateValue(activePOs.filter(po => { const p = getAvailabilityPercent(po); return p >= 90 && p < 100; }));
 
         // 2. Partially Available
         const partiallyAvailablePOsList = activePOs.filter(po => getPOFulfillmentStatus(po) === FulfillmentStatus.PartiallyAvailable);
@@ -467,6 +486,9 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         let oilBlockedTotalValue = 0;
         let oilBlockedOilValue = 0;
         let oilBlockedPartsValue = 0;
+        let oilBlockedFilterValue = 0;
+        let oilBlockedCoreValue = 0;
+        let oilBlockedReconValue = 0;
 
         oilBlockedPOsList.forEach(po => {
             oilBlockedTotalValue += getPOValue(po);
@@ -477,6 +499,9 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     oilBlockedOilValue += val;
                 } else {
                     oilBlockedPartsValue += val;
+                    if(item.category === 'Filter') oilBlockedFilterValue += val;
+                    if(item.category === 'Core') oilBlockedCoreValue += val;
+                    if(item.category === 'Recon') oilBlockedReconValue += val;
                 }
             });
         });
@@ -491,7 +516,6 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             'Spares': activePOs.filter(po => po.checklist?.spares).length,
             'BD': activePOs.filter(po => po.checklist?.bd).length,
             'Radiator': activePOs.filter(po => po.checklist?.radiatorDescaling).length,
-            'Oil Analysis': activePOs.filter(po => po.checklist?.oilAnalysis).length,
             'Others': activePOs.filter(po => po.checklist?.others).length,
         };
         const checklistColors: Record<string, string> = { 
@@ -502,7 +526,6 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             'Spares': '#8b5cf6',
             'BD': '#ec4899',
             'Radiator': '#14b8a6',
-            'Oil Analysis': '#f97316',
             'Others': '#9ca3af' 
         };
         const checklistChartData = Object.entries(checklistDataRaw)
@@ -665,6 +688,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             partialNotAvailableItemsValue,
             notAvailablePOs, notAvailableValue: isNaN(notAvailableValue) ? 0 : notAvailableValue,
             totalNotAvailableValue: partialNotAvailableItemsValue + notAvailableValue,
+            avail0POs, avail0Value, avail50POs, avail50Value, avail70POs, avail70Value, avail90POs, avail90Value,
             unavailablePartsList,
             checklistChartData, fulfillmentChartData, topCustomers, paymentTermsChartData, salesTypeCountChartData,
             readyToExecuteChartData, customerCategoryChartData,
@@ -678,7 +702,10 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             oilBlockedPOs: oilBlockedPOsList.length,
             oilBlockedTotalValue,
             oilBlockedOilValue,
-            oilBlockedPartsValue
+            oilBlockedPartsValue,
+            oilBlockedFilterValue,
+            oilBlockedCoreValue,
+            oilBlockedReconValue
         };
     }, [activePOs, invoicedPOs, purchaseOrders, filters]);
 
@@ -728,8 +755,45 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             isGap = true;
         }
 
+        const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
         const categoryTotals: Record<string, number> = {};
         ITEM_CATEGORIES.forEach(cat => categoryTotals[cat] = 0);
+
+        if (type.startsWith('AVAILABILITY_')) {
+            const bucketThreshold = parseInt(type.split('_')[1]);
+            pos = activePOs.filter(po => {
+                const total = (po.items || []).length;
+                if (total === 0) return false;
+                const availableCount = (po.items || []).filter(i => i.status === POItemStatus.Available || i.status === POItemStatus.Dispatched).length;
+                const percent = (availableCount / total) * 100;
+                
+                if (bucketThreshold === 0) return percent === 0;
+                if (bucketThreshold === 50) return percent >= 50 && percent < 70;
+                if (bucketThreshold === 70) return percent >= 70 && percent < 90;
+                if (bucketThreshold === 90) return percent >= 90 && percent < 100;
+                return false;
+            });
+            
+            const categoryBreakdown: Record<string, { available: number, pending: number }> = {};
+            pos.forEach(po => {
+                (po.items || []).forEach(item => {
+                    const cat = item.category || 'Uncategorized';
+                    if (!categoryBreakdown[cat]) categoryBreakdown[cat] = { available: 0, pending: 0 };
+                    
+                    if (item.status === POItemStatus.Available || item.status === POItemStatus.Dispatched) {
+                        categoryBreakdown[cat].available += 1;
+                    } else {
+                        categoryBreakdown[cat].pending += 1;
+                    }
+                });
+            });
+
+            return Object.entries(categoryBreakdown).map(([label, data]) => ({
+                label: `${label} (Avail: ${data.available} | Pending: ${data.pending})`,
+                value: data.available + data.pending,
+                color: data.pending > 0 ? '#ef4444' : '#10b981'
+            }));
+        }
 
         pos.forEach(po => {
             (po.items || []).forEach(item => {
@@ -747,8 +811,6 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 }
             });
         });
-
-        const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
         
         return Object.entries(categoryTotals)
             .filter(([_, value]) => value > 0)
@@ -770,6 +832,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     </h1>
                     <p className="text-slate-500 dark:text-slate-400 font-medium">Real-time supply chain visibility & order tracking</p>
                 </div>
+
                 <div className="flex flex-col items-end gap-2">
                     <div className="flex items-center gap-3">
                         {onRefresh && (
@@ -1111,11 +1174,11 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 />
                 <DashboardStatCard 
                     title="Blocked by Oil" 
-                    value={dashboardData.oilBlockedPOs} 
-                    subValue={`${formatCurrency(dashboardData.oilBlockedPartsValue, { notation: 'compact' })} billable if oil provided`}
+                    value={dashboardData.oilBlockedPOs}
+                    subValue={`₹${(dashboardData.oilBlockedPartsValue / 100000).toFixed(2)}L billable`}
                     icon={<BeakerIcon className="w-6 h-6 text-red-600" />} 
                     indicatorColor="bg-red-600"
-                    onClick={() => setSelectedBreakdown({ type: 'OIL_BLOCKED', title: "Blocked by Oil" })}
+                    onClick={() => setSelectedBreakdown({ type: 'OIL_BLOCKED', title: "Blocked by Oil Analysis" })}
                 />
                 <DashboardStatCard 
                     title="Partial Invoices PO" 
@@ -1209,6 +1272,17 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                             View All Shortage POs
                         </button>
                     </div>
+                </div>
+            </div>
+
+            {/* Availability Buckets */}
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 w-full mb-6">
+                <h2 className="text-xl font-black text-slate-800 dark:text-white mb-6">Availability Performance Buckets</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <DashboardStatCard title="0% Available" value={dashboardData.avail0POs} subValue={`${formatCurrency(dashboardData.avail0Value, { notation: 'compact' })}`} icon={<NoSymbolIcon className="w-6 h-6 text-red-600"/>} onClick={() => setSelectedBreakdown({ type: 'AVAILABILITY_0', title: "0% Availability Analysis" })} indicatorColor="bg-red-600"/>
+                    <DashboardStatCard title="50%+ Available" value={dashboardData.avail50POs} subValue={`${formatCurrency(dashboardData.avail50Value, { notation: 'compact' })}`} icon={<TruckIcon className="w-6 h-6 text-orange-500"/>} onClick={() => setSelectedBreakdown({ type: 'AVAILABILITY_50', title: "50%+ Availability Analysis" })} indicatorColor="bg-orange-500"/>
+                    <DashboardStatCard title="70%+ Available" value={dashboardData.avail70POs} subValue={`${formatCurrency(dashboardData.avail70Value, { notation: 'compact' })}`} icon={<ClockIcon className="w-6 h-6 text-yellow-500"/>} onClick={() => setSelectedBreakdown({ type: 'AVAILABILITY_70', title: "70%+ Availability Analysis" })} indicatorColor="bg-yellow-500"/>
+                    <DashboardStatCard title="90%+ Available" value={dashboardData.avail90POs} subValue={`${formatCurrency(dashboardData.avail90Value, { notation: 'compact' })}`} icon={<CheckCircleIcon className="w-6 h-6 text-green-500"/>} onClick={() => setSelectedBreakdown({ type: 'AVAILABILITY_90', title: "90%+ Availability Analysis" })} indicatorColor="bg-green-500"/>
                 </div>
             </div>
 
