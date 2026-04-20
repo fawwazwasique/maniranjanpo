@@ -124,7 +124,6 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                 const sparesKey = getColName('Spares');
                 const bdKey = getColName('BD');
                 const radKey = getColName('Radiator Descaling');
-                const oilKey = getColName('Oil Analysis', ['Oil Analysis Check']);
                 const othersKey = getColName('Others');
                 const dispatchRemKey = getColName('Dispatch Remarks', ['Pending Remarks']);
                 
@@ -237,7 +236,6 @@ const UploadPane: React.FC<UploadPaneProps> = ({ onSaveSingleOrder, onBulkUpload
                             spares: getBool(first, sparesKey),
                             bd: getBool(first, bdKey),
                             radiatorDescaling: getBool(first, radKey),
-                            oilAnalysis: getBool(first, oilKey),
                             others: getBool(first, othersKey),
                         },
                         dispatchRemarks: getStr(first, dispatchRemKey),

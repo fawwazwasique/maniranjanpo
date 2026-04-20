@@ -464,14 +464,26 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             
             const oilItems = items.filter(item => 
                 item.category === 'Oil' || 
-                item.category === 'Oil Analysis' || 
-                (item.partNumber && item.partNumber.toLowerCase().includes('oil'))
+                (item.partNumber && (
+                    item.partNumber.toLowerCase().includes('oil') || 
+                    item.partNumber.toLowerCase().includes('valvoline')
+                )) ||
+                (item.itemDesc && (
+                    item.itemDesc.toLowerCase().includes('oil') || 
+                    item.itemDesc.toLowerCase().includes('valvoline')
+                ))
             );
             
             const otherItems = items.filter(item => 
                 !(item.category === 'Oil' || 
-                  item.category === 'Oil Analysis' || 
-                  (item.partNumber && item.partNumber.toLowerCase().includes('oil')))
+                  (item.partNumber && (
+                      item.partNumber.toLowerCase().includes('oil') || 
+                      item.partNumber.toLowerCase().includes('valvoline')
+                  )) ||
+                  (item.itemDesc && (
+                      item.itemDesc.toLowerCase().includes('oil') || 
+                      item.itemDesc.toLowerCase().includes('valvoline')
+                  )))
             );
 
             if (oilItems.length === 0) return false;
@@ -494,7 +506,9 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             oilBlockedTotalValue += getPOValue(po);
             (po.items || []).forEach(item => {
                 const val = (Number(item.quantity || 0) * Number(item.rate || 0));
-                const isOil = item.category === 'Oil' || item.category === 'Oil Analysis' || (item.partNumber && item.partNumber.toLowerCase().includes('oil'));
+                const isOil = item.category === 'Oil' || 
+                             (item.partNumber && (item.partNumber.toLowerCase().includes('oil') || item.partNumber.toLowerCase().includes('valvoline'))) ||
+                             (item.itemDesc && (item.itemDesc.toLowerCase().includes('oil') || item.itemDesc.toLowerCase().includes('valvoline')));
                 if (isOil && (item.status === POItemStatus.NotAvailable || item.status === POItemStatus.PartiallyAvailable)) {
                     oilBlockedOilValue += val;
                 } else {
@@ -735,13 +749,13 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 if (items.length === 0) return false;
                 const oilItems = items.filter(item => 
                     item.category === 'Oil' || 
-                    item.category === 'Oil Analysis' || 
-                    (item.partNumber && item.partNumber.toLowerCase().includes('oil'))
+                    (item.partNumber && (item.partNumber.toLowerCase().includes('oil') || item.partNumber.toLowerCase().includes('valvoline'))) ||
+                    (item.itemDesc && (item.itemDesc.toLowerCase().includes('oil') || item.itemDesc.toLowerCase().includes('valvoline')))
                 );
                 const otherItems = items.filter(item => 
                     !(item.category === 'Oil' || 
-                      item.category === 'Oil Analysis' || 
-                      (item.partNumber && item.partNumber.toLowerCase().includes('oil')))
+                      (item.partNumber && (item.partNumber.toLowerCase().includes('oil') || item.partNumber.toLowerCase().includes('valvoline'))) ||
+                      (item.itemDesc && (item.itemDesc.toLowerCase().includes('oil') || item.itemDesc.toLowerCase().includes('valvoline'))))
                 );
                 if (oilItems.length === 0) return false;
                 const oilMissing = oilItems.some(item => item.status === POItemStatus.NotAvailable || item.status === POItemStatus.PartiallyAvailable);
@@ -1155,7 +1169,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:flex md:flex-wrap lg:grid lg:grid-cols-4 gap-6 mb-8">
                 <DashboardStatCard 
                     title="Total No of PO's" 
                     value={dashboardData.totalOpenPOs} 
@@ -1171,14 +1185,6 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     indicatorColor="bg-primary"
                     trend={dashboardData.valueTrend}
                     onClick={() => setSelectedBreakdown({ type: 'OPEN', title: "Active PO Value" })}
-                />
-                <DashboardStatCard 
-                    title="Blocked by Oil" 
-                    value={dashboardData.oilBlockedPOs}
-                    subValue={`₹${(dashboardData.oilBlockedPartsValue / 100000).toFixed(2)}L billable`}
-                    icon={<BeakerIcon className="w-6 h-6 text-red-600" />} 
-                    indicatorColor="bg-red-600"
-                    onClick={() => setSelectedBreakdown({ type: 'OIL_BLOCKED', title: "Blocked by Oil Analysis" })}
                 />
                 <DashboardStatCard 
                     title="Partial Invoices PO" 
@@ -1230,7 +1236,26 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             </div>
 
             {/* Detailed Fulfillment Insights */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div 
+                    onClick={() => setSelectedBreakdown({ type: 'OIL_BLOCKED', title: "Stuck by Oil Only" })}
+                    className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-lg border-t-4 border-orange-500 flex flex-col justify-between group cursor-pointer hover:scale-[1.02] transition-all"
+                >
+                    <div className="flex justify-between items-start mb-4">
+                        <div>
+                            <p className="text-slate-500 dark:text-slate-400 font-bold text-sm uppercase tracking-wider">Ready but Oil Stuck</p>
+                            <p className="text-orange-500 text-xs font-medium">All parts ready except Oil (Valvoline)</p>
+                        </div>
+                        <div className="bg-orange-100 dark:bg-orange-900/30 p-2 rounded-lg">
+                            <BeakerIcon className="w-6 h-6 text-orange-600" />
+                        </div>
+                    </div>
+                    <div>
+                        <p className="text-3xl font-black text-slate-800 dark:text-white mb-1">{dashboardData.oilBlockedPOs} POs</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Billable Value: ₹{(dashboardData.oilBlockedPartsValue / 100000).toFixed(2)}L</p>
+                    </div>
+                </div>
+
                 <div 
                     onClick={() => setSelectedBreakdown({ type: 'ANY_SHORTAGE', title: "Total Shortage Analysis" })}
                     className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-lg border-t-4 border-red-600 flex flex-col justify-between group cursor-pointer hover:scale-[1.02] transition-all"

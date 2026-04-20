@@ -68,7 +68,6 @@ const initialPOState: Omit<PurchaseOrder, 'id' | 'createdAt' | 'status'> = {
         spares: false,
         bd: false,
         radiatorDescaling: false,
-        oilAnalysis: false,
         others: false,
     },
     checklistRemarks: '',
@@ -100,7 +99,6 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                 spares: existingPO.checklist?.spares || false,
                 bd: existingPO.checklist?.bd || false,
                 radiatorDescaling: existingPO.checklist?.radiatorDescaling || false,
-                oilAnalysis: existingPO.checklist?.oilAnalysis || false,
                 others: existingPO.checklist?.others || false,
             },
             dispatchRemarks: existingPO.dispatchRemarks || '',
@@ -439,7 +437,6 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, onSave, onUpdate, on
                                 <label className="flex items-center gap-2"><input type="checkbox" name="spares" checked={formData.checklist?.spares || false} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> Spares</label>
                                 <label className="flex items-center gap-2"><input type="checkbox" name="bd" checked={formData.checklist?.bd || false} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> BD</label>
                                 <label className="flex items-center gap-2"><input type="checkbox" name="radiatorDescaling" checked={formData.checklist?.radiatorDescaling || false} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> Radiator Descaling</label>
-                                <label className="flex items-center gap-2"><input type="checkbox" name="oilAnalysis" checked={formData.checklist?.oilAnalysis || false} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> Oil Analysis</label>
                                 <label className="flex items-center gap-2"><input type="checkbox" name="others" checked={formData.checklist?.others || false} onChange={handleChecklistChange} className="focus:ring-red-500 h-4 w-4 text-red-600 border-slate-300 rounded"/> Others</label>
                             </div>
                             {formData.checklist?.others && (
