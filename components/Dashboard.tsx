@@ -498,9 +498,6 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         let oilBlockedTotalValue = 0;
         let oilBlockedOilValue = 0;
         let oilBlockedPartsValue = 0;
-        let oilBlockedFilterValue = 0;
-        let oilBlockedCoreValue = 0;
-        let oilBlockedReconValue = 0;
 
         oilBlockedPOsList.forEach(po => {
             oilBlockedTotalValue += getPOValue(po);
@@ -513,9 +510,6 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     oilBlockedOilValue += val;
                 } else {
                     oilBlockedPartsValue += val;
-                    if(item.category === 'Filter') oilBlockedFilterValue += val;
-                    if(item.category === 'Core') oilBlockedCoreValue += val;
-                    if(item.category === 'Recon') oilBlockedReconValue += val;
                 }
             });
         });
@@ -716,10 +710,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             oilBlockedPOs: oilBlockedPOsList.length,
             oilBlockedTotalValue,
             oilBlockedOilValue,
-            oilBlockedPartsValue,
-            oilBlockedFilterValue,
-            oilBlockedCoreValue,
-            oilBlockedReconValue
+            oilBlockedPartsValue
         };
     }, [activePOs, invoicedPOs, purchaseOrders, filters]);
 
@@ -762,7 +753,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 const othersReady = otherItems.every(item => item.status === POItemStatus.Available || item.status === POItemStatus.Dispatched);
                 return oilMissing && othersReady;
             });
-            isGap = true;
+            isGap = false; // Changed to false to show full billable value breakdown
         }
         else if (type === 'GAP') {
             pos = activePOs;
@@ -1251,8 +1242,21 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                         </div>
                     </div>
                     <div>
-                        <p className="text-3xl font-black text-slate-800 dark:text-white mb-1">{dashboardData.oilBlockedPOs} POs</p>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Billable Value: ₹{(dashboardData.oilBlockedPartsValue / 100000).toFixed(2)}L</p>
+                        <p className="text-3xl font-black text-slate-800 dark:text-white mb-1 leading-tight">{dashboardData.oilBlockedPOs} POs</p>
+                        <div className="space-y-0.5 mt-2">
+                             <p className="text-sm font-bold text-slate-700 dark:text-slate-200 flex justify-between">
+                                <span>Billing Potential:</span>
+                                <span>₹{(dashboardData.oilBlockedTotalValue / 100000).toFixed(2)}L</span>
+                             </p>
+                             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium flex justify-between">
+                                <span>Ready Parts:</span>
+                                <span>₹{(dashboardData.oilBlockedPartsValue / 100000).toFixed(2)}L</span>
+                             </p>
+                             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium flex justify-between">
+                                <span>Pending Oil:</span>
+                                <span>₹{(dashboardData.oilBlockedOilValue / 100000).toFixed(2)}L</span>
+                             </p>
+                        </div>
                     </div>
                 </div>
 
