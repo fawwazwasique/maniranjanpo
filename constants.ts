@@ -27,7 +27,6 @@ export const ITEM_CATEGORIES = [
     'Recon',
     'Battery',
     'Oil',
-    'Oil Analysis',
     'Local Parts',
     'Growth Parts',
     'Service'
@@ -50,8 +49,8 @@ export const CUSTOMER_CATEGORIES = ['AMC', 'NON - AMC', 'NEPI'];
 export const ZONES = ['Attibele', 'East', 'West', 'North', 'South', 'Central'];
 
 export const BULK_UPLOAD_HEADERS = [
-    'Main -Branch',
-    'Sub - branch',
+    'Main-Branch',
+    'Sub-Branch',
     'Cust Name',
     'SO No',
     'SO Date',
@@ -77,7 +76,6 @@ export const BULK_UPLOAD_HEADERS = [
     'Spares',
     'BD',
     'Radiator Descaling',
-    'Oil Analysis',
     'Others',
     'Dispatch Remarks',
     'Item: Item Name',
@@ -90,6 +88,8 @@ export const BULK_UPLOAD_HEADERS = [
     'Base Amount',
     'Tax Amount',
     'Gross Amount',
+    'Stock Available',
+    'Stock In Hand',
     'Item Status',
     'Oa No',
     'Oa Date',

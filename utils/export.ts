@@ -166,8 +166,8 @@ export const downloadTemplate = (): void => {
         '12000.00',
         '2160.00',
         '14060.00',
-        '5',
-        '100',
+        '5',                  // Stock Available
+        '100',                 // Stock In Hand
         'Not Available',
         'OA-123',
         '2024-03-21',
