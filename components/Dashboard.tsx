@@ -1027,7 +1027,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 <div>
                     <h1 className="text-3xl font-black text-slate-800 dark:text-white flex items-center gap-3">
                         <ChartPieIcon className="w-10 h-10 text-red-600" />
-                        Procurement Dashboard
+                        Supply Chain & Fulfillment Dashboard
                     </h1>
                     <p className="text-slate-500 dark:text-slate-400 font-medium">Real-time supply chain visibility & order tracking</p>
                 </div>
