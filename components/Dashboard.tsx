@@ -564,9 +564,18 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         });
 
         // 3. 100% Not Available
-        const notAvailablePOsList = activePOs.filter(po => getPOFulfillmentStatus(po) === FulfillmentStatus.NotAvailable);
+        const notAvailablePOsList = activePOs.filter(po => (po.items || []).every(item => item.status === POItemStatus.NotAvailable || item.status === POItemStatus.Available || item.status === POItemStatus.Dispatched) && (po.items || []).some(item => item.status === POItemStatus.NotAvailable));
+        // Actually, let's keep the easier filter and just update how the VALUE is calculated for NOT AVAILABLE
         const notAvailablePOs = notAvailablePOsList.length;
-        const notAvailableValue = calculateValue(notAvailablePOsList);
+        
+        let notAvailableValue = 0;
+        notAvailablePOsList.forEach(po => {
+           (po.items || []).forEach(item => {
+               if (item.status === POItemStatus.NotAvailable) {
+                   notAvailableValue += (Number(item.quantity || 0) * Number(item.rate || 0));
+               }
+           });
+        });
 
         // 6. Aggregated Unavailable Parts List
         const unavailablePartsMap: Record<string, { partNumber: string, description: string, quantity: number, value: number, poCount: number }> = {};
@@ -617,13 +626,13 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             const oilItems = items.filter(isOilItem);
             const otherItems = items.filter(i => !isOilItem(i));
 
-            const oilMissing = oilItems.some(i => i.status === POItemStatus.NotAvailable || i.status === POItemStatus.PartiallyAvailable);
-            const partsMissing = otherItems.some(i => i.status === POItemStatus.NotAvailable || i.status === POItemStatus.PartiallyAvailable);
+            const oilMissing = oilItems.some(i => i.status === POItemStatus.NotAvailable);
+            const partsMissing = otherItems.some(i => i.status === POItemStatus.NotAvailable);
 
             // Calculate overall requirement values
             items.forEach(item => {
                 const itemValue = (Number(item.quantity || 0) * Number(item.rate || 0));
-                if (item.status === POItemStatus.NotAvailable || item.status === POItemStatus.PartiallyAvailable) {
+                if (item.status === POItemStatus.NotAvailable) {
                     if (isOilItem(item)) {
                         totalOilRequiredValue += itemValue;
                     } else {
@@ -642,28 +651,37 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             }
         });
 
-        const getBlockedMetrics = (pos: PurchaseOrder[]) => {
-            let billingValue = 0; // Value of items that ARE ready
-            let totalValue = 0;
+        const getBlockedMetrics = (pos: PurchaseOrder[], constraint: 'oil' | 'parts') => {
+            let count = pos.length;
+            let totalPOValue = 0;
+            let constraintNotAvailableValue = 0;
+
             pos.forEach(po => {
-                totalValue += getPOValue(po);
+                totalPOValue += getPOValue(po);
                 (po.items || []).forEach(item => {
-                    if (item.status === POItemStatus.Available || item.status === POItemStatus.Dispatched) {
-                        billingValue += (Number(item.quantity || 0) * Number(item.rate || 0));
+                    if (item.status === POItemStatus.NotAvailable) {
+                        const itemValue = (Number(item.quantity || 0) * Number(item.rate || 0));
+                        if (constraint === 'oil' && isOilItem(item)) {
+                            constraintNotAvailableValue += itemValue;
+                        } else if (constraint === 'parts' && !isOilItem(item)) {
+                            constraintNotAvailableValue += itemValue;
+                        }
                     }
                 });
             });
-            return { count: pos.length, billingValue, totalValue };
+            return { count, totalValue: totalPOValue, constraintNotAvailableValue };
         };
 
-        const oilOnlyMetrics = getBlockedMetrics(oilOnlyBlockedPOs);
-        const partsOnlyMetrics = getBlockedMetrics(partsOnlyBlockedPOs);
-        const bothBlockedMetrics = getBlockedMetrics(bothBlockedPOs);
+        const oilOnlyMetrics = getBlockedMetrics(oilOnlyBlockedPOs, 'oil');
+        const partsOnlyMetrics = getBlockedMetrics(partsOnlyBlockedPOs, 'parts');
 
         // Revenue Opportunity if constraints are resolved
         const potentialRevenueIfOilResolved = oilOnlyMetrics.totalValue;
         const potentialRevenueIfPartsResolved = partsOnlyMetrics.totalValue;
-        const potentialRevenueIfBothResolved = bothBlockedMetrics.totalValue;
+        const bothBlockedMetrics = getBlockedMetrics(bothBlockedPOs, 'oil'); // Just use 'oil' as a fallback, or handle differently.
+        // Actually, for bothBlockedPOs, it's not clear which metrics to show for Not Available value.
+        // Let's just calculate potential revenue using the total value.
+        const potentialRevenueIfBothResolved = bothBlockedPOs.reduce((acc, po) => acc + getPOValue(po), 0);
 
         const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
 
@@ -1352,7 +1370,8 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     onClick={() => setSelectedBreakdown({ type: 'OIL_ONLY_BLOCKED', title: "Stuck by Oil Only" })}
                     metrics={[
                         { label: "Number of Stuck POs", value: `${dashboardData.oilOnlyMetrics.count} POs`, isMain: true },
-                        { label: "Stuck PO Total Value", value: dashboardData.oilOnlyMetrics.totalValue, isCurrency: true }
+                        { label: "Stuck PO Total Value", value: dashboardData.oilOnlyMetrics.totalValue, isCurrency: true },
+                        { label: "Oil Not Available Value", value: dashboardData.oilOnlyMetrics.constraintNotAvailableValue, isCurrency: true }
                     ]}
                 />
                 <ImpactCard 
@@ -1370,7 +1389,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             {/* 5. Fifth Row (Parts Unavailability Analysis) */}
             <h3 className="text-xl font-black text-slate-800 dark:text-white mb-6 flex items-center gap-2">
                 <CubeIcon className="w-6 h-6 text-blue-500" />
-                Parts Unavailability Analysis
+                Parts Dependency Analysis (CIL)
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mb-12">
                 <ImpactCard 
@@ -1382,7 +1401,8 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     onClick={() => setSelectedBreakdown({ type: 'PARTS_ONLY_BLOCKED', title: "Stuck by Parts Only" })}
                     metrics={[
                         { label: "Number of Stuck POs", value: `${dashboardData.partsOnlyMetrics.count} POs`, isMain: true },
-                        { label: "Stuck PO Total Value", value: dashboardData.partsOnlyMetrics.totalValue, isCurrency: true }
+                        { label: "Stuck PO Total Value", value: dashboardData.partsOnlyMetrics.totalValue, isCurrency: true },
+                        { label: "Parts Not Available Value", value: dashboardData.partsOnlyMetrics.constraintNotAvailableValue, isCurrency: true }
                     ]}
                 />
                 <ImpactCard 
@@ -1407,7 +1427,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     <DashboardStatCard 
                         title="0% Available" 
                         value={dashboardData.avail0POs} 
-                        subValue={`Avail: ₹0 | Gap: ${formatCurrency(dashboardData.avail0GapValue, { notation: 'compact' })}`} 
+                        subValue={`Avail: ₹0 | Gap: ${formatCurrency(dashboardData.avail0GapValue, { notation: 'compact' })} | Total: ${formatCurrency(dashboardData.avail0Value, { notation: 'compact' })}`} 
                         icon={<NoSymbolIcon className="w-6 h-6 text-red-600"/>} 
                         onClick={() => setSelectedBreakdown({ type: 'AVAILABILITY_0', title: "0% Availability Analysis" })} 
                         indicatorColor="bg-red-600"
@@ -1415,7 +1435,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     <DashboardStatCard 
                         title="50%+ Available" 
                         value={dashboardData.avail50POs} 
-                        subValue={`Avail: ${formatCurrency(dashboardData.avail50AvailValue, { notation: 'compact' })} | Gap: ${formatCurrency(dashboardData.avail50GapValue, { notation: 'compact' })}`} 
+                        subValue={`Avail: ${formatCurrency(dashboardData.avail50AvailValue, { notation: 'compact' })} | Gap: ${formatCurrency(dashboardData.avail50GapValue, { notation: 'compact' })} | Total: ${formatCurrency(dashboardData.avail50Value, { notation: 'compact' })}`} 
                         icon={<TruckIcon className="w-6 h-6 text-orange-500"/>} 
                         onClick={() => setSelectedBreakdown({ type: 'AVAILABILITY_50', title: "50%+ Availability Analysis" })} 
                         indicatorColor="bg-orange-500"
@@ -1423,7 +1443,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     <DashboardStatCard 
                         title="70%+ Available" 
                         value={dashboardData.avail70POs} 
-                        subValue={`Avail: ${formatCurrency(dashboardData.avail70AvailValue, { notation: 'compact' })} | Gap: ${formatCurrency(dashboardData.avail70GapValue, { notation: 'compact' })}`} 
+                        subValue={`Avail: ${formatCurrency(dashboardData.avail70AvailValue, { notation: 'compact' })} | Gap: ${formatCurrency(dashboardData.avail70GapValue, { notation: 'compact' })} | Total: ${formatCurrency(dashboardData.avail70Value, { notation: 'compact' })}`} 
                         icon={<ClockIcon className="w-6 h-6 text-yellow-500"/>} 
                         onClick={() => setSelectedBreakdown({ type: 'AVAILABILITY_70', title: "70%+ Availability Analysis" })} 
                         indicatorColor="bg-yellow-500"
@@ -1431,7 +1451,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     <DashboardStatCard 
                         title="90%+ Available" 
                         value={dashboardData.avail90POs} 
-                        subValue={`Avail: ${formatCurrency(dashboardData.avail90AvailValue, { notation: 'compact' })} | Gap: ${formatCurrency(dashboardData.avail90GapValue, { notation: 'compact' })}`} 
+                        subValue={`Avail: ${formatCurrency(dashboardData.avail90AvailValue, { notation: 'compact' })} | Gap: ${formatCurrency(dashboardData.avail90GapValue, { notation: 'compact' })} | Total: ${formatCurrency(dashboardData.avail90Value, { notation: 'compact' })}`} 
                         icon={<CheckCircleIcon className="w-6 h-6 text-green-500"/>} 
                         onClick={() => setSelectedBreakdown({ type: 'AVAILABILITY_90', title: "90%+ Availability Analysis" })} 
                         indicatorColor="bg-green-500"
