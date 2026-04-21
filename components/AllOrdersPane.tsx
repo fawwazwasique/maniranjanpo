@@ -21,7 +21,8 @@ interface AllOrdersPaneProps {
       isPartiallyInvoiced?: boolean,
       showGapOnly?: boolean,
       saleType?: string,
-      category?: string
+      category?: string,
+      blockingType?: 'OIL_ONLY' | 'PARTS_ONLY' | 'BOTH'
   } | null;
   onClearFilter?: () => void;
   selectedCategories?: string[];
@@ -65,6 +66,19 @@ const getDynamicFulfillmentStatus = (items: POItem[]) => {
     if (fullyAvailableCount === items.length) return FulfillmentStatus.Available;
     if (notAvailableCount === items.length) return FulfillmentStatus.NotAvailable;
     return FulfillmentStatus.PartiallyAvailable;
+};
+
+const isOilItem = (item: any) => {
+    const cat = (item.category || '').toLowerCase();
+    const desc = (item.itemDesc || '').toLowerCase();
+    const pn = (item.partNumber || '').toLowerCase();
+    
+    if (cat === 'oil') return true;
+    if (cat === 'filter' || desc.includes('filter') || pn.includes('filter')) return false;
+    if (['core', 'recon', 'battery', 'service', 'local parts', 'growth parts'].includes(cat)) return false;
+
+    return (desc.includes('oil') || pn.includes('oil') || desc.includes('valvoline') || pn.includes('valvoline')) && 
+           !desc.includes('filter') && !pn.includes('filter');
 };
 
 const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({ 
@@ -183,6 +197,18 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({
             }
             if (filter.saleType) {
                 sortableItems = sortableItems.filter(po => po.saleType === filter.saleType);
+            }
+            if (filter.blockingType) {
+                sortableItems = sortableItems.filter(po => {
+                    const items = po.items || [];
+                    const oilMissing = items.filter(isOilItem).some(i => i.status === POItemStatus.NotAvailable || i.status === POItemStatus.PartiallyAvailable);
+                    const partsMissing = items.filter(i => !isOilItem(i)).some(i => i.status === POItemStatus.NotAvailable || i.status === POItemStatus.PartiallyAvailable);
+                    
+                    if (filter.blockingType === 'OIL_ONLY') return oilMissing && !partsMissing;
+                    if (filter.blockingType === 'PARTS_ONLY') return !oilMissing && partsMissing;
+                    if (filter.blockingType === 'BOTH') return oilMissing && partsMissing;
+                    return true;
+                });
             }
         } else {
             // No external filter, default to active orders only
@@ -353,7 +379,7 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({
         return { available, partial, notAvailable };
     };
 
-    const isFulfillmentFilter = filter?.fulfillmentStatus !== undefined || filter?.hasAnyShortage === true || filter?.showGapOnly === true;
+    const isFulfillmentFilter = filter?.fulfillmentStatus !== undefined || filter?.hasAnyShortage === true || filter?.showGapOnly === true || filter?.blockingType !== undefined;
 
     const toggleSelectAll = () => {
         if (selectedPOIds.length === filteredAndSortedPOs.length) {
@@ -529,6 +555,13 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({
                                 <div className="flex flex-wrap gap-1">
                                     <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-full uppercase">
                                         Sale Type: {filter.saleType}
+                                    </span>
+                                </div>
+                            )}
+                            {filter?.blockingType && (
+                                <div className="flex flex-wrap gap-1">
+                                    <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-[10px] font-bold rounded-full uppercase">
+                                        Blocking: {filter.blockingType === 'OIL_ONLY' ? 'Oil Only' : filter.blockingType === 'PARTS_ONLY' ? 'Parts Only' : 'Both Oil & Parts'}
                                     </span>
                                 </div>
                             )}

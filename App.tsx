@@ -159,6 +159,7 @@ function App() {
       showGapOnly?: boolean;
       saleType?: string;
       category?: string;
+      blockingType?: 'OIL_ONLY' | 'PARTS_ONLY' | 'BOTH';
   } | null>(null);
 
   const [suggestionItem, setSuggestionItem] = useState<POItem | null>(null);
@@ -455,6 +456,9 @@ function App() {
     else if (type === 'INVOICED') setOrdersFilter({ isInvoiced: true, category });
     else if (type === 'GAP') setOrdersFilter({ showGapOnly: true, isInvoiced: false, category });
     else if (type === 'SALE_TYPE') setOrdersFilter({ saleType: payload, isInvoiced: false, category });
+    else if (type === 'OIL_ONLY_BLOCKED') setOrdersFilter({ blockingType: 'OIL_ONLY', isInvoiced: false, category });
+    else if (type === 'PARTS_ONLY_BLOCKED') setOrdersFilter({ blockingType: 'PARTS_ONLY', isInvoiced: false, category });
+    else if (type === 'BOTH_BLOCKED') setOrdersFilter({ blockingType: 'BOTH', isInvoiced: false, category });
     else setOrdersFilter(category ? { category } : null);
     setActivePane('allOrders');
   }, []);
