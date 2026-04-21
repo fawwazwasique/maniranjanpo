@@ -557,7 +557,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 const itemValue = (Number(item.quantity || 0) * Number(item.rate || 0));
                 if (item.status === POItemStatus.Available || item.status === POItemStatus.Dispatched) {
                     partialAvailableItemsValue += itemValue;
-                } else {
+                } else if (item.status === POItemStatus.NotAvailable) {
                     partialNotAvailableItemsValue += itemValue;
                 }
             });
@@ -571,7 +571,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         let notAvailableValue = 0;
         notAvailablePOsList.forEach(po => {
            (po.items || []).forEach(item => {
-               if (item.status === POItemStatus.NotAvailable) {
+               if (item.status === POItemStatus.NotAvailable || item.status === POItemStatus.PartiallyAvailable) {
                    notAvailableValue += (Number(item.quantity || 0) * Number(item.rate || 0));
                }
            });
@@ -659,7 +659,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             pos.forEach(po => {
                 totalPOValue += getPOValue(po);
                 (po.items || []).forEach(item => {
-                    if (item.status === POItemStatus.NotAvailable) {
+                    if (item.status === POItemStatus.NotAvailable || item.status === POItemStatus.PartiallyAvailable) {
                         const itemValue = (Number(item.quantity || 0) * Number(item.rate || 0));
                         if (constraint === 'oil' && isOilItem(item)) {
                             constraintNotAvailableValue += itemValue;
@@ -911,6 +911,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         else if (type === 'INVOICED') pos = invoicedPOs;
         else if (type === 'PARTIAL_INVOICED') pos = filteredPOs.filter(po => po.orderStatus === OrderStatus.PartiallyInvoiced);
         else if (type === 'OIL_ONLY_BLOCKED') {
+            isGap = true;
             pos = activePOs.filter(po => {
                 const items = po.items || [];
                 const oilMissing = items.filter(isOilItem).some(i => i.status === POItemStatus.NotAvailable || i.status === POItemStatus.PartiallyAvailable);
@@ -919,6 +920,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             });
         }
         else if (type === 'PARTS_ONLY_BLOCKED') {
+            isGap = true;
             pos = activePOs.filter(po => {
                 const items = po.items || [];
                 const oilMissing = items.filter(isOilItem).some(i => i.status === POItemStatus.NotAvailable || i.status === POItemStatus.PartiallyAvailable);
@@ -927,6 +929,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             });
         }
         else if (type === 'BOTH_BLOCKED') {
+            isGap = true;
             pos = activePOs.filter(po => {
                 const items = po.items || [];
                 const oilMissing = items.filter(isOilItem).some(i => i.status === POItemStatus.NotAvailable || i.status === POItemStatus.PartiallyAvailable);
