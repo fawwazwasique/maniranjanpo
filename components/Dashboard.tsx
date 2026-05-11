@@ -53,51 +53,68 @@ interface TrendData {
 const DashboardStatCard: React.FC<{ title: string; value: string | number; subValue?: string; icon: React.ReactNode; indicatorColor?: string; trend?: TrendData | null; onClick?: () => void }> = ({ title, value, subValue, icon, indicatorColor, trend, onClick }) => (
     <motion.div 
         onClick={onClick}
-        whileHover={onClick ? { y: -4, scale: 1.02 } : { y: -2 }}
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className={`bg-white dark:bg-slate-800 p-5 rounded-xl shadow-md flex items-center space-x-4 relative overflow-hidden transition-colors ${onClick ? 'cursor-pointer hover:shadow-xl hover:bg-slate-50 dark:hover:bg-slate-700/50' : ''}`}
+        whileHover={onClick ? { scale: 1.02, y: -5 } : { y: -2 }}
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className={`group relative p-6 rounded-[2rem] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm transition-all duration-300 ${onClick ? 'cursor-pointer hover:shadow-2xl hover:shadow-red-500/10 dark:hover:shadow-red-500/5' : ''}`}
     >
-        <motion.div 
-            whileTap={{ scale: onClick ? 0.95 : 1 }}
-        >
-        {indicatorColor && (
-            <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${indicatorColor}`}></div>
-        )}
-        <div className="bg-primary/10 dark:bg-primary/20 p-3 rounded-full">
-            {icon}
-        </div>
-        <div className="flex-1">
-            <p className="text-base text-slate-500 dark:text-slate-400 font-medium flex items-center gap-2">
-                {title}
-                {indicatorColor && <span className={`w-2 h-2 rounded-full ${indicatorColor}`}></span>}
-            </p>
-            <div className="flex items-baseline gap-2">
-                <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{value}</p>
-                {subValue && (
-                    <p className="text-lg font-semibold text-slate-500 dark:text-slate-400">
-                        {subValue}
+        {/* Decorative Blur Background */}
+        <div className={`absolute -right-4 -top-4 w-24 h-24 rounded-full blur-3xl opacity-0 group-hover:opacity-20 transition-opacity duration-500 ${indicatorColor || 'bg-primary'}`}></div>
+        
+        <div className="relative flex flex-col h-full justify-between gap-4">
+            <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">
+                        {title}
                     </p>
+                    <div className="flex items-baseline gap-2">
+                        <motion.span 
+                            initial={{ scale: 0.95 }}
+                            animate={{ scale: 1 }}
+                            className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter"
+                        >
+                            {value}
+                        </motion.span>
+                    </div>
+                </div>
+                <div className={`p-3 rounded-2xl ${indicatorColor ? indicatorColor + '/10' : 'bg-red-50 dark:bg-red-900/20'} group-hover:scale-110 transition-transform duration-300`}>
+                    <div className={indicatorColor ? indicatorColor.replace('bg-', 'text-') : 'text-red-600'}>
+                        {icon}
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex items-end justify-between">
+                {subValue ? (
+                    <div className="flex flex-col gap-1 max-w-[70%]">
+                        <div className="h-px w-8 bg-slate-200 dark:bg-slate-700 mb-2"></div>
+                        <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed truncate">
+                            {subValue}
+                        </p>
+                    </div>
+                ) : <div />}
+
+                {trend && (
+                    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black tracking-tight ${
+                        trend.percent === 0 
+                            ? 'bg-slate-100 dark:bg-slate-700 text-slate-500' 
+                            : (trend.value > 0 
+                                ? (trend.isPositiveGood ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400')
+                                : (trend.isPositiveGood ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400'))
+                    }`}>
+                        {trend.percent !== 0 && (trend.value > 0 ? <ArrowUpIcon className="w-2.5 h-2.5" /> : <ArrowDownIcon className="w-2.5 h-2.5" />)}
+                        {trend.percent === 0 ? 'STABLE' : `${Math.abs(trend.percent).toFixed(1)}%`}
+                    </div>
                 )}
             </div>
-            {trend && trend.percent !== 0 && (
-                 <div className={`flex items-center gap-1 text-sm font-semibold mt-1 ${
-                     trend.value > 0 
-                        ? (trend.isPositiveGood ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')
-                        : (trend.isPositiveGood ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400')
-                 }`}>
-                     {trend.value > 0 ? <ArrowUpIcon className="w-4 h-4" /> : <ArrowDownIcon className="w-4 h-4" />}
-                     <span>{Math.abs(trend.percent).toFixed(1)}% MOM</span>
-                 </div>
-            )}
-             {trend && trend.percent === 0 && (
-                <div className="text-sm text-slate-400 mt-1 font-medium">
-                     No change MOM
-                </div>
-            )}
         </div>
-        </motion.div>
+
+        {/* Bottom Accent Line */}
+        {indicatorColor && (
+            <div className={`absolute bottom-0 left-6 right-6 h-1 rounded-t-full transition-all duration-300 group-hover:left-4 group-hover:right-4 ${indicatorColor}`}></div>
+        )}
     </motion.div>
 );
 
@@ -115,12 +132,24 @@ const isOilItem = (item: any) => {
 };
 
 const ChartContainer: React.FC<{ title: string; children: React.ReactNode, className?: string }> = ({ title, children, className }) => (
-    <div className={`bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md ${className}`}>
-        <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
-            <ChartPieIcon className="w-5 h-5 text-primary" /> {title}
-        </h3>
-        {children}
-    </div>
+    <motion.div 
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className={`bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-8 rounded-[2.5rem] shadow-xl border border-slate-200/60 dark:border-slate-700/60 ${className}`}
+    >
+        <div className="flex items-center gap-4 mb-8">
+            <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-2xl">
+                <PresentationChartLineIcon className="w-5 h-5 text-red-600" />
+            </div>
+            <h3 className="text-base font-black text-slate-800 dark:text-white uppercase tracking-widest">
+                {title}
+            </h3>
+        </div>
+        <div className="relative">
+            {children}
+        </div>
+    </motion.div>
 );
 
 
@@ -269,35 +298,49 @@ const ImpactCard: React.FC<{
 }> = ({ title, subtitle, icon, colorClass, bgClass, metrics, onClick }) => (
     <motion.div 
         onClick={onClick}
-        whileHover={{ y: -4, scale: 1.01 }}
+        whileHover={{ y: -6, scale: 1.01 }}
         whileTap={{ scale: 0.98 }}
-        initial={{ opacity: 0, scale: 0.95 }}
-        whileInView={{ opacity: 1, scale: 1 }}
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        whileInView={{ opacity: 1, scale: 1, y: 0 }}
         viewport={{ once: true, margin: "-50px" }}
-        transition={{ duration: 0.4 }}
-        className={`bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-lg border-l-4 ${colorClass} flex flex-col justify-between group cursor-pointer transition-colors hover:shadow-xl hover:bg-slate-50 dark:hover:bg-slate-700/50`}
+        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+        className={`group relative p-6 rounded-[2rem] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between cursor-pointer transition-all hover:shadow-2xl hover:shadow-red-500/5 overflow-hidden`}
     >
-        <div className="flex justify-between items-start mb-4">
-            <div>
-                <p className="text-slate-500 dark:text-slate-400 font-bold text-xs uppercase tracking-wider">{title}</p>
-                {subtitle && <p className={`${colorClass.replace('border-', 'text-')} text-[10px] font-bold uppercase`}>{subtitle}</p>}
-            </div>
-            <div className={`${bgClass} p-2 rounded-lg`}>
-                {icon}
-            </div>
-        </div>
-        <div className="space-y-3">
-            {metrics.map((m, i) => (
-                <div key={m.label} className={`${m.isMain ? 'mb-2' : ''}`}>
-                    <div className="flex justify-between items-baseline">
-                        <span className={`text-[11px] font-bold uppercase ${m.isMain ? 'text-slate-400' : 'text-slate-500'}`}>{m.label}</span>
-                        <span className={`${m.isMain ? 'text-2xl font-black' : 'text-sm font-bold'} text-slate-800 dark:text-white`}>
-                            {m.isCurrency ? formatCurrency(Number(m.value) || 0, { notation: 'compact' }) : m.value}
-                        </span>
-                    </div>
-                    {m.isMain && <div className="h-1 w-full bg-slate-100 dark:bg-slate-700 rounded-full mt-1 overflow-hidden"><div className={`h-full ${bgClass.replace('/10', '').replace('/30', '')}`} style={{ width: '100%' }}></div></div>}
+        {/* Glow Element */}
+        <div className={`absolute -right-10 -bottom-10 w-40 h-40 rounded-full blur-[60px] opacity-10 group-hover:opacity-20 transition-opacity duration-500 ${bgClass}`}></div>
+        
+        {/* Accent Bar */}
+        <div className={`absolute left-0 top-6 bottom-6 w-1 rounded-full transition-all duration-300 group-hover:top-4 group-hover:bottom-4 ${colorClass}`}></div>
+
+        <div className="relative">
+            <div className="flex justify-between items-start mb-6">
+                <div>
+                    <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-1">{title}</h3>
+                    {subtitle && <p className={`text-[11px] font-black uppercase ${colorClass.replace('border-', 'text-')} tracking-tight`}>{subtitle}</p>}
                 </div>
-            ))}
+                <div className={`${bgClass} p-3 rounded-2xl group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300`}>
+                    {icon}
+                </div>
+            </div>
+
+            <div className="space-y-4">
+                {metrics.map((m, i) => (
+                    <motion.div 
+                        key={m.label}
+                        initial={{ opacity: 0, x: -10 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.1 + i * 0.1 }}
+                        className={`${m.isMain ? 'pb-2 border-b border-slate-50 dark:border-slate-700/50' : ''}`}
+                    >
+                        <div className="flex justify-between items-end gap-4">
+                            <span className={`text-[10px] font-black uppercase tracking-tight ${m.isMain ? 'text-slate-400' : 'text-slate-500'}`}>{m.label}</span>
+                            <span className={`tracking-tighter transition-colors ${m.isMain ? 'text-3xl font-black text-slate-900 dark:text-white' : 'text-sm font-bold text-slate-700 dark:text-slate-300'}`}>
+                                {m.isCurrency ? formatCurrency(Number(m.value) || 0, { notation: 'compact' }) : m.value}
+                            </span>
+                        </div>
+                    </motion.div>
+                ))}
+            </div>
         </div>
     </motion.div>
 );
@@ -317,56 +360,65 @@ const FulfillmentDetailCard: React.FC<{
     onViewBtnClick: () => void;
 }> = ({ title, subtitle, pos, value, availValue, gapValue, colorClass, borderClass, bgClass, icon, onClick, onViewBtnClick }) => (
     <motion.div 
-        whileHover={{ y: -6 }}
-        initial={{ opacity: 0, y: 20 }}
+        whileHover={{ y: -10 }}
+        initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-50px" }}
-        transition={{ duration: 0.4 }}
-        className={`bg-white dark:bg-slate-800 rounded-2xl shadow-xl border-t-8 ${borderClass} overflow-hidden flex flex-col h-full transition-colors hover:shadow-2xl hover:bg-slate-50 dark:hover:bg-slate-800/80 group`}
+        transition={{ type: "spring", stiffness: 200, damping: 25 }}
+        className={`group relative flex flex-col h-full bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-red-500/5 transition-all duration-500`}
     >
-        <div className="p-6 flex-1 cursor-pointer" onClick={onClick}>
-            <div className="flex justify-between items-start mb-6">
-                <div>
-                    <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest mb-1 group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">{title}</h3>
-                    <p className={`${colorClass} text-xs font-bold opacity-80 group-hover:opacity-100 transition-opacity`}>{subtitle}</p>
+        {/* Accent Top Strip */}
+        <div className={`h-2 w-full transition-all duration-300 ${borderClass} opacity-60 group-hover:opacity-100 group-hover:h-3`}></div>
+
+        <div className="p-8 flex-1 flex flex-col cursor-pointer" onClick={onClick}>
+            <div className="flex justify-between items-start mb-10">
+                <div className="space-y-1">
+                    <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] transition-colors group-hover:text-slate-900 dark:group-hover:text-white">{title}</h3>
+                    <p className={`${colorClass} text-xs font-black tracking-tight uppercase`}>{subtitle}</p>
                 </div>
-                <div className={`${bgClass} p-3 rounded-xl transition-transform group-hover:-translate-y-1 duration-300`}>{icon}</div>
+                <div className={`${bgClass} p-4 rounded-[1.25rem] transform group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500 shadow-sm group-hover:shadow-md`}>{icon}</div>
             </div>
             
-            <div className="mb-6">
-                <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-black text-slate-800 dark:text-white">{pos}</span>
-                    <span className="text-slate-400 font-bold text-lg uppercase">POs</span>
+            <div className="flex-1">
+                <div className="flex items-baseline gap-2 mb-2">
+                    <span className="text-6xl font-black text-slate-900 dark:text-white tracking-tighter">{pos}</span>
+                    <span className="text-slate-300 dark:text-slate-600 font-black text-xl uppercase tracking-tighter">POs</span>
                 </div>
-                <div className="text-2xl font-black mt-1" style={{ color: colorClass.includes('green') ? '#10b981' : colorClass.includes('orange') ? '#f59e0b' : '#ef4444' }}>
+                <div className="text-2xl font-black tracking-tight" style={{ color: colorClass.includes('green') ? '#10b981' : colorClass.includes('blue') ? '#3b82f6' : '#ef4444' }}>
                    {formatCurrency(value)}
                 </div>
             </div>
 
             {(availValue !== undefined || gapValue !== undefined) && (
-                <div className="space-y-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-                    <div className="flex justify-between items-center text-xs font-bold uppercase text-slate-400">
-                        <span>Total Value</span>
-                        <span className="text-slate-700 dark:text-slate-200">{formatCurrency(value, { notation: 'compact' })}</span>
+                <div className="mt-8 pt-6 space-y-3 border-t border-slate-100 dark:border-slate-700/50">
+                    <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                        <span>Total Valuation</span>
+                        <span className="text-slate-800 dark:text-slate-200">{formatCurrency(value, { notation: 'compact' })}</span>
                     </div>
-                    <div className="flex justify-between items-center p-2 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20">
-                        <div className="flex items-center gap-2">
-                            <NoSymbolIcon className="w-3.5 h-3.5 text-red-600" />
-                            <span className="text-[10px] font-black text-red-600 uppercase tracking-tighter">Not Available</span>
+                    {gapValue !== undefined && (
+                        <div className="flex justify-between items-center p-3 rounded-2xl bg-red-50 dark:bg-red-900/10 border border-red-100/50 dark:border-red-900/20 group/gap transition-transform hover:scale-[1.02]">
+                            <div className="flex items-center gap-2">
+                                <NoSymbolIcon className="w-4 h-4 text-red-500" />
+                                <span className="text-[10px] font-black uppercase text-red-600/70 tracking-tight">Supply Gap</span>
+                            </div>
+                            <span className="text-sm font-black text-red-600">{formatCurrency(gapValue, { notation: 'compact' })}</span>
                         </div>
-                        <span className="text-xs font-bold text-red-600">{formatCurrency(gapValue || 0, { notation: 'compact' })}</span>
-                    </div>
+                    )}
                 </div>
             )}
         </div>
-        <div className="px-6 pb-6 mt-auto">
+
+        {/* Floating Action Button-style Footer */}
+        <div className="p-4 bg-slate-50/50 dark:bg-slate-900/30 border-t border-slate-100 dark:border-slate-800">
             <motion.button 
                 whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.95 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={(e) => { e.stopPropagation(); onViewBtnClick(); }}
-                className={`w-full py-4 ${bgClass.replace('/10', '').replace('/30', '')} hover:opacity-90 text-white rounded-2xl font-black uppercase tracking-widest shadow-lg transition-colors text-xs`}
+                className={`w-full py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${
+                    borderClass.replace('border-', 'bg-').replace('green-500', 'emerald-600').replace('blue-500', 'blue-600').replace('red-500', 'red-600')
+                } text-white shadow-lg shadow-red-500/10 hover:shadow-red-500/20 active:shadow-inner`}
             >
-                View {title.split(' ')[0]} POs
+                View Detailed Breakdown
             </motion.button>
         </div>
     </motion.div>
@@ -1089,168 +1141,296 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-md">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div>
-                        <label htmlFor="customer" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Search Customer</label>
-                        <input type="text" id="customer" name="customer" value={filters.customer || ''} onChange={handleFilterChange} list="customer-list" placeholder="Type to search..." className="block w-full text-base px-3 py-2 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500" />
-                         <datalist id="customer-list">
-                            {customers.map(c => <option key={c} value={c} />)}
-                        </datalist>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Date Range</label>
-                        <div className="flex items-center gap-2">
-                            <input type="date" id="startDate" name="startDate" value={filters.startDate || ''} onChange={handleFilterChange} className="block w-full text-sm px-2 py-2 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500" />
-                            <span className="text-slate-400">to</span>
-                            <input type="date" id="endDate" name="endDate" value={filters.endDate || ''} onChange={handleFilterChange} className="block w-full text-sm px-2 py-2 rounded-lg border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-red-500 focus:border-red-500" />
-                        </div>
-                    </div>
-                    <div className="lg:col-span-2 flex items-end justify-end">
-                        <button onClick={() => setFilters({statuses: [], customer: '', startDate: '', endDate: '', mainBranches: [], subBranches: [], categories: [], customerCategories: [], zones: []})} className="py-2 px-4 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm text-sm font-medium text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 flex items-center gap-2 transition-colors">
-                           <XMarkIcon className="w-4 h-4" />
-                           Reset All Filters
-                        </button>
-                    </div>
-                </div>
+            <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-6 rounded-3xl shadow-xl border border-slate-200/60 dark:border-slate-700/60 transition-all hover:shadow-2xl hover:shadow-red-500/5"
+            >
+                <div className="flex flex-col xl:flex-row gap-8">
+                    <div className="flex-1 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                             <div className="relative group">
+                                <label htmlFor="customer" className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest mb-2 group-focus-within:text-red-500 transition-colors">
+                                    <MagnifyingGlassIcon className="w-3.5 h-3.5" />
+                                    Search Customer
+                                </label>
+                                <div className="relative">
+                                    <input 
+                                        type="text" 
+                                        id="customer" 
+                                        name="customer" 
+                                        value={filters.customer || ''} 
+                                        onChange={handleFilterChange} 
+                                        list="customer-list" 
+                                        placeholder="Type to search clients..." 
+                                        className="block w-full text-sm font-medium px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border-none ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-red-500 transition-all dark:text-white placeholder:text-slate-400" 
+                                    />
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 p-1 bg-white dark:bg-slate-800 rounded-lg shadow-sm">
+                                        <kbd className="text-[10px] font-bold text-slate-400">ESC</kbd>
+                                    </div>
+                                </div>
+                                <datalist id="customer-list">
+                                    {customers.map(c => <option key={c} value={c} />)}
+                                </datalist>
+                            </div>
 
-                <div className="mt-6 space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Status</label>
-                        <div className="flex flex-wrap gap-2">
-                            {Object.values(OverallPOStatus).map(s => {
-                                const isSelected = filters.statuses.includes(s);
-                                return (
-                                    <button
-                                        key={s}
-                                        onClick={() => toggleStatus(s)}
-                                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                                            isSelected 
-                                                ? 'bg-red-500 text-white border-red-500' 
-                                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-red-300'
-                                        }`}
-                                    >
-                                        {s}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Main Branches</label>
-                        <div className="flex flex-wrap gap-2">
-                            {MAIN_BRANCHES.map(b => {
-                                const isSelected = filters.mainBranches.includes(b);
-                                return (
-                                    <button
-                                        key={b}
-                                        onClick={() => toggleMainBranch(b)}
-                                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                                            isSelected 
-                                                ? 'bg-red-500 text-white border-red-500' 
-                                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-red-300'
-                                        }`}
-                                    >
-                                        {b}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {filters.mainBranches.length > 0 && (
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Sub Branches</label>
-                            <div className="flex flex-wrap gap-2">
-                                {filters.mainBranches.flatMap(mb => BRANCH_STRUCTURE[mb] || []).map(sb => {
-                                    const isSelected = filters.subBranches.includes(sb);
-                                    return (
-                                        <button
-                                            key={sb}
-                                            onClick={() => toggleSubBranch(sb)}
-                                            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                                                isSelected 
-                                                    ? 'bg-red-500 text-white border-red-500' 
-                                                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-red-300'
-                                            }`}
-                                        >
-                                            {sb}
-                                        </button>
-                                    );
-                                })}
+                            <div className="group">
+                                <label className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest mb-2 group-focus-within:text-red-500 transition-colors">
+                                    <CalendarDaysIcon className="w-3.5 h-3.5" />
+                                    Date Range
+                                </label>
+                                <div className="flex items-center gap-2 p-1.5 bg-slate-50 dark:bg-slate-900 rounded-2xl ring-1 ring-slate-200 dark:ring-slate-700 focus-within:ring-2 focus-within:ring-red-500 transition-all">
+                                    <input 
+                                        type="date" 
+                                        id="startDate" 
+                                        name="startDate" 
+                                        value={filters.startDate || ''} 
+                                        onChange={handleFilterChange} 
+                                        className="block w-full text-xs font-bold px-3 py-2 bg-transparent border-none focus:ring-0 dark:text-white" 
+                                    />
+                                    <div className="h-4 w-px bg-slate-300 dark:bg-slate-700"></div>
+                                    <input 
+                                        type="date" 
+                                        id="endDate" 
+                                        name="endDate" 
+                                        value={filters.endDate || ''} 
+                                        onChange={handleFilterChange} 
+                                        className="block w-full text-xs font-bold px-3 py-2 bg-transparent border-none focus:ring-0 dark:text-white" 
+                                    />
+                                </div>
                             </div>
                         </div>
-                    )}
 
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Categories</label>
-                        <div className="flex flex-wrap gap-2">
-                            {ITEM_CATEGORIES.map(cat => {
-                                const isSelected = filters.categories.includes(cat);
-                                return (
-                                    <button
-                                        key={cat}
-                                        onClick={() => toggleCategory(cat)}
-                                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                                            isSelected 
-                                                ? 'bg-red-500 text-white border-red-500' 
-                                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-red-300'
-                                        }`}
-                                    >
-                                        {cat}
-                                    </button>
-                                );
-                            })}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                             {/* Status */}
+                            <div>
+                                <label className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest mb-3">
+                                    <SparklesIcon className="w-3.5 h-3.5" />
+                                    Status
+                                </label>
+                                <div className="flex flex-wrap gap-2">
+                                    <AnimatePresence mode="popLayout">
+                                        {Object.values(OverallPOStatus).map((s, i) => {
+                                            const isSelected = filters.statuses.includes(s);
+                                            return (
+                                                <motion.button
+                                                    key={s}
+                                                    initial={{ opacity: 0, scale: 0.8 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    transition={{ delay: i * 0.03 }}
+                                                    whileHover={{ scale: 1.05 }}
+                                                    whileTap={{ scale: 0.95 }}
+                                                    onClick={() => toggleStatus(s)}
+                                                    className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-tight border shadow-sm transition-all ${
+                                                        isSelected 
+                                                            ? 'bg-red-600 text-white border-red-600 shadow-red-200 dark:shadow-none' 
+                                                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-red-300'
+                                                    }`}
+                                                >
+                                                    {s}
+                                                </motion.button>
+                                            );
+                                        })}
+                                    </AnimatePresence>
+                                </div>
+                            </div>
+
+                            {/* Main Branches */}
+                            <div>
+                                <label className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest mb-3">
+                                    <UserGroupIcon className="w-3.5 h-3.5" />
+                                    Main Branches
+                                </label>
+                                <div className="flex flex-wrap gap-2">
+                                    {MAIN_BRANCHES.map((b, i) => {
+                                        const isSelected = filters.mainBranches.includes(b);
+                                        return (
+                                            <motion.button
+                                                key={b}
+                                                initial={{ opacity: 0, scale: 0.8 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                transition={{ delay: i * 0.03 }}
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                onClick={() => toggleMainBranch(b)}
+                                                className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-tight border shadow-sm transition-all ${
+                                                    isSelected 
+                                                        ? 'bg-red-600 text-white border-red-600 shadow-red-200 dark:shadow-none' 
+                                                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-red-300'
+                                                }`}
+                                            >
+                                                {b}
+                                            </motion.button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Sub Branches (Dynamic) */}
+                        <AnimatePresence>
+                            {filters.mainBranches.length > 0 && (
+                                <motion.div 
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className="overflow-hidden"
+                                >
+                                    <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                                        <ArrowPathIcon className="w-3 h-3" />
+                                        Sub Branches
+                                    </label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {filters.mainBranches.flatMap(mb => BRANCH_STRUCTURE[mb] || []).map((sb, i) => {
+                                            const isSelected = filters.subBranches.includes(sb);
+                                            return (
+                                                <motion.button
+                                                    key={sb}
+                                                    initial={{ opacity: 0, x: -10 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    transition={{ delay: i * 0.02 }}
+                                                    whileHover={{ scale: 1.05 }}
+                                                    whileTap={{ scale: 0.95 }}
+                                                    onClick={() => toggleSubBranch(sb)}
+                                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase border shadow-sm transition-all ${
+                                                        isSelected 
+                                                            ? 'bg-slate-800 text-white border-slate-800 dark:bg-white dark:text-slate-900' 
+                                                            : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:border-slate-400'
+                                                    }`}
+                                                >
+                                                    {sb}
+                                                </motion.button>
+                                            );
+                                        })}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                         {/* Categories */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Customer Category</label>
+                            <label className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest mb-3">
+                                <CubeIcon className="w-3.5 h-3.5" />
+                                Categories
+                            </label>
                             <div className="flex flex-wrap gap-2">
-                                {CUSTOMER_CATEGORIES.map(cat => {
-                                    const isSelected = filters.customerCategories.includes(cat);
+                                {ITEM_CATEGORIES.map((cat, i) => {
+                                    const isSelected = filters.categories.includes(cat);
                                     return (
-                                        <button
+                                        <motion.button
                                             key={cat}
-                                            onClick={() => toggleCustomerCategory(cat)}
-                                            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                                            initial={{ opacity: 0, scale: 0.8 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            transition={{ delay: i * 0.03 }}
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
+                                            onClick={() => toggleCategory(cat)}
+                                            className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-tight border shadow-sm transition-all ${
                                                 isSelected 
-                                                    ? 'bg-red-500 text-white border-red-500' 
+                                                    ? 'bg-red-600 text-white border-red-600 shadow-red-200 dark:shadow-none' 
                                                     : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-red-300'
                                             }`}
                                         >
                                             {cat}
-                                        </button>
+                                        </motion.button>
                                     );
                                 })}
                             </div>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Zone</label>
-                            <div className="flex flex-wrap gap-2">
-                                {ZONES.map(z => {
-                                    const isSelected = filters.zones.includes(z);
-                                    return (
-                                        <button
-                                            key={z}
-                                            onClick={() => toggleZone(z)}
-                                            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                                                isSelected 
-                                                    ? 'bg-red-500 text-white border-red-500' 
-                                                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-red-300'
-                                            }`}
-                                        >
-                                            {z}
-                                        </button>
-                                    );
-                                })}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                             {/* Customer Category */}
+                            <div>
+                                <label className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest mb-3">
+                                    <UserGroupIcon className="w-3.5 h-3.5 text-blue-500" />
+                                    Customer Category
+                                </label>
+                                <div className="flex flex-wrap gap-2">
+                                    {CUSTOMER_CATEGORIES.map((cat, i) => {
+                                        const isSelected = filters.customerCategories.includes(cat);
+                                        return (
+                                            <motion.button
+                                                key={cat}
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                onClick={() => toggleCustomerCategory(cat)}
+                                                className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-tight border shadow-sm transition-all ${
+                                                    isSelected 
+                                                        ? 'bg-blue-600 text-white border-blue-600 shadow-blue-200 dark:shadow-none' 
+                                                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-blue-300'
+                                                }`}
+                                            >
+                                                {cat}
+                                            </motion.button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Zone */}
+                            <div>
+                                <label className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest mb-3">
+                                    <ArchiveBoxXMarkIcon className="w-3.5 h-3.5 text-emerald-500" />
+                                    Zone
+                                </label>
+                                <div className="flex flex-wrap gap-2">
+                                    {ZONES.map((z, i) => {
+                                        const isSelected = filters.zones.includes(z);
+                                        return (
+                                            <motion.button
+                                                key={z}
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                onClick={() => toggleZone(z)}
+                                                className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-tight border shadow-sm transition-all ${
+                                                    isSelected 
+                                                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-emerald-200 dark:shadow-none' 
+                                                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-emerald-300'
+                                                }`}
+                                            >
+                                                {z}
+                                            </motion.button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Reset Button Column */}
+                    <div className="xl:w-48 flex xl:flex-col items-center justify-center border-t xl:border-t-0 xl:border-l border-slate-100 dark:border-slate-700 pt-6 xl:pt-0 xl:pl-8">
+                        <motion.button 
+                            whileHover={{ scale: 1.05, rotate: -2 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => setFilters({statuses: [], customer: '', startDate: '', endDate: '', mainBranches: [], subBranches: [], categories: [], customerCategories: [], zones: []})} 
+                            className="group flex flex-col items-center gap-3 p-6 rounded-3xl bg-slate-50 dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all cursor-pointer"
+                        >
+                            <div className="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-sm group-hover:bg-red-500 group-hover:text-white transition-colors">
+                                <XMarkIcon className="w-6 h-6" />
+                            </div>
+                            <div className="text-center">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-red-600">Reset</p>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-red-600">Filters</p>
+                            </div>
+                        </motion.button>
+
+                        <div className="hidden xl:block mt-8 space-y-4 w-full">
+                            <div className="p-4 rounded-2xl bg-red-50/50 dark:bg-red-900/5 border border-red-100 dark:border-red-900/20">
+                                <p className="text-[10px] font-black text-red-800 dark:text-red-400 uppercase tracking-tighter mb-1">Active Filters</p>
+                                <p className="text-2xl font-black text-red-600">
+                                    {Object.values(filters).flat().filter(v => v !== '').length}
+                                </p>
+                            </div>
+                            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mb-1">Resulting POs</p>
+                                <p className="text-2xl font-black text-slate-800 dark:text-white">
+                                    {filteredPOs.length}
+                                </p>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </motion.div>
 
             {/* 1. Top Section (Executive Summary – Big Cards) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
