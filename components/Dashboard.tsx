@@ -66,14 +66,14 @@ const DashboardStatCard: React.FC<{ title: string; value: string | number; subVa
         <div className="relative flex flex-col h-full justify-between gap-4">
             <div className="flex items-start justify-between">
                 <div className="space-y-1">
-                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">
+                    <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                         {title}
                     </p>
                     <div className="flex items-baseline gap-2">
                         <motion.span 
                             initial={{ scale: 0.95 }}
                             animate={{ scale: 1 }}
-                            className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter"
+                            className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight"
                         >
                             {value}
                         </motion.span>
@@ -97,7 +97,7 @@ const DashboardStatCard: React.FC<{ title: string; value: string | number; subVa
                 ) : <div />}
 
                 {trend && (
-                    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black tracking-tight ${
+                    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider ${
                         trend.percent === 0 
                             ? 'bg-slate-100 dark:bg-slate-700 text-slate-500' 
                             : (trend.value > 0 
@@ -142,7 +142,7 @@ const ChartContainer: React.FC<{ title: string; children: React.ReactNode, class
             <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-2xl">
                 <PresentationChartLineIcon className="w-5 h-5 text-red-600" />
             </div>
-            <h3 className="text-base font-black text-slate-800 dark:text-white uppercase tracking-widest">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white uppercase tracking-widest opacity-80">
                 {title}
             </h3>
         </div>
@@ -188,24 +188,24 @@ const DonutChart: React.FC<{ data: { label: string; value: number; color: string
                              return acc;
                         }, { accumulatedLength: 0, elements: [] as React.ReactNode[] }).elements}
                     </g>
-                     <text x="50" y="50" textAnchor="middle" dy=".3em" className="text-lg font-bold fill-current text-slate-800 dark:text-slate-100">
+                     <text x="50" y="50" textAnchor="middle" dy=".3em" className="text-sm font-bold fill-current text-slate-800 dark:text-slate-100 tracking-tight">
                        {isCurrency 
                         ? formatCurrency(total, { notation: 'compact' })
                         : total.toLocaleString()}
                     </text>
                 </svg>
             </div>
-            <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
+            <div className="space-y-1.5 max-h-64 overflow-y-auto pr-2">
                 {data.filter(d => d.value > 0).map((segment, index) => (
                     <div 
                         key={`${segment.label}-${index}`} 
-                        className={`flex items-center text-sm ${onSegmentClick ? 'cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 p-1 rounded transition-colors' : ''}`}
+                        className={`flex items-center text-xs ${onSegmentClick ? 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 p-1.5 rounded-lg transition-colors' : ''}`}
                         onClick={() => onSegmentClick?.(segment.label)}
                     >
-                        <span className="w-3 h-3 rounded-full mr-2 shrink-0" style={{ backgroundColor: segment.color }}></span>
-                        <span className="text-slate-600 dark:text-slate-400 font-medium truncate mr-4">{segment.label}</span>
-                        <span className="ml-auto font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap">
-                            {((segment.value / total) * 100).toFixed(1)}% ({isCurrency ? formatCurrency(segment.value, { notation: 'compact' }) : segment.value})
+                        <span className="w-2.5 h-2.5 rounded-full mr-2.5 shrink-0" style={{ backgroundColor: segment.color }}></span>
+                        <span className="text-slate-500 dark:text-slate-400 font-semibold truncate mr-4">{segment.label}</span>
+                        <span className="ml-auto font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap tracking-tight">
+                            {((segment.value / total) * 100).toFixed(0)}%
                         </span>
                     </div>
                 ))}
@@ -227,13 +227,13 @@ const HorizontalBarChart: React.FC<{ data: { label: string; value: number }[], i
         <div className="space-y-4 pr-4">
             {data.map((item, index) => (
                 <div key={`${item.label}-${index}`} className="space-y-1.5">
-                     <div className="flex justify-between text-base font-medium text-slate-600 dark:text-slate-300">
-                        <span title={item.label} className="truncate">{item.label}</span>
-                        <span>{formatValue(item.value)}</span>
+                     <div className="flex justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 tracking-tight">
+                        <span title={item.label} className="truncate uppercase">{item.label}</span>
+                        <span className="font-bold text-slate-900 dark:text-slate-100">{formatValue(item.value)}</span>
                     </div>
-                    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3">
+                    <div className="w-full bg-slate-100 dark:bg-slate-900 rounded-full h-1.5 overflow-hidden">
                         <div
-                            className="bg-gradient-to-r from-red-500 to-red-600 h-3 rounded-full"
+                            className="bg-red-500 h-full rounded-full"
                             style={{ width: `${(item.value / maxValue) * 100}%` }}
                         />
                     </div>
@@ -254,12 +254,15 @@ const BreakdownModal: React.FC<{
     
     return (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
-                    <h3 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                        <ChartPieIcon className="w-6 h-6 text-red-500" />
-                        {title} - Category Breakdown
-                    </h3>
+            <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+                <div className="p-8 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
+                    <div>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                            <ChartPieIcon className="w-6 h-6 text-red-500" />
+                            {title}
+                        </h3>
+                        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mt-1">Detailed Category Breakdown</p>
+                    </div>
                     <button onClick={onClose} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
                         <XMarkIcon className="w-6 h-6 text-slate-500" />
                     </button>
@@ -315,8 +318,8 @@ const ImpactCard: React.FC<{
         <div className="relative">
             <div className="flex justify-between items-start mb-6">
                 <div>
-                    <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-1">{title}</h3>
-                    {subtitle && <p className={`text-[11px] font-black uppercase ${colorClass.replace('border-', 'text-')} tracking-tight`}>{subtitle}</p>}
+                    <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">{title}</h3>
+                    {subtitle && <p className={`text-[10px] font-semibold uppercase ${colorClass.replace('border-', 'text-')} tracking-tight`}>{subtitle}</p>}
                 </div>
                 <div className={`${bgClass} p-3 rounded-2xl group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300`}>
                     {icon}
@@ -333,8 +336,8 @@ const ImpactCard: React.FC<{
                         className={`${m.isMain ? 'pb-2 border-b border-slate-50 dark:border-slate-700/50' : ''}`}
                     >
                         <div className="flex justify-between items-end gap-4">
-                            <span className={`text-[10px] font-black uppercase tracking-tight ${m.isMain ? 'text-slate-400' : 'text-slate-500'}`}>{m.label}</span>
-                            <span className={`tracking-tighter transition-colors ${m.isMain ? 'text-3xl font-black text-slate-900 dark:text-white' : 'text-sm font-bold text-slate-700 dark:text-slate-300'}`}>
+                            <span className={`text-[10px] font-semibold uppercase tracking-tight ${m.isMain ? 'text-slate-400' : 'text-slate-500'}`}>{m.label}</span>
+                            <span className={`tracking-tight transition-colors ${m.isMain ? 'text-3xl font-bold text-slate-900 dark:text-white' : 'text-sm font-medium text-slate-700 dark:text-slate-300'}`}>
                                 {m.isCurrency ? formatCurrency(Number(m.value) || 0, { notation: 'compact' }) : m.value}
                             </span>
                         </div>
@@ -373,25 +376,25 @@ const FulfillmentDetailCard: React.FC<{
         <div className="p-8 flex-1 flex flex-col cursor-pointer" onClick={onClick}>
             <div className="flex justify-between items-start mb-10">
                 <div className="space-y-1">
-                    <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] transition-colors group-hover:text-slate-900 dark:group-hover:text-white">{title}</h3>
-                    <p className={`${colorClass} text-xs font-black tracking-tight uppercase`}>{subtitle}</p>
+                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest transition-colors group-hover:text-slate-900 dark:group-hover:text-white">{title}</h3>
+                    <p className={`${colorClass} text-xs font-semibold tracking-tight uppercase`}>{subtitle}</p>
                 </div>
                 <div className={`${bgClass} p-4 rounded-[1.25rem] transform group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500 shadow-sm group-hover:shadow-md`}>{icon}</div>
             </div>
             
             <div className="flex-1">
                 <div className="flex items-baseline gap-2 mb-2">
-                    <span className="text-6xl font-black text-slate-900 dark:text-white tracking-tighter">{pos}</span>
-                    <span className="text-slate-300 dark:text-slate-600 font-black text-xl uppercase tracking-tighter">POs</span>
+                    <span className="text-6xl font-bold text-slate-900 dark:text-white tracking-tighter">{pos}</span>
+                    <span className="text-slate-300 dark:text-slate-600 font-bold text-xl uppercase tracking-tighter">POs</span>
                 </div>
-                <div className="text-2xl font-black tracking-tight" style={{ color: colorClass.includes('green') ? '#10b981' : colorClass.includes('blue') ? '#3b82f6' : '#ef4444' }}>
+                <div className="text-2xl font-bold tracking-tight" style={{ color: colorClass.includes('green') ? '#10b981' : colorClass.includes('blue') ? '#3b82f6' : '#ef4444' }}>
                    {formatCurrency(value)}
                 </div>
             </div>
 
             {(availValue !== undefined || gapValue !== undefined) && (
                 <div className="mt-8 pt-6 space-y-3 border-t border-slate-100 dark:border-slate-700/50">
-                    <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                    <div className="flex justify-between items-center text-[10px] font-semibold uppercase text-slate-400 tracking-wider">
                         <span>Total Valuation</span>
                         <span className="text-slate-800 dark:text-slate-200">{formatCurrency(value, { notation: 'compact' })}</span>
                     </div>
@@ -399,9 +402,9 @@ const FulfillmentDetailCard: React.FC<{
                         <div className="flex justify-between items-center p-3 rounded-2xl bg-red-50 dark:bg-red-900/10 border border-red-100/50 dark:border-red-900/20 group/gap transition-transform hover:scale-[1.02]">
                             <div className="flex items-center gap-2">
                                 <NoSymbolIcon className="w-4 h-4 text-red-500" />
-                                <span className="text-[10px] font-black uppercase text-red-600/70 tracking-tight">Supply Gap</span>
+                                <span className="text-[10px] font-semibold uppercase text-red-600/70 tracking-tight">Supply Gap</span>
                             </div>
-                            <span className="text-sm font-black text-red-600">{formatCurrency(gapValue, { notation: 'compact' })}</span>
+                            <span className="text-sm font-bold text-red-600">{formatCurrency(gapValue, { notation: 'compact' })}</span>
                         </div>
                     )}
                 </div>
@@ -414,7 +417,7 @@ const FulfillmentDetailCard: React.FC<{
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={(e) => { e.stopPropagation(); onViewBtnClick(); }}
-                className={`w-full py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${
+                className={`w-full py-3.5 rounded-2xl text-[11px] font-bold uppercase tracking-widest transition-all ${
                     borderClass.replace('border-', 'bg-').replace('green-500', 'emerald-600').replace('blue-500', 'blue-600').replace('red-500', 'red-600')
                 } text-white shadow-lg shadow-red-500/10 hover:shadow-red-500/20 active:shadow-inner`}
             >
@@ -1093,11 +1096,11 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         <div className="p-4 sm:p-6 lg:p-8 space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-800 dark:text-white flex items-center gap-3">
+                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3 tracking-tight">
                         <ChartPieIcon className="w-10 h-10 text-red-600" />
-                        Supply Chain & Fulfillment Dashboard
+                        Supply Chain & Fulfillment
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400 font-medium">Real-time supply chain visibility & order tracking</p>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium text-sm">Real-time supply chain visibility & order tracking</p>
                 </div>
 
                 <div className="flex flex-col items-end gap-2">
@@ -1106,14 +1109,14 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                             <button 
                                 onClick={onRefresh}
                                 disabled={isRefreshing}
-                                className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm disabled:opacity-50 active:scale-95"
+                                className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm disabled:opacity-50 active:scale-95"
                             >
-                                <ClockIcon className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                                <ClockIcon className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                                 {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
                             </button>
                         )}
-                        <div className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 rounded-xl text-red-600 dark:text-red-400 text-sm font-bold border border-red-100 dark:border-red-900/30">
-                            <CalendarDaysIcon className="w-5 h-5" />
+                        <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-900 rounded-xl text-slate-600 dark:text-slate-400 text-xs font-semibold border border-slate-200 dark:border-slate-700">
+                            <CalendarDaysIcon className="w-4 h-4" />
                             {new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
                         </div>
                     </div>
@@ -1150,7 +1153,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     <div className="flex-1 space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                              <div className="relative group">
-                                <label htmlFor="customer" className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest mb-2 group-focus-within:text-red-500 transition-colors">
+                                <label htmlFor="customer" className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 group-focus-within:text-red-500 transition-colors">
                                     <MagnifyingGlassIcon className="w-3.5 h-3.5" />
                                     Search Customer
                                 </label>
@@ -1175,7 +1178,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                             </div>
 
                             <div className="group">
-                                <label className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest mb-2 group-focus-within:text-red-500 transition-colors">
+                                <label className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 group-focus-within:text-red-500 transition-colors">
                                     <CalendarDaysIcon className="w-3.5 h-3.5" />
                                     Date Range
                                 </label>
@@ -1186,7 +1189,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                                         name="startDate" 
                                         value={filters.startDate || ''} 
                                         onChange={handleFilterChange} 
-                                        className="block w-full text-xs font-bold px-3 py-2 bg-transparent border-none focus:ring-0 dark:text-white" 
+                                        className="block w-full text-xs font-semibold px-3 py-2 bg-transparent border-none focus:ring-0 dark:text-white" 
                                     />
                                     <div className="h-4 w-px bg-slate-300 dark:bg-slate-700"></div>
                                     <input 
@@ -1195,7 +1198,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                                         name="endDate" 
                                         value={filters.endDate || ''} 
                                         onChange={handleFilterChange} 
-                                        className="block w-full text-xs font-bold px-3 py-2 bg-transparent border-none focus:ring-0 dark:text-white" 
+                                        className="block w-full text-xs font-semibold px-3 py-2 bg-transparent border-none focus:ring-0 dark:text-white" 
                                     />
                                 </div>
                             </div>
@@ -1204,7 +1207,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                              {/* Status */}
                             <div>
-                                <label className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest mb-3">
+                                <label className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">
                                     <SparklesIcon className="w-3.5 h-3.5" />
                                     Status
                                 </label>
@@ -1221,7 +1224,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                                                     whileHover={{ scale: 1.05 }}
                                                     whileTap={{ scale: 0.95 }}
                                                     onClick={() => toggleStatus(s)}
-                                                    className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-tight border shadow-sm transition-all ${
+                                                    className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide border shadow-sm transition-all ${
                                                         isSelected 
                                                             ? 'bg-red-600 text-white border-red-600 shadow-red-200 dark:shadow-none' 
                                                             : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-red-300'
@@ -1237,7 +1240,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
                             {/* Main Branches */}
                             <div>
-                                <label className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest mb-3">
+                                <label className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">
                                     <UserGroupIcon className="w-3.5 h-3.5" />
                                     Main Branches
                                 </label>
@@ -1253,7 +1256,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                                                 whileHover={{ scale: 1.05 }}
                                                 whileTap={{ scale: 0.95 }}
                                                 onClick={() => toggleMainBranch(b)}
-                                                className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-tight border shadow-sm transition-all ${
+                                                className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide border shadow-sm transition-all ${
                                                     isSelected 
                                                         ? 'bg-red-600 text-white border-red-600 shadow-red-200 dark:shadow-none' 
                                                         : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-red-300'
@@ -1276,7 +1279,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                                     exit={{ opacity: 0, height: 0 }}
                                     className="overflow-hidden"
                                 >
-                                    <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                                    <label className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">
                                         <ArrowPathIcon className="w-3 h-3" />
                                         Sub Branches
                                     </label>
@@ -1292,7 +1295,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                                                     whileHover={{ scale: 1.05 }}
                                                     whileTap={{ scale: 0.95 }}
                                                     onClick={() => toggleSubBranch(sb)}
-                                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase border shadow-sm transition-all ${
+                                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase border shadow-sm transition-all ${
                                                         isSelected 
                                                             ? 'bg-slate-800 text-white border-slate-800 dark:bg-white dark:text-slate-900' 
                                                             : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:border-slate-400'
@@ -1309,7 +1312,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
                          {/* Categories */}
                         <div>
-                            <label className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest mb-3">
+                            <label className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">
                                 <CubeIcon className="w-3.5 h-3.5" />
                                 Categories
                             </label>
@@ -1325,7 +1328,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                                             whileHover={{ scale: 1.05 }}
                                             whileTap={{ scale: 0.95 }}
                                             onClick={() => toggleCategory(cat)}
-                                            className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-tight border shadow-sm transition-all ${
+                                            className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide border shadow-sm transition-all ${
                                                 isSelected 
                                                     ? 'bg-red-600 text-white border-red-600 shadow-red-200 dark:shadow-none' 
                                                     : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-red-300'
@@ -1341,7 +1344,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                              {/* Customer Category */}
                             <div>
-                                <label className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest mb-3">
+                                <label className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">
                                     <UserGroupIcon className="w-3.5 h-3.5 text-blue-500" />
                                     Customer Category
                                 </label>
@@ -1354,7 +1357,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                                                 whileHover={{ scale: 1.05 }}
                                                 whileTap={{ scale: 0.95 }}
                                                 onClick={() => toggleCustomerCategory(cat)}
-                                                className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-tight border shadow-sm transition-all ${
+                                                className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide border shadow-sm transition-all ${
                                                     isSelected 
                                                         ? 'bg-blue-600 text-white border-blue-600 shadow-blue-200 dark:shadow-none' 
                                                         : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-blue-300'
@@ -1369,7 +1372,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
                             {/* Zone */}
                             <div>
-                                <label className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest mb-3">
+                                <label className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">
                                     <ArchiveBoxXMarkIcon className="w-3.5 h-3.5 text-emerald-500" />
                                     Zone
                                 </label>
@@ -1382,7 +1385,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                                                 whileHover={{ scale: 1.05 }}
                                                 whileTap={{ scale: 0.95 }}
                                                 onClick={() => toggleZone(z)}
-                                                className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-tight border shadow-sm transition-all ${
+                                                className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wide border shadow-sm transition-all ${
                                                     isSelected 
                                                         ? 'bg-emerald-600 text-white border-emerald-600 shadow-emerald-200 dark:shadow-none' 
                                                         : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-emerald-300'
@@ -1409,21 +1412,21 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                                 <XMarkIcon className="w-6 h-6" />
                             </div>
                             <div className="text-center">
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-red-600">Reset</p>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-red-600">Filters</p>
+                                <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider group-hover:text-red-600">Reset</p>
+                                <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider group-hover:text-red-600">Filters</p>
                             </div>
                         </motion.button>
 
                         <div className="hidden xl:block mt-8 space-y-4 w-full">
                             <div className="p-4 rounded-2xl bg-red-50/50 dark:bg-red-900/5 border border-red-100 dark:border-red-900/20">
-                                <p className="text-[10px] font-black text-red-800 dark:text-red-400 uppercase tracking-tighter mb-1">Active Filters</p>
-                                <p className="text-2xl font-black text-red-600">
+                                <p className="text-[10px] font-bold text-red-800 dark:text-red-400 uppercase tracking-tight mb-1">Active Filters</p>
+                                <p className="text-2xl font-bold text-red-600">
                                     {Object.values(filters).flat().filter(v => v !== '').length}
                                 </p>
                             </div>
                             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mb-1">Resulting POs</p>
-                                <p className="text-2xl font-black text-slate-800 dark:text-white">
+                                <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight mb-1">Resulting POs</p>
+                                <p className="text-2xl font-bold text-slate-800 dark:text-white">
                                     {filteredPOs.length}
                                 </p>
                             </div>
@@ -1510,7 +1513,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             </div>
 
             {/* 3. Third Row (Billing Status) */}
-            <h3 className="text-xl font-black text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+            <h3 className="text-base font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2 uppercase tracking-widest">
                 <DocumentTextIcon className="w-6 h-6 text-primary" />
                 Billing Success Status
             </h3>
@@ -1528,13 +1531,13 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                             <CheckBadgeIcon className="w-10 h-10 text-slate-600" />
                         </div>
                         <div>
-                            <p className="text-slate-400 font-black text-sm uppercase tracking-widest mb-1">Total Full Invoices</p>
-                            <p className="text-4xl font-black text-slate-800 dark:text-white">{formatCurrency(dashboardData.totalInvoicedValue)}</p>
+                            <p className="text-slate-400 font-semibold text-xs uppercase tracking-wider mb-1">Total Full Invoices</p>
+                            <p className="text-4xl font-bold text-slate-900 dark:text-white tracking-tight">{formatCurrency(dashboardData.totalInvoicedValue)}</p>
                         </div>
                     </div>
                     <div className="text-right">
-                        <p className="text-xl font-black text-slate-500">{dashboardData.totalInvoicedPOs} POs</p>
-                        <p className="text-xs font-bold text-slate-400 uppercase mt-1">Confirmed Billing</p>
+                        <p className="text-xl font-bold text-slate-600 dark:text-white tracking-tight">{dashboardData.totalInvoicedPOs} POs</p>
+                        <p className="text-[10px] font-semibold text-slate-400 uppercase mt-1 tracking-wider">Confirmed Billing</p>
                     </div>
                 </motion.div>
 
@@ -1551,19 +1554,19 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                             <SparklesIcon className="w-10 h-10 text-purple-600" />
                         </div>
                         <div>
-                            <p className="text-slate-400 font-black text-sm uppercase tracking-widest mb-1">Total Partial Invoices</p>
-                            <p className="text-4xl font-black text-slate-800 dark:text-white">{formatCurrency(dashboardData.partialInvoicedValue)}</p>
+                            <p className="text-slate-400 font-semibold text-xs uppercase tracking-wider mb-1">Total Partial Invoices</p>
+                            <p className="text-4xl font-bold text-slate-900 dark:text-white tracking-tight">{formatCurrency(dashboardData.partialInvoicedValue)}</p>
                         </div>
                     </div>
                     <div className="text-right">
-                        <p className="text-xl font-black text-purple-500">{dashboardData.partialInvoicedPOs} POs</p>
-                        <p className="text-xs font-bold text-slate-400 uppercase mt-1">In-Progress Billing</p>
+                        <p className="text-xl font-bold text-purple-600 dark:text-white tracking-tight">{dashboardData.partialInvoicedPOs} POs</p>
+                        <p className="text-[10px] font-semibold text-slate-400 uppercase mt-1 tracking-wider">In-Progress Billing</p>
                     </div>
                 </motion.div>
             </div>
 
             {/* 4. Fourth Row (Oil Dependency Analysis) */}
-            <h3 className="text-xl font-black text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+            <h3 className="text-base font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2 uppercase tracking-widest">
                 <BeakerIcon className="w-6 h-6 text-orange-500" />
                 Oil Dependency Analysis (Valvoline)
             </h3>
@@ -1594,7 +1597,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             </div>
 
             {/* 5. Fifth Row (Parts Unavailability Analysis) */}
-            <h3 className="text-xl font-black text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+            <h3 className="text-base font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2 uppercase tracking-widest">
                 <CubeIcon className="w-6 h-6 text-blue-500" />
                 Parts Dependency Analysis (CIL)
             </h3>
@@ -1625,12 +1628,12 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             </div>
 
             {/* Availability Buckets */}
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 w-full mb-6">
-                <h2 className="text-xl font-black text-slate-800 dark:text-white mb-6 flex items-center gap-2">
-                    <ChartPieIcon className="w-6 h-6 text-primary" />
+            <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800 w-full mb-12">
+                <h2 className="text-base font-bold text-slate-800 dark:text-white mb-8 flex items-center gap-2 uppercase tracking-widest">
+                    <ChartPieIcon className="w-6 h-6 text-red-600" />
                     Availability Performance Buckets
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                     <DashboardStatCard 
                         title="0% Available" 
                         value={dashboardData.avail0POs} 
