@@ -16,7 +16,7 @@ const DetailedBreakdownPane: React.FC<DetailedBreakdownPaneProps> = ({ purchaseO
     const [searchTerm, setSearchTerm] = useState('');
 
     const activePOs = useMemo(() => {
-        return purchaseOrders.filter(po => po.orderStatus !== OrderStatus.Invoiced);
+        return purchaseOrders.filter(po => po.orderStatus !== OrderStatus.Invoiced && po.orderStatus !== OrderStatus.PartiallyInvoiced);
     }, [purchaseOrders]);
 
     const categorizedData = useMemo(() => {

@@ -185,14 +185,14 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({
                 sortableItems = sortableItems.filter(po => getDynamicFulfillmentStatus(po.filteredItems) !== FulfillmentStatus.Available);
             }
             if (filter.isInvoiced !== undefined) {
-                sortableItems = sortableItems.filter(po => filter.isInvoiced ? po.orderStatus === OrderStatus.Invoiced : po.orderStatus !== OrderStatus.Invoiced);
+                sortableItems = sortableItems.filter(po => filter.isInvoiced ? po.orderStatus === OrderStatus.Invoiced : (po.orderStatus !== OrderStatus.Invoiced && po.orderStatus !== OrderStatus.PartiallyInvoiced));
             } else if (filter.isPartiallyInvoiced) {
                 sortableItems = sortableItems.filter(po => po.orderStatus === OrderStatus.PartiallyInvoiced);
             } else {
                 // If not explicitly filtering for invoiced, only show active ones by default if no other status filter is present
                 // This keeps the list "Active" unless we are viewing invoiced orders
                 if (!filter.status && !filter.saleType) {
-                    sortableItems = sortableItems.filter(po => po.orderStatus !== OrderStatus.Invoiced);
+                    sortableItems = sortableItems.filter(po => po.orderStatus !== OrderStatus.Invoiced && po.orderStatus !== OrderStatus.PartiallyInvoiced);
                 }
             }
             if (filter.saleType) {
@@ -212,7 +212,7 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({
             }
         } else {
             // No external filter, default to active orders only
-            sortableItems = sortableItems.filter(po => po.orderStatus !== OrderStatus.Invoiced);
+            sortableItems = sortableItems.filter(po => po.orderStatus !== OrderStatus.Invoiced && po.orderStatus !== OrderStatus.PartiallyInvoiced);
         }
 
         // Apply dashboard filters
@@ -342,6 +342,8 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({
         let availValue = 0;
         let notAvailCount = 0;
         let notAvailValue = 0;
+        const availPOIds = new Set<string>();
+        const notAvailPOIds = new Set<string>();
 
         filteredAndSortedPOs.forEach(po => {
             po.filteredItems.forEach(item => {
@@ -349,13 +351,22 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({
                 if (item.status === POItemStatus.Available || item.status === POItemStatus.Dispatched) {
                     availCount++;
                     availValue += val;
+                    availPOIds.add(po.id);
                 } else {
                     notAvailCount++;
                     notAvailValue += val;
+                    notAvailPOIds.add(po.id);
                 }
             });
         });
-        return { availCount, availValue, notAvailCount, notAvailValue };
+        return { 
+            availCount, 
+            availValue, 
+            notAvailCount, 
+            notAvailValue,
+            availPOCount: availPOIds.size,
+            notAvailPOCount: notAvailPOIds.size
+        };
     }, [filteredAndSortedPOs]);
 
     const requestSort = (key: SortKeys) => {
@@ -413,9 +424,9 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({
                             }}
                             className={`p-4 rounded-xl border transition-all cursor-pointer bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-green-500 ${partsFilter === 'available' ? 'ring-2 ring-green-500' : ''}`}
                         >
-                            <p className="text-sm font-bold text-green-700 dark:text-green-400 uppercase tracking-wider">Available Items</p>
+                            <p className="text-sm font-bold text-green-700 dark:text-green-400 uppercase tracking-wider">PO Count</p>
                             <div className="flex items-baseline gap-2 mt-1">
-                                <p className="text-2xl font-black text-green-800 dark:text-green-300">{fulfillmentStats.availCount}</p>
+                                <p className="text-2xl font-black text-green-800 dark:text-green-300">{fulfillmentStats.availPOCount}</p>
                                 <p className="text-lg font-bold text-green-600/70">{formatCurrency(fulfillmentStats.availValue, { notation: 'compact' })}</p>
                             </div>
                         </div>
@@ -426,9 +437,9 @@ const AllOrdersPane: React.FC<AllOrdersPaneProps> = ({
                             }}
                             className={`p-4 rounded-xl border transition-all cursor-pointer bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-red-500 ${partsFilter === 'notAvailable' ? 'ring-2 ring-red-500' : ''}`}
                         >
-                            <p className="text-sm font-bold text-red-700 dark:text-red-400 uppercase tracking-wider">Not Available Items</p>
+                            <p className="text-sm font-bold text-red-700 dark:text-red-400 uppercase tracking-wider">PO Count</p>
                             <div className="flex items-baseline gap-2 mt-1">
-                                <p className="text-2xl font-black text-red-800 dark:text-red-300">{fulfillmentStats.notAvailCount}</p>
+                                <p className="text-2xl font-black text-red-800 dark:text-red-300">{fulfillmentStats.notAvailPOCount}</p>
                                 <p className="text-lg font-bold text-red-600/70">{formatCurrency(fulfillmentStats.notAvailValue, { notation: 'compact' })}</p>
                             </div>
                         </div>

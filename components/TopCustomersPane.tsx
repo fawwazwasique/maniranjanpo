@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import type { PurchaseOrder, POItem } from '../types';
-import { POItemStatus } from '../types';
+import { POItemStatus, OrderStatus } from '../types';
 import { ChartPieIcon, UserGroupIcon, MagnifyingGlassIcon, ArrowDownTrayIcon, ChevronDownIcon, XMarkIcon, CheckCircleIcon, NoSymbolIcon } from './icons';
 import { exportDataToCSV } from '../utils/export';
 import { ITEM_CATEGORIES, MAIN_BRANCHES } from '../constants';
@@ -79,6 +79,9 @@ const TopCustomersPane: React.FC<TopCustomersPaneProps> = ({ purchaseOrders }) =
         let totalUnavailableValue = 0;
 
         purchaseOrders.forEach(po => {
+            // Exclude invoiced and partially invoiced orders from active business analysis
+            if (po.orderStatus === OrderStatus.Invoiced || po.orderStatus === OrderStatus.PartiallyInvoiced) return;
+            
             // Branch filter
             if (selectedBranches.length > 0 && !selectedBranches.includes(po.mainBranch || '')) return;
 

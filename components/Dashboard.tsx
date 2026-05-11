@@ -1,5 +1,6 @@
 
 import React, { useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import type { PurchaseOrder } from '../types';
 import { OverallPOStatus, FulfillmentStatus, OrderStatus, POItemStatus, CustomerCategory } from '../types';
 import { CheckCircleIcon, ClockIcon, MagnifyingGlassIcon, TruckIcon, UserGroupIcon, XMarkIcon, ChartPieIcon, CalendarDaysIcon, CurrencyRupeeIcon, NoSymbolIcon, ArrowUpIcon, ArrowDownIcon, SparklesIcon, BeakerIcon, ExclamationTriangleIcon, DocumentTextIcon, CheckBadgeIcon, ArrowRightCircleIcon, WrenchScrewdriverIcon, CubeIcon, ArchiveBoxXMarkIcon, ShieldExclamationIcon, ArrowPathIcon, PresentationChartLineIcon } from './icons';
@@ -50,10 +51,17 @@ interface TrendData {
 }
 
 const DashboardStatCard: React.FC<{ title: string; value: string | number; subValue?: string; icon: React.ReactNode; indicatorColor?: string; trend?: TrendData | null; onClick?: () => void }> = ({ title, value, subValue, icon, indicatorColor, trend, onClick }) => (
-    <div 
+    <motion.div 
         onClick={onClick}
-        className={`bg-white dark:bg-slate-800 p-5 rounded-xl shadow-md flex items-center space-x-4 relative overflow-hidden transition-transform duration-200 ${onClick ? 'cursor-pointer hover:scale-105 hover:shadow-lg active:scale-95' : ''}`}
+        whileHover={onClick ? { y: -4, scale: 1.02 } : { y: -2 }}
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className={`bg-white dark:bg-slate-800 p-5 rounded-xl shadow-md flex items-center space-x-4 relative overflow-hidden transition-colors ${onClick ? 'cursor-pointer hover:shadow-xl hover:bg-slate-50 dark:hover:bg-slate-700/50' : ''}`}
     >
+        <motion.div 
+            whileTap={{ scale: onClick ? 0.95 : 1 }}
+        >
         {indicatorColor && (
             <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${indicatorColor}`}></div>
         )}
@@ -89,7 +97,8 @@ const DashboardStatCard: React.FC<{ title: string; value: string | number; subVa
                 </div>
             )}
         </div>
-    </div>
+        </motion.div>
+    </motion.div>
 );
 
 const isOilItem = (item: any) => {
@@ -258,9 +267,15 @@ const ImpactCard: React.FC<{
     metrics: { label: string; value: string | number; isMain?: boolean; isCurrency?: boolean }[];
     onClick?: () => void;
 }> = ({ title, subtitle, icon, colorClass, bgClass, metrics, onClick }) => (
-    <div 
+    <motion.div 
         onClick={onClick}
-        className={`bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-lg border-l-4 ${colorClass} flex flex-col justify-between group cursor-pointer hover:scale-[1.01] transition-all`}
+        whileHover={{ y: -4, scale: 1.01 }}
+        whileTap={{ scale: 0.98 }}
+        initial={{ opacity: 0, scale: 0.95 }}
+        whileInView={{ opacity: 1, scale: 1 }}
+        viewport={{ once: true, margin: "-50px" }}
+        transition={{ duration: 0.4 }}
+        className={`bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-lg border-l-4 ${colorClass} flex flex-col justify-between group cursor-pointer transition-colors hover:shadow-xl hover:bg-slate-50 dark:hover:bg-slate-700/50`}
     >
         <div className="flex justify-between items-start mb-4">
             <div>
@@ -284,7 +299,7 @@ const ImpactCard: React.FC<{
                 </div>
             ))}
         </div>
-    </div>
+    </motion.div>
 );
 
 const FulfillmentDetailCard: React.FC<{
@@ -301,14 +316,21 @@ const FulfillmentDetailCard: React.FC<{
     onClick: () => void;
     onViewBtnClick: () => void;
 }> = ({ title, subtitle, pos, value, availValue, gapValue, colorClass, borderClass, bgClass, icon, onClick, onViewBtnClick }) => (
-    <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-xl border-t-8 ${borderClass} overflow-hidden flex flex-col h-full`}>
+    <motion.div 
+        whileHover={{ y: -6 }}
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-50px" }}
+        transition={{ duration: 0.4 }}
+        className={`bg-white dark:bg-slate-800 rounded-2xl shadow-xl border-t-8 ${borderClass} overflow-hidden flex flex-col h-full transition-colors hover:shadow-2xl hover:bg-slate-50 dark:hover:bg-slate-800/80 group`}
+    >
         <div className="p-6 flex-1 cursor-pointer" onClick={onClick}>
             <div className="flex justify-between items-start mb-6">
                 <div>
-                    <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest mb-1">{title}</h3>
-                    <p className={`${colorClass} text-xs font-bold`}>{subtitle}</p>
+                    <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest mb-1 group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">{title}</h3>
+                    <p className={`${colorClass} text-xs font-bold opacity-80 group-hover:opacity-100 transition-opacity`}>{subtitle}</p>
                 </div>
-                <div className={`${bgClass} p-3 rounded-xl`}>{icon}</div>
+                <div className={`${bgClass} p-3 rounded-xl transition-transform group-hover:-translate-y-1 duration-300`}>{icon}</div>
             </div>
             
             <div className="mb-6">
@@ -338,14 +360,16 @@ const FulfillmentDetailCard: React.FC<{
             )}
         </div>
         <div className="px-6 pb-6 mt-auto">
-            <button 
+            <motion.button 
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={(e) => { e.stopPropagation(); onViewBtnClick(); }}
-                className={`w-full py-4 ${bgClass.replace('/10', '').replace('/30', '')} hover:opacity-90 text-white rounded-2xl font-black uppercase tracking-widest shadow-lg transition-all active:scale-95 text-xs`}
+                className={`w-full py-4 ${bgClass.replace('/10', '').replace('/30', '')} hover:opacity-90 text-white rounded-2xl font-black uppercase tracking-widest shadow-lg transition-colors text-xs`}
             >
                 View {title.split(' ')[0]} POs
-            </button>
+            </motion.button>
         </div>
-    </div>
+    </motion.div>
 );
 
 const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilters, customers, onCardClick, onRefresh, isRefreshing, dataLimit, onLoadMore, onLoadAll }) => {
@@ -401,8 +425,8 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             });
     }, [purchaseOrders, filters]);
 
-    const activePOs = useMemo(() => filteredPOs.filter(po => po.orderStatus !== OrderStatus.Invoiced), [filteredPOs]);
-    const invoicedPOs = useMemo(() => filteredPOs.filter(po => po.orderStatus === OrderStatus.Invoiced), [filteredPOs]);
+    const activePOs = useMemo(() => filteredPOs.filter(po => po.orderStatus !== OrderStatus.Invoiced && po.orderStatus !== OrderStatus.PartiallyInvoiced), [filteredPOs]);
+    const invoicedPOs = useMemo(() => filteredPOs.filter(po => po.orderStatus === OrderStatus.Invoiced || po.orderStatus === OrderStatus.PartiallyInvoiced), [filteredPOs]);
 
     const getTrend = (
         allPOs: PurchaseOrder[], 
@@ -471,7 +495,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
 
 
     const dashboardData = useMemo(() => {
-        const calculateValue = (pos: PurchaseOrder[]) => pos.reduce((acc, po) => acc + getPOValue(po), 0);
+        const calculateValue = (pos: PurchaseOrder[]) => pos.reduce((acc, po) => acc + getPOValue(po, filters.categories), 0);
 
         const openPOs = activePOs;
         const totalOpenPOs = openPOs.length;
@@ -493,7 +517,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             return (availableCount / total) * 100;
         };
 
-        const fullyAvailablePOsList = activePOs.filter(po => getPOFulfillmentStatus(po) === FulfillmentStatus.Available);
+        const fullyAvailablePOsList = activePOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.Available);
         const fullyAvailablePOs = fullyAvailablePOsList.length;
         const fullyAvailableValue = calculateValue(fullyAvailablePOsList);
 
@@ -543,7 +567,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         const avail90GapValue = b90.gapVal;
 
         // 2. Partially Available
-        const partiallyAvailablePOsList = activePOs.filter(po => getPOFulfillmentStatus(po) === FulfillmentStatus.PartiallyAvailable);
+        const partiallyAvailablePOsList = activePOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.PartiallyAvailable);
         const partiallyAvailablePOs = partiallyAvailablePOsList.length;
         const partiallyAvailableValue = calculateValue(partiallyAvailablePOsList);
         
@@ -564,18 +588,10 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         });
 
         // 3. 100% Not Available
-        const notAvailablePOsList = activePOs.filter(po => (po.items || []).every(item => item.status === POItemStatus.NotAvailable || item.status === POItemStatus.Available || item.status === POItemStatus.Dispatched) && (po.items || []).some(item => item.status === POItemStatus.NotAvailable));
-        // Actually, let's keep the easier filter and just update how the VALUE is calculated for NOT AVAILABLE
+        const notAvailablePOsList = activePOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.NotAvailable);
         const notAvailablePOs = notAvailablePOsList.length;
         
-        let notAvailableValue = 0;
-        notAvailablePOsList.forEach(po => {
-           (po.items || []).forEach(item => {
-               if (item.status === POItemStatus.NotAvailable || item.status === POItemStatus.PartiallyAvailable) {
-                   notAvailableValue += (Number(item.quantity || 0) * Number(item.rate || 0));
-               }
-           });
-        });
+        const notAvailableValue = notAvailablePOsList.reduce((acc, po) => acc + getPOValue(po, filters.categories), 0);
 
         // 6. Aggregated Unavailable Parts List
         const unavailablePartsMap: Record<string, { partNumber: string, description: string, quantity: number, value: number, poCount: number }> = {};
@@ -604,12 +620,12 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         const unavailablePartsList = Object.values(unavailablePartsMap).sort((a, b) => b.value - a.value);
 
         // Trends
-        const openTrend = getTrend(purchaseOrders, filters, p => p.orderStatus !== OrderStatus.Invoiced, p => p.length, true);
-        const valueTrend = getTrend(purchaseOrders, filters, p => p.orderStatus !== OrderStatus.Invoiced, p => calculateValue(p), true);
-        const fullyTrend = getTrend(purchaseOrders, filters, p => p.orderStatus !== OrderStatus.Invoiced && getPOFulfillmentStatus(p) === FulfillmentStatus.Available, p => p.length, true);
-        const partialTrend = getTrend(purchaseOrders, filters, p => p.orderStatus !== OrderStatus.Invoiced && getPOFulfillmentStatus(p) === FulfillmentStatus.PartiallyAvailable, p => p.length, true);
-        const notAvailableTrend = getTrend(purchaseOrders, filters, p => p.orderStatus !== OrderStatus.Invoiced && getPOFulfillmentStatus(p) === FulfillmentStatus.NotAvailable, p => p.length, false);
-        const invoicedTrend = getTrend(purchaseOrders, filters, p => p.orderStatus === OrderStatus.Invoiced, p => p.length, true);
+        const openTrend = getTrend(purchaseOrders, filters, p => p.orderStatus !== OrderStatus.Invoiced && p.orderStatus !== OrderStatus.PartiallyInvoiced, p => p.length, true);
+        const valueTrend = getTrend(purchaseOrders, filters, p => p.orderStatus !== OrderStatus.Invoiced && p.orderStatus !== OrderStatus.PartiallyInvoiced, p => calculateValue(p), true);
+        const fullyTrend = getTrend(purchaseOrders, filters, p => p.orderStatus !== OrderStatus.Invoiced && p.orderStatus !== OrderStatus.PartiallyInvoiced && getPOFulfillmentStatus(p, filters.categories) === FulfillmentStatus.Available, p => p.length, true);
+        const partialTrend = getTrend(purchaseOrders, filters, p => p.orderStatus !== OrderStatus.Invoiced && p.orderStatus !== OrderStatus.PartiallyInvoiced && getPOFulfillmentStatus(p, filters.categories) === FulfillmentStatus.PartiallyAvailable, p => p.length, true);
+        const notAvailableTrend = getTrend(purchaseOrders, filters, p => p.orderStatus !== OrderStatus.Invoiced && p.orderStatus !== OrderStatus.PartiallyInvoiced && getPOFulfillmentStatus(p, filters.categories) === FulfillmentStatus.NotAvailable, p => p.length, false);
+        const invoicedTrend = getTrend(purchaseOrders, filters, p => p.orderStatus === OrderStatus.Invoiced || p.orderStatus === OrderStatus.PartiallyInvoiced, p => p.length, true);
 
         // Advanced Blocking Analysis
         let totalOilRequiredValue = 0;
@@ -732,8 +748,8 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         }));
 
         const valueByFulfillment = activePOs.reduce((acc, po) => {
-            const status = getPOFulfillmentStatus(po);
-            const value = getPOValue(po);
+            const status = getPOFulfillmentStatus(po, filters.categories);
+            const value = getPOValue(po, filters.categories);
             acc[status] = (acc[status] || 0) + value;
             return acc;
         }, {} as Record<string, number>);
@@ -895,17 +911,17 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
         let isGap = false;
 
         if (type === 'OPEN') pos = activePOs;
-        else if (type === 'FULLY_AVAILABLE') pos = activePOs.filter(po => getPOFulfillmentStatus(po) === FulfillmentStatus.Available);
+        else if (type === 'FULLY_AVAILABLE') pos = activePOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.Available);
         else if (type === 'PARTIALLY_AVAILABLE') {
-            pos = activePOs.filter(po => getPOFulfillmentStatus(po) === FulfillmentStatus.PartiallyAvailable);
+            pos = activePOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.PartiallyAvailable);
             isGap = true;
         }
         else if (type === 'NOT_AVAILABLE') {
-            pos = activePOs.filter(po => getPOFulfillmentStatus(po) === FulfillmentStatus.NotAvailable);
+            pos = activePOs.filter(po => getPOFulfillmentStatus(po, filters.categories) === FulfillmentStatus.NotAvailable);
             isGap = true;
         }
         else if (type === 'ANY_SHORTAGE') {
-            pos = activePOs.filter(po => getPOFulfillmentStatus(po) !== FulfillmentStatus.Available);
+            pos = activePOs.filter(po => getPOFulfillmentStatus(po, filters.categories) !== FulfillmentStatus.Available);
             isGap = true;
         }
         else if (type === 'INVOICED') pos = invoicedPOs;
@@ -1260,14 +1276,14 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                     icon={<CheckCircleIcon className="w-6 h-6 text-green-500" />} 
                     indicatorColor="bg-green-500"
                     trend={dashboardData.fullyTrend}
-                    onClick={() => setSelectedBreakdown({ type: 'FULLY_AVAILABLE', title: "Available PO Count" })}
+                    onClick={() => setSelectedBreakdown({ type: 'FULLY_AVAILABLE', title: "PO Count" })}
                 />
                 <DashboardStatCard 
                     title="Available PO Value" 
                     value={formatCurrency(dashboardData.fullyAvailableValue, { notation: 'compact' })} 
                     icon={<SparklesIcon className="w-6 h-6 text-emerald-500" />} 
                     indicatorColor="bg-emerald-500"
-                    onClick={() => setSelectedBreakdown({ type: 'FULLY_AVAILABLE', title: "Available PO Value" })}
+                    onClick={() => setSelectedBreakdown({ type: 'FULLY_AVAILABLE', title: "PO Value" })}
                 />
             </div>
 
@@ -1275,7 +1291,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
                 <FulfillmentDetailCard 
                     title="READY TO EXECUTE"
-                    subtitle="100% Items Available"
+                    subtitle="PO Count"
                     pos={dashboardData.fullyAvailablePOs}
                     value={dashboardData.fullyAvailableValue}
                     colorClass="text-green-600"
@@ -1319,9 +1335,13 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                 Billing Success Status
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-                <div 
+                <motion.div 
+                    whileHover={{ y: -6, scale: 1.02 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
                     onClick={() => setSelectedBreakdown({ type: 'INVOICED', title: "Full Invoices" })}
-                    className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-lg border-b-4 border-slate-400 flex items-center justify-between group cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all"
+                    className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-lg border-b-4 border-slate-400 flex items-center justify-between group cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                 >
                     <div className="flex items-center gap-6">
                         <div className="bg-slate-100 dark:bg-slate-700 p-4 rounded-xl">
@@ -1336,11 +1356,15 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                         <p className="text-xl font-black text-slate-500">{dashboardData.totalInvoicedPOs} POs</p>
                         <p className="text-xs font-bold text-slate-400 uppercase mt-1">Confirmed Billing</p>
                     </div>
-                </div>
+                </motion.div>
 
-                <div 
+                <motion.div 
+                    whileHover={{ y: -6, scale: 1.02 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
                     onClick={() => setSelectedBreakdown({ type: 'PARTIAL_INVOICED', title: "Partial Invoices" })}
-                    className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-lg border-b-4 border-purple-400 flex items-center justify-between group cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all"
+                    className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-lg border-b-4 border-purple-400 flex items-center justify-between group cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-colors"
                 >
                     <div className="flex items-center gap-6">
                         <div className="bg-purple-100 dark:bg-purple-900/30 p-4 rounded-xl">
@@ -1355,7 +1379,7 @@ const Dashboard: React.FC<DashboardProps> = ({ purchaseOrders, filters, setFilte
                         <p className="text-xl font-black text-purple-500">{dashboardData.partialInvoicedPOs} POs</p>
                         <p className="text-xs font-bold text-slate-400 uppercase mt-1">In-Progress Billing</p>
                     </div>
-                </div>
+                </motion.div>
             </div>
 
             {/* 4. Fourth Row (Oil Dependency Analysis) */}
