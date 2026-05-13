@@ -204,8 +204,13 @@ const DonutChart: React.FC<{ data: { label: string; value: number; color: string
                     >
                         <span className="w-2.5 h-2.5 rounded-full mr-2.5 shrink-0" style={{ backgroundColor: segment.color }}></span>
                         <span className="text-slate-500 dark:text-slate-400 font-semibold truncate mr-4">{segment.label}</span>
-                        <span className="ml-auto font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap tracking-tight">
-                            {((segment.value / total) * 100).toFixed(0)}%
+                        <span className="ml-auto flex items-baseline gap-2 whitespace-nowrap tracking-tight">
+                            <span className="font-bold text-slate-800 dark:text-slate-200">
+                                {((segment.value / total) * 100).toFixed(0)}%
+                            </span>
+                            <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500">
+                                {isCurrency ? formatCurrency(segment.value, { notation: 'compact' }) : segment.value}
+                            </span>
                         </span>
                     </div>
                 ))}
